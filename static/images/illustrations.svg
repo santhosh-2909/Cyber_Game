@@ -1,45 +1,158 @@
 <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
   <defs>
     <!-- 1. EMPTY EVIDENCE VAULT -->
-    <symbol id="illus-empty-vault" viewBox="0 0 200 160" fill="none">
-      <rect x="20" y="30" width="160" height="110" rx="8" fill="#0D131F" stroke="#2C3E5A" stroke-width="2" />
-      <circle cx="100" cy="85" r="32" stroke="#1D283E" stroke-width="4" stroke-dasharray="4 4" />
-      <circle cx="100" cy="85" r="22" stroke="#00F0FF" stroke-width="2" />
-      <rect x="96" y="80" width="8" height="10" rx="2" fill="#00F0FF" />
-      <circle cx="100" cy="76" r="4" stroke="#00F0FF" stroke-width="2" />
-      <line x1="40" y1="50" x2="70" y2="50" stroke="#1D283E" stroke-width="2" stroke-linecap="round" />
-      <line x1="40" y1="60" x2="58" y2="60" stroke="#1D283E" stroke-width="2" stroke-linecap="round" />
-      <circle cx="150" cy="50" r="3" fill="#1D283E" />
-      <circle cx="160" cy="50" r="3" fill="#1D283E" />
-      <text x="100" y="130" text-anchor="middle" fill="#9AAEC4" font-family="'JetBrains Mono', monospace" font-size="11" letter-spacing="0.08em">VAULT EMPTY // NO ARTIFACTS</text>
+    <symbol id="illus-empty-vault" viewBox="0 0 200 160" fill="none" stroke="currentColor">
+      <rect x="20" y="30" width="160" height="110" rx="8" stroke-width="1.5" />
+      <circle cx="100" cy="85" r="32" stroke-width="2" stroke-dasharray="4 4" />
+      <circle cx="100" cy="85" r="20" stroke-width="1.5" />
+      <rect x="96" y="80" width="8" height="10" rx="2" fill="currentColor" />
+      <circle cx="100" cy="76" r="4" stroke-width="1.5" />
+      <line x1="40" y1="50" x2="70" y2="50" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="40" y1="60" x2="58" y2="60" stroke-width="1.5" stroke-linecap="round" />
     </symbol>
 
     <!-- 2. CASE FILE ARCHIVE -->
-    <symbol id="illus-case-closed" viewBox="0 0 200 160" fill="none">
-      <path d="M30 40H85L98 52H170V135H30V40Z" fill="#0D131F" stroke="#2C3E5A" stroke-width="2" />
-      <line x1="45" y1="70" x2="120" y2="70" stroke="#9AAEC4" stroke-width="2" stroke-linecap="round" />
-      <line x1="45" y1="84" x2="105" y2="84" stroke="#627D9F" stroke-width="1.5" stroke-linecap="round" />
-      <line x1="45" y1="98" x2="140" y2="98" stroke="#627D9F" stroke-width="1.5" stroke-linecap="round" />
-      <rect x="130" y="105" width="30" height="16" rx="2" fill="rgba(191, 165, 255, 0.12)" stroke="#BFA5FF" stroke-width="1" />
-      <text x="145" y="117" text-anchor="middle" fill="#BFA5FF" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="700">ARCHIVE</text>
+    <symbol id="illus-case-closed" viewBox="0 0 200 160" fill="none" stroke="currentColor">
+      <path d="M30 40H85L98 52H170V135H30V40Z" stroke-width="1.5" />
+      <line x1="45" y1="70" x2="120" y2="70" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="45" y1="84" x2="105" y2="84" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="45" y1="98" x2="140" y2="98" stroke-width="1.5" stroke-linecap="round" />
+      <rect x="130" y="105" width="30" height="16" rx="2" stroke-width="1" />
     </symbol>
 
     <!-- 3. PROCTOR LOCKOUT -->
-    <symbol id="illus-proctor-lock" viewBox="0 0 200 160" fill="none">
-      <circle cx="100" cy="75" r="45" fill="#0D131F" stroke="#F87171" stroke-width="2" stroke-dasharray="3 3" />
-      <rect x="86" y="70" width="28" height="24" rx="3" fill="#141D2E" stroke="#F87171" stroke-width="2" />
-      <path d="M92 70V58C92 53.58 95.58 50 100 50C104.42 50 108 53.58 108 58V70" stroke="#F87171" stroke-width="2" />
-      <circle cx="100" cy="80" r="2" fill="#F87171" />
-      <line x1="100" y1="82" x2="100" y2="87" stroke="#F87171" stroke-width="2" stroke-linecap="round" />
-      <text x="100" y="140" text-anchor="middle" fill="#F87171" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700" letter-spacing="0.08em">ACCESS SUSPENDED // PROCTOR GATE</text>
+    <symbol id="illus-proctor-lock" viewBox="0 0 200 160" fill="none" stroke="currentColor">
+      <circle cx="100" cy="75" r="45" stroke-width="1.5" stroke-dasharray="3 3" />
+      <rect x="86" y="70" width="28" height="24" rx="3" stroke-width="1.5" />
+      <path d="M92 70V58C92 53.58 95.58 50 100 50C104.42 50 108 53.58 108 58V70" stroke-width="1.5" />
+      <circle cx="100" cy="80" r="2" fill="currentColor" />
+      <line x1="100" y1="82" x2="100" y2="87" stroke-width="1.5" stroke-linecap="round" />
     </symbol>
 
     <!-- 4. MISSION VICTORY -->
-    <symbol id="illus-mission-complete" viewBox="0 0 200 160" fill="none">
-      <circle cx="100" cy="70" r="42" fill="rgba(16, 185, 129, 0.08)" stroke="#10B981" stroke-width="2" />
-      <polyline points="85 70 95 80 118 56" stroke="#10B981" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
-      <path d="M100 20L103 26L109 27L105 32L106 38L100 35L94 38L95 32L91 27L97 26Z" fill="#F59E0B" />
-      <text x="100" y="132" text-anchor="middle" fill="#10B981" font-family="'Oxanium', sans-serif" font-size="13" font-weight="700" letter-spacing="0.08em">CASE SOLVED // CHAIN CONFIRMED</text>
+    <symbol id="illus-mission-complete" viewBox="0 0 200 160" fill="none" stroke="currentColor">
+      <circle cx="100" cy="70" r="42" stroke-width="1.5" />
+      <polyline points="85 70 95 80 118 56" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M100 20L103 26L109 27L105 32L106 38L100 35L94 38L95 32L91 27L97 26Z" fill="currentColor" stroke="none" />
+    </symbol>
+
+    <!-- 5. SERVER RACK -->
+    <symbol id="illus-server-rack" viewBox="0 0 200 160" fill="none" stroke="currentColor">
+      <rect x="45" y="25" width="110" height="110" rx="6" stroke-width="1.5" />
+      <!-- Bay 1 -->
+      <rect x="55" y="35" width="90" height="22" rx="3" stroke-width="1.5" />
+      <circle cx="65" cy="46" r="2.5" fill="currentColor" />
+      <circle cx="74" cy="46" r="2.5" fill="currentColor" />
+      <line x1="90" y1="46" x2="135" y2="46" stroke-width="1.5" stroke-linecap="round" />
+      <!-- Bay 2 -->
+      <rect x="55" y="65" width="90" height="22" rx="3" stroke-width="1.5" />
+      <circle cx="65" cy="76" r="2.5" fill="currentColor" />
+      <circle cx="74" cy="76" r="2.5" fill="currentColor" />
+      <line x1="90" y1="76" x2="135" y2="76" stroke-width="1.5" stroke-linecap="round" />
+      <!-- Bay 3 -->
+      <rect x="55" y="95" width="90" height="22" rx="3" stroke-width="1.5" />
+      <circle cx="65" cy="106" r="2.5" fill="currentColor" />
+      <circle cx="74" cy="106" r="2.5" fill="currentColor" />
+      <line x1="90" y1="106" x2="135" y2="106" stroke-width="1.5" stroke-linecap="round" />
+      <!-- Base Feet -->
+      <line x1="40" y1="138" x2="160" y2="138" stroke-width="2" stroke-linecap="round" />
+    </symbol>
+
+    <!-- 6. MEMORY CHIP -->
+    <symbol id="illus-memory-chip" viewBox="0 0 200 160" fill="none" stroke="currentColor">
+      <rect x="60" y="40" width="80" height="80" rx="8" stroke-width="1.5" />
+      <rect x="75" y="55" width="50" height="50" rx="4" stroke-width="1.5" stroke-dasharray="3 3" />
+      <circle cx="100" cy="80" r="8" stroke-width="1.5" />
+      <!-- Pins Top & Bottom -->
+      <line x1="75" y1="28" x2="75" y2="40" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="90" y1="28" x2="90" y2="40" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="110" y1="28" x2="110" y2="40" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="125" y1="28" x2="125" y2="40" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="75" y1="120" x2="75" y2="132" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="90" y1="120" x2="90" y2="132" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="110" y1="120" x2="110" y2="132" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="125" y1="120" x2="125" y2="132" stroke-width="1.5" stroke-linecap="round" />
+      <!-- Pins Left & Right -->
+      <line x1="48" y1="55" x2="60" y2="55" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="48" y1="70" x2="60" y2="70" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="48" y1="90" x2="60" y2="90" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="48" y1="105" x2="60" y2="105" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="140" y1="55" x2="152" y2="55" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="140" y1="70" x2="152" y2="70" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="140" y1="90" x2="152" y2="90" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="140" y1="105" x2="152" y2="105" stroke-width="1.5" stroke-linecap="round" />
+    </symbol>
+
+    <!-- 7. PCAP PACKET WAVE -->
+    <symbol id="illus-pcap-wave" viewBox="0 0 200 160" fill="none" stroke="currentColor">
+      <rect x="25" y="35" width="150" height="90" rx="6" stroke-width="1.5" />
+      <!-- Oscilloscope / Packet pulse waveform -->
+      <path d="M35 80h30l10-35 15 70 12-45 10 20 8-10h45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <!-- Grid crosslines -->
+      <line x1="25" y1="80" x2="175" y2="80" stroke-width="1" stroke-dasharray="2 4" stroke-opacity="0.5" />
+      <line x1="100" y1="35" x2="100" y2="125" stroke-width="1" stroke-dasharray="2 4" stroke-opacity="0.5" />
+    </symbol>
+
+    <!-- 8. 403 FORBIDDEN / ACCESS DENIED -->
+    <symbol id="illus-403" viewBox="0 0 200 160" fill="none" stroke="currentColor">
+      <path d="M100 25L35 55v45c0 40 65 60 65 60s65-20 65-60V55l-65-30z" stroke-width="1.5" />
+      <!-- Lock glyph centered -->
+      <rect x="85" y="80" width="30" height="26" rx="3" stroke-width="1.5" />
+      <path d="M92 80V68a8 8 0 0 1 16 0v12" stroke-width="1.5" />
+      <circle cx="100" cy="91" r="2.5" fill="currentColor" />
+      <line x1="100" y1="93.5" x2="100" y2="99" stroke-width="1.5" stroke-linecap="round" />
+    </symbol>
+
+    <!-- 9. 404 NOT FOUND / EVIDENCE MISSING -->
+    <symbol id="illus-404" viewBox="0 0 200 160" fill="none" stroke="currentColor">
+      <path d="M50 30h70l35 35v65a6 6 0 0 1-6 6H50a6 6 0 0 1-6-6V36a6 6 0 0 1 6-6z" stroke-width="1.5" />
+      <polyline points="120 30 120 65 155 65" stroke-width="1.5" />
+      <!-- Magnifying loupe showing void -->
+      <circle cx="95" cy="95" r="18" stroke-width="1.5" />
+      <line x1="108" y1="108" x2="125" y2="125" stroke-width="2.5" stroke-linecap="round" />
+      <line x1="88" y1="95" x2="102" y2="95" stroke-width="1.5" stroke-linecap="round" />
+    </symbol>
+
+    <!-- 10. 429 RATE LIMITED / COOL-DOWN -->
+    <symbol id="illus-429" viewBox="0 0 200 160" fill="none" stroke="currentColor">
+      <circle cx="100" cy="80" r="45" stroke-width="1.5" />
+      <polyline points="100 50 100 80 125 95" stroke-width="2" stroke-linecap="round" />
+      <!-- Throttle speedometer dial notches -->
+      <line x1="60" y1="80" x2="68" y2="80" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="140" y1="80" x2="132" y2="80" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="100" y1="40" x2="100" y2="48" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M75 110a35 35 0 0 1-5-15" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M125 110a35 35 0 0 0 5-15" stroke-width="1.5" stroke-linecap="round" />
+    </symbol>
+
+    <!-- 11. 500 INTERNAL SERVER ERROR / CRITICAL MALFUNCTION -->
+    <symbol id="illus-500" viewBox="0 0 200 160" fill="none" stroke="currentColor">
+      <path d="M100 25L25 140h150L100 25z" stroke-width="1.5" stroke-linejoin="round" />
+      <line x1="100" y1="65" x2="100" y2="105" stroke-width="2.5" stroke-linecap="round" />
+      <circle cx="100" cy="122" r="2.5" fill="currentColor" />
+    </symbol>
+
+    <!-- 12. CONNECTION LOST / GATEWAY TIMEOUT -->
+    <symbol id="illus-connection-lost" viewBox="0 0 200 160" fill="none" stroke="currentColor">
+      <!-- Broken signal antenna -->
+      <circle cx="100" cy="120" r="6" stroke-width="1.5" fill="currentColor" />
+      <path d="M85 105a20 20 0 0 1 30 0" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M72 90a40 40 0 0 1 56 0" stroke-width="1.5" stroke-linecap="round" />
+      <path d="M60 75a60 60 0 0 1 80 0" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="45" y1="45" x2="155" y2="135" stroke-width="2" stroke-linecap="round" />
+    </symbol>
+
+    <!-- 13. LOGIN HERO GRAPHIC -->
+    <symbol id="illus-login-hero" viewBox="0 0 240 180" fill="none" stroke="currentColor">
+      <!-- Outer cyber shield with biometric nodes -->
+      <path d="M120 20L45 50v55c0 45 75 68 75 68s75-23 75-68V50l-75-30z" stroke-width="1.5" />
+      <circle cx="120" cy="90" r="30" stroke-width="1.5" stroke-dasharray="3 3" />
+      <circle cx="120" cy="90" r="15" stroke-width="1.5" />
+      <circle cx="120" cy="90" r="4" fill="currentColor" />
+      <line x1="120" y1="50" x2="120" y2="60" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="120" y1="120" x2="120" y2="130" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="80" y1="90" x2="90" y2="90" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="150" y1="90" x2="160" y2="90" stroke-width="1.5" stroke-linecap="round" />
     </symbol>
   </defs>
 </svg>

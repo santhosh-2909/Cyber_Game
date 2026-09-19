@@ -1,31 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
-  <defs>
-    <linearGradient id="shieldGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#00F0FF" />
-      <stop offset="100%" stop-color="#0284C7" />
-    </linearGradient>
-    <linearGradient id="coreGlow" x1="24" y1="12" x2="24" y2="36" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.3" />
-      <stop offset="100%" stop-color="#00F0FF" stop-opacity="0" />
-    </linearGradient>
-  </defs>
+  <style>
+    .logo-stroke { stroke: #00F0FF; }
+    .logo-fill { fill: #00F0FF; }
+    .logo-shield-bg { fill: #0D131F; }
+    .logo-core { fill: #00F0FF; fill-opacity: 0.18; }
+    @media (prefers-color-scheme: light) {
+      .logo-stroke { stroke: #00839E; }
+      .logo-fill { fill: #00839E; }
+      .logo-shield-bg { fill: #E2E8F0; }
+      .logo-core { fill: #00839E; fill-opacity: 0.15; }
+    }
+  </style>
 
   <!-- Outer Shield Geometry -->
-  <path d="M24 4L7 11V22C7 32.5 14.2 42.1 24 45C33.8 42.1 41 32.5 41 22V11L24 4Z" 
-        stroke="url(#shieldGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="#0D131F" />
+  <path class="logo-shield-bg logo-stroke" d="M24 4L7 11V22C7 32.5 14.2 42.1 24 45C33.8 42.1 41 32.5 41 22V11L24 4Z" 
+        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
 
-  <!-- Inner Core Background Fill -->
-  <path d="M24 8L11 13.7V22C11 30.2 16.5 37.8 24 40.2C31.5 37.8 37 30.2 37 22V13.7L24 8Z" 
-        fill="url(#coreGlow)" />
+  <!-- Inner Core Fill -->
+  <path class="logo-core" d="M24 8L11 13.7V22C11 30.2 16.5 37.8 24 40.2C31.5 37.8 37 30.2 37 22V13.7L24 8Z" />
 
   <!-- Tactical Reticle / Crosshair -->
-  <circle cx="24" cy="23" r="7" stroke="#00F0FF" stroke-width="1.75" stroke-dasharray="2 2" />
-  <circle cx="24" cy="23" r="3" fill="#00F0FF" />
-  <line x1="24" y1="12" x2="24" y2="15" stroke="#00F0FF" stroke-width="1.75" stroke-linecap="round" />
-  <line x1="24" y1="31" x2="24" y2="34" stroke="#00F0FF" stroke-width="1.75" stroke-linecap="round" />
-  <line x1="13" y1="23" x2="16" y2="23" stroke="#00F0FF" stroke-width="1.75" stroke-linecap="round" />
-  <line x1="32" y1="23" x2="35" y2="23" stroke="#00F0FF" stroke-width="1.75" stroke-linecap="round" />
+  <circle class="logo-stroke" cx="24" cy="23" r="7" stroke-width="1.75" stroke-dasharray="2 2" />
+  <circle class="logo-fill" cx="24" cy="23" r="3" />
+  <line class="logo-stroke" x1="24" y1="12" x2="24" y2="15" stroke-width="1.75" stroke-linecap="round" />
+  <line class="logo-stroke" x1="24" y1="31" x2="24" y2="34" stroke-width="1.75" stroke-linecap="round" />
+  <line class="logo-stroke" x1="13" y1="23" x2="16" y2="23" stroke-width="1.75" stroke-linecap="round" />
+  <line class="logo-stroke" x1="32" y1="23" x2="35" y2="23" stroke-width="1.75" stroke-linecap="round" />
 
-  <!-- Forensics Magnifying Stem Accent -->
-  <path d="M28.5 27.5L34 33" stroke="#00F0FF" stroke-width="2.5" stroke-linecap="round" />
+  <!-- Forensics Loupe Handle Accent -->
+  <path class="logo-stroke" d="M28.5 27.5L34 33" stroke-width="2.5" stroke-linecap="round" />
 </svg>

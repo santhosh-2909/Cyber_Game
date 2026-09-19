@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+  <!-- Outer Shield Geometry -->
+  <path d="M24 4L7 11V22C7 32.5 14.2 42.1 24 45C33.8 42.1 41 32.5 41 22V11L24 4Z" 
+        stroke="#00839E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="#E2E8F0" />
+
+  <!-- Inner Core Glow -->
+  <path d="M24 8L11 13.7V22C11 30.2 16.5 37.8 24 40.2C31.5 37.8 37 30.2 37 22V13.7L24 8Z" 
+        fill="#00839E" fill-opacity="0.12" />
+
+  <!-- Tactical Reticle / Crosshair -->
+  <circle cx="24" cy="23" r="7" stroke="#00839E" stroke-width="1.75" stroke-dasharray="2 2" />
+  <circle cx="24" cy="23" r="3" fill="#00839E" />
+  <line x1="24" y1="12" x2="24" y2="15" stroke="#00839E" stroke-width="1.75" stroke-linecap="round" />
+  <line x1="24" y1="31" x2="24" y2="34" stroke="#00839E" stroke-width="1.75" stroke-linecap="round" />
+  <line x1="13" y1="23" x2="16" y2="23" stroke="#00839E" stroke-width="1.75" stroke-linecap="round" />
+  <line x1="32" y1="23" x2="35" y2="23" stroke="#00839E" stroke-width="1.75" stroke-linecap="round" />
+
+  <!-- Forensics Loupe Handle Accent -->
+  <path d="M28.5 27.5L34 33" stroke="#00839E" stroke-width="2.5" stroke-linecap="round" />
+</svg>
