@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <defs>
+    <!-- 1. EMPTY EVIDENCE VAULT -->
+    <symbol id="illus-empty-vault" viewBox="0 0 200 160" fill="none">
+      <rect x="20" y="30" width="160" height="110" rx="8" fill="#0D131F" stroke="#2C3E5A" stroke-width="2" />
+      <circle cx="100" cy="85" r="32" stroke="#1D283E" stroke-width="4" stroke-dasharray="4 4" />
+      <circle cx="100" cy="85" r="22" stroke="#00F0FF" stroke-width="2" />
+      <rect x="96" y="80" width="8" height="10" rx="2" fill="#00F0FF" />
+      <circle cx="100" cy="76" r="4" stroke="#00F0FF" stroke-width="2" />
+      <line x1="40" y1="50" x2="70" y2="50" stroke="#1D283E" stroke-width="2" stroke-linecap="round" />
+      <line x1="40" y1="60" x2="58" y2="60" stroke="#1D283E" stroke-width="2" stroke-linecap="round" />
+      <circle cx="150" cy="50" r="3" fill="#1D283E" />
+      <circle cx="160" cy="50" r="3" fill="#1D283E" />
+      <text x="100" y="130" text-anchor="middle" fill="#9AAEC4" font-family="'JetBrains Mono', monospace" font-size="11" letter-spacing="0.08em">VAULT EMPTY // NO ARTIFACTS</text>
+    </symbol>
+
+    <!-- 2. CASE FILE ARCHIVE -->
+    <symbol id="illus-case-closed" viewBox="0 0 200 160" fill="none">
+      <path d="M30 40H85L98 52H170V135H30V40Z" fill="#0D131F" stroke="#2C3E5A" stroke-width="2" />
+      <line x1="45" y1="70" x2="120" y2="70" stroke="#9AAEC4" stroke-width="2" stroke-linecap="round" />
+      <line x1="45" y1="84" x2="105" y2="84" stroke="#627D9F" stroke-width="1.5" stroke-linecap="round" />
+      <line x1="45" y1="98" x2="140" y2="98" stroke="#627D9F" stroke-width="1.5" stroke-linecap="round" />
+      <rect x="130" y="105" width="30" height="16" rx="2" fill="rgba(191, 165, 255, 0.12)" stroke="#BFA5FF" stroke-width="1" />
+      <text x="145" y="117" text-anchor="middle" fill="#BFA5FF" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="700">ARCHIVE</text>
+    </symbol>
+
+    <!-- 3. PROCTOR LOCKOUT -->
+    <symbol id="illus-proctor-lock" viewBox="0 0 200 160" fill="none">
+      <circle cx="100" cy="75" r="45" fill="#0D131F" stroke="#F87171" stroke-width="2" stroke-dasharray="3 3" />
+      <rect x="86" y="70" width="28" height="24" rx="3" fill="#141D2E" stroke="#F87171" stroke-width="2" />
+      <path d="M92 70V58C92 53.58 95.58 50 100 50C104.42 50 108 53.58 108 58V70" stroke="#F87171" stroke-width="2" />
+      <circle cx="100" cy="80" r="2" fill="#F87171" />
+      <line x1="100" y1="82" x2="100" y2="87" stroke="#F87171" stroke-width="2" stroke-linecap="round" />
+      <text x="100" y="140" text-anchor="middle" fill="#F87171" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700" letter-spacing="0.08em">ACCESS SUSPENDED // PROCTOR GATE</text>
+    </symbol>
+
+    <!-- 4. MISSION VICTORY -->
+    <symbol id="illus-mission-complete" viewBox="0 0 200 160" fill="none">
+      <circle cx="100" cy="70" r="42" fill="rgba(16, 185, 129, 0.08)" stroke="#10B981" stroke-width="2" />
+      <polyline points="85 70 95 80 118 56" stroke="#10B981" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M100 20L103 26L109 27L105 32L106 38L100 35L94 38L95 32L91 27L97 26Z" fill="#F59E0B" />
+      <text x="100" y="132" text-anchor="middle" fill="#10B981" font-family="'Oxanium', sans-serif" font-size="13" font-weight="700" letter-spacing="0.08em">CASE SOLVED // CHAIN CONFIRMED</text>
+    </symbol>
+  </defs>
+</svg>
