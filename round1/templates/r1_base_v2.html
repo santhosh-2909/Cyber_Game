@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Cyber Puzzle - Round 1{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/utilities.css') }}">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <!-- Connection Monitor Banner -->
+  <div id="connection-banner" class="connection-banner" role="alert" aria-live="assertive">
+    [OFFLINE] LAN CONNECTION INTERRUPTED &mdash; BUFFERING SUBMISSIONS LOCALLY
+  </div>
+
+  <!-- Persistent HUD strip -->
+  <div class="hx-secstrip" role="region" aria-label="Security Status Strip" style="display:flex;align-items:center;justify-content:space-between;padding:4px 16px;background-color:var(--bg-canvas);border-bottom:1px solid var(--border-subtle);font-family:var(--font-mono);font-size:12px;color:var(--text-tertiary);z-index:100;">
+    <div class="hx-sec-left" style="display:flex;align-items:center;gap:8px;">
+      <span class="status-dot active" style="width:8px;height:8px;border-radius:50%;background-color:var(--state-success);display:inline-block;"></span>
+      <span style="font-weight:600;letter-spacing:0.06em;color:var(--text-secondary);">SECURE CHANNEL</span>
+      <span style="opacity:0.4;">|</span>
+      <span>R1 LAB</span>
+    </div>
+    <div class="hx-sec-center" id="hx-clock" style="letter-spacing:0.08em;font-weight:600;color:var(--accent-signal);">SYNC 00:00:00 UTC</div>
+    <div class="hx-sec-right" style="display:flex;align-items:center;gap:12px;">
+      <span>FIREWALL <span style="color:var(--state-success);font-weight:600;">UP</span></span>
+      <span style="opacity:0.4;">|</span>
+      <button type="button" id="theme-toggle" class="btn btn-ghost btn-sm" aria-label="Toggle light/dark visual theme" style="padding:2px 8px;font-size:12px;border:1px solid var(--border-subtle);border-radius:var(--radius-xs);">
+        <span class="theme-label font-mono" style="font-size:12px;">THEME</span>
+      </button>
+    </div>
+  </div>
+
+  {% if team or session_row or session.get('r1_team') %}
+  <!-- Authenticated R1 Command Shell -->
+  <header class="hud-topnav" style="background-color:var(--bg-surface-1);border-bottom:1px solid var(--border-default);padding:0 20px;">
+    <div class="hud-topnav-inner" style="max-width:1440px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px;">
+      <div style="display:flex;align-items:center;gap:20px;">
+        <div class="hud-brand" style="display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:var(--radius-sm);background-color:var(--accent-signal);display:flex;align-items:center;justify-content:center;font-weight:800;font-family:var(--font-mono);font-size:14px;color:#070B12;">R1</div>
+          <div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:0.06em;color:var(--text-primary);">Cyber<span style="color:var(--accent-signal);">Puzzle</span></div>
+          </div>
+        </div>
+
+        <nav class="hud-center-nav" style="display:flex;align-items:center;gap:6px;margin-left:16px;">
+          <a href="{{ url_for('landing') }}" class="btn btn-ghost btn-sm" style="font-size:13px;">Home</a>
+          <a href="{{ url_for('r1.r1_dashboard') }}" class="btn btn-ghost btn-sm {% if request.endpoint == 'r1.r1_dashboard' %}btn-secondary{% endif %}" style="font-size:13px;">Dashboard</a>
+          <a href="{{ url_for('r1.r1_rules') }}" class="btn btn-ghost btn-sm {% if request.endpoint == 'r1.r1_rules' %}btn-secondary{% endif %}" style="font-size:13px;">Rules</a>
+          <a href="{{ url_for('r1.r1_leaderboard') }}" class="btn btn-ghost btn-sm {% if request.endpoint == 'r1.r1_leaderboard' %}btn-secondary{% endif %}" style="font-size:13px;">Leaderboard</a>
+        </nav>
+      </div>
+
+      <div class="hud-user" style="display:flex;align-items:center;gap:16px;">
+        {% if session_row and session_row.status == 'ACTIVE' and session_row.remaining_ms %}
+        <div class="hud-top-timer font-mono" style="background-color:var(--bg-surface-2);border:1px solid var(--border-default);padding:4px 12px;border-radius:var(--radius-sm);display:flex;align-items:center;gap:8px;">
+          <span class="t-label" style="font-size:12px;color:var(--text-tertiary);letter-spacing:0.05em;">TIME</span>
+          <span class="t-value font-bold" id="top-timer" style="font-size:14px;color:var(--accent-signal);">--:--</span>
+          <span id="hud-timer" style="display:none;"></span>
+        </div>
+        {% endif %}
+
+        {% if team %}
+        <div class="hud-team font-mono" style="font-size:13px;display:flex;align-items:center;gap:8px;padding:4px 10px;background-color:var(--bg-surface-2);border-radius:var(--radius-sm);border:1px solid var(--border-subtle);">
+          <span class="status-dot active" style="width:6px;height:6px;border-radius:50%;background-color:var(--state-success);"></span>
+          <span style="color:var(--text-primary);font-weight:600;">{{ team.team_name if team.team_name is defined else team }}</span>
+        </div>
+        {% endif %}
+
+        <a href="{{ url_for('r1.r1_logout') }}" class="btn btn-ghost btn-sm" style="font-size:12px;color:var(--text-tertiary);">Logout</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="hud-body" style="display:flex;min-height:calc(100vh - 92px);">
+    <aside class="hud-sidebar" style="width:240px;background-color:var(--bg-surface-1);border-right:1px solid var(--border-default);padding:20px 12px;flex-shrink:0;">
+      <div class="hud-side-section" style="margin-bottom:24px;">
+        <div class="hud-side-title font-mono" style="font-size:12px;color:var(--text-tertiary);letter-spacing:0.08em;margin-bottom:10px;padding:0 8px;">COMMAND</div>
+        <a href="{{ url_for('r1.r1_dashboard') }}" class="btn btn-ghost btn-sm w-full {% if request.endpoint == 'r1.r1_dashboard' %}btn-secondary{% endif %}" style="justify-content:flex-start;gap:8px;margin-bottom:4px;font-size:13px;">
+          <span>Overview</span>
+        </a>
+        <a href="{{ url_for('r1.r1_dashboard') }}" class="btn btn-ghost btn-sm w-full {% if request.endpoint in ('r1.r1_challenge','r1.r1_lab') %}btn-secondary{% endif %}" style="justify-content:flex-start;gap:8px;margin-bottom:4px;font-size:13px;">
+          <span>Challenge</span>
+        </a>
+        <a href="{{ url_for('r1.r1_dashboard') }}" class="btn btn-ghost btn-sm w-full" style="justify-content:flex-start;gap:8px;margin-bottom:4px;font-size:13px;">
+          <span>Progress</span>
+        </a>
+      </div>
+      <div class="hud-side-section">
+        <div class="hud-side-title font-mono" style="font-size:12px;color:var(--text-tertiary);letter-spacing:0.08em;margin-bottom:10px;padding:0 8px;">SESSION</div>
+        <a href="{{ url_for('r1.r1_rules') }}" class="btn btn-ghost btn-sm w-full {% if request.endpoint == 'r1.r1_rules' %}btn-secondary{% endif %}" style="justify-content:flex-start;gap:8px;margin-bottom:4px;font-size:13px;">
+          <span>Rules</span>
+        </a>
+        <a href="{{ url_for('r1.r1_leaderboard') }}" class="btn btn-ghost btn-sm w-full {% if request.endpoint == 'r1.r1_leaderboard' %}btn-secondary{% endif %}" style="justify-content:flex-start;gap:8px;font-size:13px;">
+          <span>Leaderboard</span>
+        </a>
+      </div>
+    </aside>
+
+    <main class="hud-main" style="flex:1;padding:24px;background-color:var(--bg-canvas);" role="main">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  {% else %}
+  <!-- Unauthenticated Stage (Auth pages) -->
+  <main class="fs-stage" role="main">
+    {{ self.content() }}
+  </main>
+  {% endif %}
+
+  <!-- Global Toast Region -->
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Core Behaviors Engine -->
+  <script src="{{ url_for('static', filename='js/core.js') }}"></script>
+
+  <!-- HUD Clock Sync -->
+  <script>
+    (function () {
+      var hc = document.getElementById('hx-clock');
+      if (!hc) return;
+      function pad(n){ return String(n).padStart(2, '0'); }
+      function tick(){
+        var d = new Date();
+        hc.textContent = 'SYNC ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds()) + ' UTC';
+      }
+      tick();
+      setInterval(tick, 1000);
+    })();
+  </script>
+
+  {% if session_row and session_row.status == 'ACTIVE' and session_row.remaining_ms %}
+  <!-- Round 1 Session Timer Script -->
+  <script>
+    (function() {
+      var endMs = new Date().getTime() + parseInt({{ session_row.remaining_ms }}, 10);
+      var el = document.getElementById('top-timer');
+      var elHud = document.getElementById('hud-timer');
+      var warned10 = false, warned5 = false, warned1 = false, finished = false;
+      function pad(n){ return String(n).padStart(2, '0'); }
+      function finishRound(){
+        finished = true;
+        fetch('{{ url_for("r1.r1_timeup") }}', { method: 'POST' })
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+            if (d && d.ok && d.redirect) { window.location.href = d.redirect; }
+            else { window.location.reload(); }
+          })
+          .catch(function(){ window.location.reload(); });
+      }
+      function tick(){
+        var rem = endMs - new Date().getTime();
+        if (rem <= 0) {
+          if (el) { el.textContent = '00:00'; el.style.color = 'var(--state-danger, #EF4444)'; }
+          if (elHud) { elHud.textContent = '00:00'; }
+          if (!finished) { finishRound(); }
+          return;
+        }
+        var mins = Math.floor(rem / 60000), secs = Math.floor((rem % 60000) / 1000);
+        var display = pad(mins) + ':' + pad(secs);
+        if (el) el.textContent = display;
+        if (elHud) elHud.textContent = display;
+        if (el && !warned10 && rem <= 10 * 60000){ warned10 = true; el.style.color = 'var(--state-warning, #F59E0B)'; }
+        if (el && !warned5 && rem <= 5 * 60000){ warned5 = true; el.style.color = 'var(--state-warning, #F59E0B)'; }
+        if (el && !warned1 && rem <= 60000){ warned1 = true; el.style.color = 'var(--state-danger, #EF4444)'; }
+      }
+      tick();
+      setInterval(tick, 1000);
+    })();
+  </script>
+  {% endif %}
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

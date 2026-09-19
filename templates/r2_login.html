@@ -1,124 +1,74 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Round 2 Login - Cyber Detective</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/forensics.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/globe-login.css') }}">
-</head>
-<body class="hx-frame">
-  <div class="r1-bg-image" aria-hidden="true"></div>
-  <div class="hx-crt" aria-hidden="true"></div>
-  <div class="hx-secstrip" aria-hidden="true">
-    <div class="hx-sec-left">
-      <span class="hx-seg"><span class="dot"></span>SECURE CHANNEL</span>
-      <span class="hx-pipe">|</span>
-      <span class="hx-seg">FORENSIC LAB</span>
-    </div>
-    <div class="hx-sec-center hx-seg"><span class="hx-cursor">WORKSTATION AUTH</span></div>
-    <div class="hx-sec-right">
-      <span class="hx-seg">NODE <span class="hx-blink">OK</span></span>
-    </div>
-  </div>
+{% extends "base_v2.html" %}
 
-  <div class="pub-stage globe-login-stage">
-    <div class="env" aria-hidden="true">
-      <div class="env-deep"></div><div class="env-scene"></div><div class="env-rain"></div>
-      <div class="env-neural"><div class="env-neural-core"><span class="env-orbit orbit-a"></span><span class="env-orbit orbit-b"></span><span class="env-orbit orbit-c"></span><i class="env-node node-a"></i><i class="env-node node-b"></i><i class="env-node node-c"></i><i class="env-node node-d"></i><i class="env-node node-e"></i><i class="env-node node-f"></i><b class="env-link link-a"></b><b class="env-link link-b"></b><b class="env-link link-c"></b></div></div>
-      <div class="env-glow"></div><div class="env-grid"></div><div class="env-scan"></div><div class="env-vignette"></div>
+{% block title %}Round 2 Login — Cyber Detective{% endblock %}
+
+{% block content %}
+<div class="auth-stage">
+  <div class="auth-card auth-card-r2">
+    <div style="margin-bottom:var(--space-4, 16px);">
+      <a href="{{ url_for('landing') }}" class="btn btn-ghost btn-sm" style="font-size:12px;padding:4px 8px;display:inline-flex;align-items:center;gap:6px;">
+        &larr; BACK TO MAIN PAGE
+      </a>
     </div>
 
-    <!-- Cinematic hacker scene (decorative background) -->
-    <div class="cyber-scene" aria-hidden="true">
-      <div class="cs-glows"></div>
-      <div class="cs-monitor cs-monitor-l"></div>
-      <div class="cs-monitor cs-monitor-r"></div>
-      <div class="cs-hood"></div>
-      <div class="cs-binary"></div>
-      <div class="cs-overlay"></div>
-    </div>
-
-    <div class="globe-login-container">
-      <!-- Login Form Section -->
-      <div class="auth-column">
-        <a href="{{ url_for('landing') }}" class="hud-nav-link hud-btn-ghost" style="display:inline-flex;margin-bottom:16px;width:fit-content;">&larr; BACK TO MAIN PAGE</a>
-
-        <div class="pub-auth-card">
-          <div class="auth-switch">
-            <a href="{{ url_for('start') }}">TEAM LOGIN</a>
-            <a href="{{ url_for('r1.r1_login') }}">ROUND 1</a>
-            <a class="active" href="{{ url_for('r2_login') }}">ROUND 2</a>
-          </div>
-          <div class="flex items-center gap-md mb-lg">
-            <div class="pub-nav-logo" style="width:48px;height:48px;font-size:15px;">R2</div>
-            <div>
-              <div class="hud-kicker" style="color:var(--hud-dim);">ROUND 2</div>
-              <h2 class="hud-h1" style="font-size:1.4rem;">Digital Forensics Login</h2>
-            </div>
-          </div>
-
-          {% if error %}
-            <div style="background:rgba(255,176,32,0.08);border:1px solid #FFB020;padding:14px 16px;border-radius:10px;margin-bottom:20px;">
-              <span class="text-warning">{{ error }}</span>
-            </div>
-          {% endif %}
-
-          <div style="background:rgba(108,43,255,0.08);border:1px solid rgba(108,43,255,0.35);padding:14px 16px;border-radius:10px;margin-bottom:20px;">
-            <div class="hud-kicker" style="color:var(--hud-purple-lt);">FORENSIC WORKSTATION</div>
-            <p class="hud-sub" style="margin-top:6px;font-size:0.875rem;line-height:1.7;">
-              Sign in with the <strong style="color:var(--hud-text);">Team Name</strong> and
-              <strong style="color:var(--hud-text);">Round 2 Access ID</strong> provisioned by the event
-              administrator to enter Round 2 and open your assigned investigation case.
-            </p>
-          </div>
-
-          <div class="hx-verify" style="margin-bottom:20px;">
-            <div class="hx-vlock">🔒</div>
-            <div class="hx-vtxt">
-              <div class="hx-vtitle">Evidence Vault · Secured</div>
-              <div class="hx-vsub">chain of custody · sequential unlock</div>
-            </div>
-            <span class="hx-vbadge">GATED</span>
-          </div>
-
-          <form method="POST" action="{{ url_for('r2_login') }}">
-            <div style="margin-bottom:16px;">
-              <label class="pub-label">TEAM NAME</label>
-              <input type="text" name="team_name" class="pub-field" placeholder="e.g. Cyber Titans" required>
-            </div>
-            <div style="margin-bottom:20px;">
-              <label class="pub-label">ROUND 2 ACCESS ID</label>
-              <input type="text" name="team_id" class="pub-field" placeholder="e.g. R2-CT2026-001" required>
-            </div>
-            <button type="submit" class="hud-btn btn-xl" style="width:100%;">ENTER WORKSTATION</button>
-          </form>
-        </div>
+    <div class="auth-header">
+      <div class="auth-logo">
+        <span class="font-mono font-bold" style="font-size:16px;color:var(--accent-purple);">R2</span>
       </div>
+      <h1 class="auth-title">DIGITAL FORENSICS</h1>
+      <p class="auth-subtitle">ROUND 2 · FORENSIC WORKSTATION AUTH</p>
+    </div>
+
+    <div class="auth-switch" role="tablist" aria-label="Login Mode Selection">
+      <a href="{{ url_for('start') }}" role="tab" aria-selected="false">TEAM LOGIN</a>
+      <a href="{{ url_for('r1.r1_login') }}" role="tab" aria-selected="false">ROUND 1</a>
+      <a href="{{ url_for('r2_login') }}" class="active" role="tab" aria-selected="true">ROUND 2</a>
+    </div>
+
+    {% if error %}
+    <div class="auth-error" role="alert" aria-live="assertive">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;">
+        <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+      </svg>
+      <span style="font-size:13px;line-height:1.4;">{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <div class="auth-notice">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      <span>Sign in with the <strong>Team Name</strong> and <strong>Round 2 Access ID</strong> provisioned by the event administrator to open your assigned investigation case.</span>
+    </div>
+
+    <div class="auth-status-bar">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="status-dot active" style="width:6px;height:6px;border-radius:50%;background-color:var(--state-success);"></span>
+        <span>EVIDENCE VAULT GATED</span>
+      </div>
+      <span class="badge badge-outline font-mono" style="font-size:12px;">CHAIN OF CUSTODY</span>
+    </div>
+
+    <form method="POST" action="{{ url_for('r2_login') }}">
+      <div class="form-group mb-4">
+        <label class="form-label" for="team_name">TEAM NAME</label>
+        <input type="text" id="team_name" name="team_name" class="form-input" placeholder="e.g. Cyber Titans" required autofocus autocomplete="organization">
+      </div>
+      <div class="form-group mb-6">
+        <label class="form-label" for="team_id">ROUND 2 ACCESS ID</label>
+        <input type="text" id="team_id" name="team_id" class="form-input form-input-mono" placeholder="e.g. R2-CT2026-001" required autocomplete="off">
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg w-full" style="justify-content:center;gap:8px;">
+        <span>ENTER WORKSTATION</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <span>Forensic custody and sequential evidence unlock enforced under audit logging.</span>
     </div>
   </div>
-
-  <script>
-    (function(){
-      var root=document.querySelector('.env-rain');
-      if(root){
-        for(var i=0;i<10;i++){
-          var c=document.createElement('div');
-          c.className='er-col'+(i%2?' er-col-up':'');
-          c.style.left=(5+i*10)+'%';
-          c.style.animationDuration=(34+i*5)+'s';
-          c.style.animationDelay=(-i*4)+'s';
-          var s=document.createElement('span');
-          s.textContent='01001101001011011010010100110101'.repeat(3);
-          c.appendChild(s);
-          root.appendChild(c);
-        }
-      }
-    })();
-  </script>
-</body>
-</html>
+</div>
+{% endblock %}

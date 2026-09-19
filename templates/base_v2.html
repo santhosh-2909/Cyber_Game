@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Cyber Detective 2026{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/utilities.css') }}">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <!-- Connection Monitor Banner -->
+  <div id="connection-banner" class="connection-banner" role="alert" aria-live="assertive">
+    [OFFLINE] LAN CONNECTION INTERRUPTED &mdash; BUFFERING SUBMISSIONS LOCALLY
+  </div>
+
+  <!-- Persistent secured-connection HUD strip -->
+  <div class="hx-secstrip" role="region" aria-label="Security Status Strip" style="display:flex;align-items:center;justify-content:space-between;padding:4px 16px;background-color:var(--bg-canvas);border-bottom:1px solid var(--border-subtle);font-family:var(--font-mono);font-size:12px;color:var(--text-tertiary);z-index:100;">
+    <div class="hx-sec-left" style="display:flex;align-items:center;gap:8px;">
+      <span class="status-dot active" style="width:8px;height:8px;border-radius:50%;background-color:var(--state-success);display:inline-block;"></span>
+      <span style="font-weight:600;letter-spacing:0.06em;color:var(--text-secondary);">SECURE CHANNEL</span>
+      <span style="opacity:0.4;">|</span>
+      <span>TLS-1.3 ENCRYPTED</span>
+    </div>
+    <div class="hx-sec-center" id="hx-clock" style="letter-spacing:0.08em;font-weight:600;color:var(--accent-signal);">SYNC 00:00:00 UTC</div>
+    <div class="hx-sec-right" style="display:flex;align-items:center;gap:12px;">
+      <span>FIREWALL <span style="color:var(--state-success);font-weight:600;">ACTIVE</span></span>
+      <span style="opacity:0.4;">|</span>
+      <button type="button" id="theme-toggle" class="btn btn-ghost btn-sm" aria-label="Toggle light/dark visual theme" style="padding:2px 8px;font-size:12px;border:1px solid var(--border-subtle);border-radius:var(--radius-xs);">
+        <span class="theme-label font-mono" style="font-size:12px;">THEME</span>
+      </button>
+    </div>
+  </div>
+
+  {% if session.get('team') %}
+  <!-- Authenticated Platform Header -->
+  <header class="topnav" style="background-color:var(--bg-surface-1);border-bottom:1px solid var(--border-default);padding:0 20px;">
+    <div class="topnav-inner" style="max-width:1440px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px;">
+      <div style="display:flex;align-items:center;gap:20px;">
+        <a href="{{ url_for('dashboard') }}" class="topnav-brand" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+          <div style="width:32px;height:32px;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--accent-signal),var(--accent-purple));display:flex;align-items:center;justify-content:center;font-weight:800;font-family:var(--font-mono);font-size:14px;color:#070B12;">CD</div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:0.06em;color:var(--text-primary);">CYBER<span style="color:var(--accent-signal);">DETECTIVE</span></div>
+        </a>
+        <span class="badge badge-outline" style="font-size:12px;">R2 FORENSICS</span>
+
+        <nav class="topnav-links" style="display:flex;align-items:center;gap:6px;margin-left:16px;">
+          <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm {% if request.endpoint in ('dashboard','case_session') %}btn-secondary{% endif %}" style="font-size:13px;">Dashboard</a>
+          <a href="{{ url_for('case_selector') }}" class="btn btn-ghost btn-sm {% if request.endpoint in ('case_selector','case_study','evidence','puzzle_lab','challenge') %}btn-secondary{% endif %}" style="font-size:13px;">Cases</a>
+          <a href="{{ url_for('evidence_board') }}" class="btn btn-ghost btn-sm {% if request.endpoint == 'evidence_board' %}btn-secondary{% endif %}" style="font-size:13px;">Evidence</a>
+          <a href="{{ url_for('report') }}" class="btn btn-ghost btn-sm {% if request.endpoint == 'report' %}btn-secondary{% endif %}" style="font-size:13px;">Report</a>
+          <a href="{{ url_for('scoreboard') }}" class="btn btn-ghost btn-sm {% if request.endpoint in ('scoreboard','score') %}btn-secondary{% endif %}" style="font-size:13px;">Scoreboard</a>
+        </nav>
+      </div>
+
+      <div class="topnav-right" style="display:flex;align-items:center;gap:16px;">
+        <div class="topnav-timer font-mono" style="background-color:var(--bg-surface-2);border:1px solid var(--border-default);padding:4px 12px;border-radius:var(--radius-sm);display:flex;align-items:center;gap:8px;">
+          <span style="font-size:12px;color:var(--text-tertiary);letter-spacing:0.05em;">CASE TIME</span>
+          <span id="case-timer" class="font-bold" style="font-size:14px;color:var(--accent-signal);"
+                data-remaining-ms="{{ r2_timer.remaining_ms if r2_timer else 2700000 }}"
+                data-status="{{ r2_timer.status if r2_timer else 'ACTIVE' }}">00:45:00</span>
+        </div>
+
+        <div class="topnav-team font-mono" style="font-size:13px;display:flex;align-items:center;gap:8px;padding:4px 10px;background-color:var(--bg-surface-2);border-radius:var(--radius-sm);border:1px solid var(--border-subtle);">
+          <span class="status-dot active" style="width:6px;height:6px;border-radius:50%;background-color:var(--state-success);"></span>
+          <span style="color:var(--text-primary);font-weight:600;">{{ team.name if team else session.get('team', '') }}</span>
+        </div>
+
+        <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm" style="font-size:12px;color:var(--text-tertiary);">Logout</a>
+      </div>
+    </div>
+  </header>
+  {% endif %}
+
+  <!-- Main View Stage -->
+  <main class="fs-stage" role="main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Global Toast Region -->
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Core Behaviors Engine -->
+  <script src="{{ url_for('static', filename='js/core.js') }}"></script>
+
+  <!-- HUD Clock Sync -->
+  <script>
+    (function () {
+      var hc = document.getElementById('hx-clock');
+      if (!hc) return;
+      function pad(n){ return String(n).padStart(2, '0'); }
+      function tick(){
+        var d = new Date();
+        hc.textContent = 'SYNC ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds()) + ' UTC';
+      }
+      tick();
+      setInterval(tick, 1000);
+    })();
+  </script>
+
+  <!-- Round 2 Fixed Countdown Timer -->
+  <script>
+    (function () {
+      var el = document.getElementById('case-timer');
+      if (!el) return;
+      var remaining = parseInt(el.dataset.remainingMs || '2700000', 10);
+      if (isNaN(remaining) || remaining < 0) remaining = 0;
+      var status = (el.dataset.status || 'ACTIVE').toUpperCase();
+      var endMs = Date.now() + remaining;
+      var finished = (status === 'COMPLETED') || remaining <= 0;
+      function pad(n){ return String(n).padStart(2, '0'); }
+      function render(ms){
+        if (ms < 0) ms = 0;
+        var h = Math.floor(ms / 3600000),
+            m = Math.floor((ms % 3600000) / 60000),
+            s = Math.floor((ms % 60000) / 1000);
+        el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+        if (ms <= 60000) { el.style.color = 'var(--state-danger, #EF4444)'; }
+        else if (ms <= 5 * 60000) { el.style.color = 'var(--state-warning, #F59E0B)'; }
+      }
+      function finishRound(){
+        if (finished) return;
+        finished = true;
+        render(0);
+        fetch('{{ url_for("r2_timeup") }}', { method: 'POST' })
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+            if (d && d.redirect) { window.location.href = d.redirect; }
+            else { window.location.href = '{{ url_for("score") }}'; }
+          })
+          .catch(function(){ window.location.href = '{{ url_for("score") }}'; });
+      }
+      if (finished) { render(0); return; }
+      render(remaining);
+      setInterval(function(){
+        var rem = endMs - Date.now();
+        if (rem <= 0) { finishRound(); return; }
+        render(rem);
+      }, 1000);
+    })();
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

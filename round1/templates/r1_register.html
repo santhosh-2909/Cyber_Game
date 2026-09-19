@@ -1,89 +1,68 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Team Access - Cyber Puzzle</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}">
-</head>
-<body class="hx-frame">
-  <div class="r1-bg-image" aria-hidden="true"></div>
-  <div class="hx-crt" aria-hidden="true"></div>
-  <div class="hx-secstrip" aria-hidden="true">
-    <div class="hx-sec-left">
-      <span class="hx-seg"><span class="dot"></span>SECURE CHANNEL</span>
-      <span class="hx-pipe">|</span>
-      <span class="hx-seg">R1 AUTH</span>
-    </div>
-    <div class="hx-sec-center hx-seg"><span class="hx-cursor">ACCESS GATE</span></div>
-    <div class="hx-sec-right">
-      <span class="hx-seg">FIREWALL <span class="hx-blink">UP</span></span>
-    </div>
-  </div>
-  <div class="pub-stage" style="display:flex;align-items:center;justify-content:center;padding:60px 20px;">
+{% extends "r1_base_v2.html" %}
 
-    <!-- Cinematic hacker scene (decorative background) -->
-    <div class="cyber-scene" aria-hidden="true">
-      <div class="cs-glows"></div>
-      <div class="cs-monitor cs-monitor-l"></div>
-      <div class="cs-monitor cs-monitor-r"></div>
-      <div class="cs-hood"></div>
-      <div class="cs-binary"></div>
-      <div class="cs-overlay"></div>
+{% block title %}Team Access — Cyber Puzzle{% endblock %}
+
+{% block content %}
+<div class="auth-stage">
+  <div class="auth-card auth-card-r1">
+    <div style="margin-bottom:var(--space-4, 16px);">
+      <a href="{{ url_for('start') }}" class="btn btn-ghost btn-sm" style="font-size:12px;padding:4px 8px;display:inline-flex;align-items:center;gap:6px;">
+        &larr; BACK TO TEAM LOGIN
+      </a>
     </div>
 
-    <div class="pub-auth" style="max-width:520px;">
-      <a href="{{ url_for('start') }}" class="hud-nav-link hud-btn-ghost" style="display:inline-flex;margin-bottom:16px;">&larr; BACK TO TEAM LOGIN</a>
-
-      <div class="pub-auth-card">
-        <div class="flex items-center gap-md mb-lg">
-          <div class="pub-nav-logo" style="width:48px;height:48px;font-size:15px;">R1</div>
-          <div>
-            <div class="hud-kicker" style="color:var(--hud-dim);">ROUND 1</div>
-            <h2 class="hud-h1" style="font-size:1.4rem;">Team Access</h2>
-          </div>
-        </div>
-
-        {% if error %}
-          <div style="background:rgba(255,176,32,0.08);border:1px solid #FFB020;padding:14px 16px;border-radius:10px;margin-bottom:20px;">
-            <span class="text-warning">{{ error }}</span>
-          </div>
-        {% endif %}
-
-        <div style="background:rgba(108,43,255,0.08);border:1px solid rgba(108,43,255,0.35);padding:14px 16px;border-radius:10px;margin-bottom:20px;">
-          <div class="hud-kicker" style="color:var(--hud-purple-lt);">ADMIN-MANAGED ACCESS</div>
-          <p class="hud-sub" style="margin-top:6px;font-size:0.875rem;line-height:1.7;">
-            Team accounts are provisioned by the event administrator. No public registration is
-            available. Log in with the <strong style="color:var(--hud-text);">Team Name</strong> and
-            <strong style="color:var(--hud-text);">Team ID</strong> provided for your team.
-          </p>
-        </div>
-
-        <div class="hx-verify" style="margin-bottom:20px;">
-          <div class="hx-vlock">🔒</div>
-          <div class="hx-vtxt">
-            <div class="hx-vtitle">Provisioned Access Only</div>
-            <div class="hx-vsub">no public registration · admin-managed</div>
-          </div>
-          <span class="hx-vbadge">GATED</span>
-        </div>
-
-        <form method="POST" action="{{ url_for('r1.r1_login') }}">
-          <div style="margin-bottom:16px;">
-            <label class="pub-label">TEAM NAME</label>
-            <input type="text" name="team_name" class="pub-field" placeholder="e.g. Cyber Titans" required>
-          </div>
-          <div style="margin-bottom:20px;">
-            <label class="pub-label">ROUND 1 ID</label>
-            <input type="text" name="team_id" class="pub-field" placeholder="e.g. CT2026-001" required>
-          </div>
-          <button type="submit" class="hud-btn btn-xl" style="width:100%;">LOGIN</button>
-        </form>
+    <div class="auth-header">
+      <div class="auth-logo">
+        <span class="font-mono font-bold" style="font-size:16px;color:var(--accent-signal);">R1</span>
       </div>
+      <h1 class="auth-title">TEAM ACCESS</h1>
+      <p class="auth-subtitle">ROUND 1 · PROVISIONED ACCESS GATE</p>
+    </div>
+
+    {% if error %}
+    <div class="auth-error" role="alert" aria-live="assertive">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;">
+        <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+      </svg>
+      <span style="font-size:13px;line-height:1.4;">{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <div class="auth-notice">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      <span>Team accounts are provisioned by the event administrator. No public registration is available. Log in with the <strong>Team Name</strong> and <strong>Team ID</strong> provided for your team.</span>
+    </div>
+
+    <div class="auth-status-bar">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="status-dot active" style="width:6px;height:6px;border-radius:50%;background-color:var(--state-success);"></span>
+        <span>PROVISIONED ACCESS ONLY</span>
+      </div>
+      <span class="badge badge-outline font-mono" style="font-size:12px;">ADMIN-MANAGED</span>
+    </div>
+
+    <form method="POST" action="{{ url_for('r1.r1_login') }}">
+      <div class="form-group mb-4">
+        <label class="form-label" for="team_name">TEAM NAME</label>
+        <input type="text" id="team_name" name="team_name" class="form-input" placeholder="e.g. Cyber Titans" required autofocus autocomplete="organization">
+      </div>
+      <div class="form-group mb-6">
+        <label class="form-label" for="team_id">ROUND 1 ID</label>
+        <input type="text" id="team_id" name="team_id" class="form-input form-input-mono" placeholder="e.g. CT2026-001" required autocomplete="off">
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg w-full" style="justify-content:center;gap:8px;">
+        <span>LOGIN</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <span>Provisioned access only · Admin-managed team rosters.</span>
     </div>
   </div>
-</body>
-</html>
+</div>
+{% endblock %}
