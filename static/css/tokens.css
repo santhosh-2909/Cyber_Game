@@ -1,0 +1,312 @@
+/* ==========================================================================
+   CYBER DETECTIVE 2026 — DESIGN SYSTEM TOKENS (tokens.css)
+   Forensic Operations Console · Generated via design-dna · 100% Offline
+   WCAG 2.2 AA Certified Mathematical Contrast (scripts/contrast.mjs)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. SELF-HOSTED OFL FONTS (Subset Latin woff2)
+   Preload Critical Weights in Layout Head:
+     - Oxanium 700 (Display)
+     - Plus Jakarta Sans 400 & 600 (UI Sans)
+     - JetBrains Mono 400 (Data / Tabular Telemetry)
+   All other weights load lazily via font-display: swap.
+   -------------------------------------------------------------------------- */
+@font-face {
+  font-family: 'Oxanium';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/oxanium-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Oxanium';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/oxanium-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/plus-jakarta-sans-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/plus-jakarta-sans-500.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/plus-jakarta-sans-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/plus-jakarta-sans-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/jetbrains-mono-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/jetbrains-mono-500.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/jetbrains-mono-700.woff2') format('woff2');
+}
+
+/* --------------------------------------------------------------------------
+   2. DARK-FIRST DESIGN TOKENS (Default :root)
+   -------------------------------------------------------------------------- */
+:root {
+  /* Color Scheme Identification */
+  color-scheme: dark;
+
+  /* Typography Stacks */
+  --font-display: 'Oxanium', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Custom Modular Type Scale (Floor: 12px minimum) */
+  --font-size-xs: 0.75rem;    /* 12px — Overlines, badges, hashes, telemetry */
+  --font-size-sm: 0.875rem;   /* 14px — Table cells, navigation, metadata */
+  --font-size-base: 1rem;     /* 16px — Standard body text, form inputs */
+  --font-size-md: 1.125rem;   /* 18px — Lead paragraphs, subheaders */
+  --font-size-lg: 1.25rem;    /* 20px — Card titles, section headers */
+  --font-size-xl: 1.5rem;     /* 24px — Modal headings, challenge names */
+  --font-size-2xl: 1.875rem;  /* 30px — Workstation titles, podium rank */
+  --font-size-3xl: 2.375rem;  /* 38px — Big stat numerals, timers */
+  --font-size-4xl: 3rem;      /* 48px — Hero banners, victory scores */
+
+  /* Line Heights */
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.35;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.65;
+
+  /* Font Weights */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Surfaces (Near-black Blue-Graphite hierarchy) */
+  --bg-canvas: #070B12;
+  --bg-surface-1: #0D131F;
+  --bg-surface-2: #141D2E;
+  --bg-surface-3: #1D283E;
+  --bg-elevated: #233048;
+  --bg-overlay: rgba(7, 11, 18, 0.84);
+
+  /* Borders */
+  --border-subtle: #1B273A;   /* Decorative hairline (1px) */
+  --border-default: #2C3E5A;  /* Structural container borders */
+  --border-strong: #627D9F;   /* Functional UI border >= 3:1 on all dark surfaces */
+  --border-signal: rgba(0, 240, 255, 0.4);
+
+  /* Text & Foreground (All >= 4.5:1 on ALL dark surfaces) */
+  --text-primary: #F1F5F9;    /* 17.99:1 on canvas, 13.45:1 on surface-3 */
+  --text-secondary: #94A3B8;  /* 7.69:1 on canvas, 5.75:1 on surface-3 */
+  --text-tertiary: #9AAEC4;   /* 8.66:1 on canvas, 6.47:1 on surface-3 */
+  --text-inverse: #070B12;
+
+  /* Primary Signal Accent: ELECTRIC CYAN */
+  --accent-signal: #00F0FF;
+  --accent-signal-hover: #38F5FF;
+  --accent-signal-active: #00C8D6;
+  --accent-signal-dim: rgba(0, 240, 255, 0.12);
+  --accent-signal-border: rgba(0, 240, 255, 0.30);
+  --accent-signal-glow: 0 0 20px rgba(0, 240, 255, 0.25);
+
+  /* Secondary Accent: WARM AMBER (Hints & Warnings >= 4.5:1) */
+  --accent-amber: #F59E0B;
+  --accent-amber-hover: #FBBF24;
+  --accent-amber-dim: rgba(245, 158, 11, 0.14);
+  --accent-amber-border: rgba(245, 158, 11, 0.32);
+
+  /* Semantic State: RED (Penalties, Flags, Breaches >= 4.5:1) */
+  --state-danger: #F87171;    /* 7.12:1 on canvas, 5.33:1 on surface-3 */
+  --state-danger-hover: #FCA5A5;
+  --state-danger-dim: rgba(248, 113, 113, 0.15);
+  --state-danger-border: rgba(248, 113, 113, 0.32);
+
+  /* Semantic State: GREEN (Solved, Verified, Intact >= 4.5:1) */
+  --state-success: #10B981;
+  --state-success-hover: #34D399;
+  --state-success-dim: rgba(16, 185, 129, 0.15);
+  --state-success-border: rgba(16, 185, 129, 0.32);
+
+  /* Semantic State: PURPLE (Privileged Admin & Missions >= 4.5:1) */
+  --accent-purple: #BFA5FF;   /* 9.42:1 on canvas, 7.04:1 on surface-3 */
+  --accent-purple-hover: #DDD6FE;
+  --accent-purple-dim: rgba(191, 165, 255, 0.14);
+  --accent-purple-border: rgba(191, 165, 255, 0.32);
+
+  /* Spacing Scale (4px / 8px modular) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Corner Radii */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* Shadows & Elevation */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.65);
+  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.85);
+
+  /* Transitions & Timing Budget */
+  --duration-instant: 80ms;
+  --duration-fast: 150ms;
+  --duration-normal: 220ms;
+  --duration-modal: 280ms;
+
+  /* GPU-Composited Easings (No layout thrashing) */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-snap: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Z-Index Hierarchy */
+  --z-deep: -1;
+  --z-base: 0;
+  --z-elevated: 10;
+  --z-sticky: 100;
+  --z-header: 500;
+  --z-drawer: 800;
+  --z-modal: 1000;
+  --z-toast: 2000;
+}
+
+/* --------------------------------------------------------------------------
+   3. LIGHT-MODE VARIANT ([data-theme="light"])
+   -------------------------------------------------------------------------- */
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Light Surfaces */
+  --bg-canvas: #F8FAFC;
+  --bg-surface-1: #FFFFFF;
+  --bg-surface-2: #F1F5F9;
+  --bg-surface-3: #E2E8F0;
+  --bg-elevated: #FFFFFF;
+  --bg-overlay: rgba(248, 250, 252, 0.88);
+
+  /* Light Borders */
+  --border-subtle: #E2E8F0;
+  --border-default: #CBD5E1;
+  --border-strong: #64748B;   /* >= 3:1 on all light surfaces */
+  --border-signal: rgba(0, 107, 120, 0.40);
+
+  /* Light Text (All >= 4.5:1 on ALL light surfaces) */
+  --text-primary: #0F172A;    /* 17.06:1 on canvas */
+  --text-secondary: #334155;  /* 9.90:1 on canvas */
+  --text-tertiary: #475569;   /* 7.24:1 on canvas, 6.15:1 on surface-3 */
+  --text-inverse: #F8FAFC;
+
+  /* Calibrated Light Accents (All >= 4.5:1 on ALL light surfaces) */
+  --accent-signal: #006B78;   /* 5.95:1 on canvas, 5.05:1 on surface-3 */
+  --accent-signal-hover: #005560;
+  --accent-signal-active: #003F47;
+  --accent-signal-dim: rgba(0, 107, 120, 0.10);
+  --accent-signal-border: rgba(0, 107, 120, 0.28);
+  --accent-signal-glow: 0 0 16px rgba(0, 107, 120, 0.20);
+
+  --accent-amber: #92400E;    /* 6.78:1 on canvas, 5.75:1 on surface-3 */
+  --accent-amber-hover: #78350F;
+  --accent-amber-dim: rgba(146, 64, 14, 0.10);
+  --accent-amber-border: rgba(146, 64, 14, 0.24);
+
+  --state-danger: #B91C1C;    /* 6.18:1 on canvas, 5.25:1 on surface-3 */
+  --state-danger-hover: #991B1B;
+  --state-danger-dim: rgba(185, 28, 28, 0.10);
+  --state-danger-border: rgba(185, 28, 28, 0.24);
+
+  --state-success: #065F46;   /* 7.34:1 on canvas, 6.23:1 on surface-3 */
+  --state-success-hover: #044E39;
+  --state-success-dim: rgba(6, 95, 70, 0.10);
+  --state-success-border: rgba(6, 95, 70, 0.24);
+
+  --accent-purple: #5B21B6;   /* 8.59:1 on canvas, 7.29:1 on surface-3 */
+  --accent-purple-hover: #4C1D95;
+  --accent-purple-dim: rgba(91, 33, 182, 0.10);
+  --accent-purple-border: rgba(91, 33, 182, 0.24);
+
+  /* Light Shadows */
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.12);
+  --shadow-lg: 0 12px 30px rgba(15, 23, 42, 0.14);
+  --shadow-modal: 0 24px 60px rgba(15, 23, 42, 0.20);
+}
+
+/* --------------------------------------------------------------------------
+   4. ACCESSIBILITY & PREFERS-REDUCED-MOTION
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  :root,
+  [data-theme="light"] {
+    --duration-instant: 0ms !important;
+    --duration-fast: 0ms !important;
+    --duration-normal: 0ms !important;
+    --duration-modal: 0ms !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   5. TABULAR NUMERALS UTILITY
+   -------------------------------------------------------------------------- */
+.tabular-nums,
+[data-tabular-nums] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}

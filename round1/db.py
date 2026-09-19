@@ -286,10 +286,14 @@ CREATE TABLE IF NOT EXISTS r2_progress (
 CREATE INDEX IF NOT EXISTS idx_sessions_team ON round_sessions(team_id);
 CREATE INDEX IF NOT EXISTS idx_assignments_session ON team_challenge_assignments(session_id);
 CREATE INDEX IF NOT EXISTS idx_submissions_session ON submissions(session_id);
+CREATE INDEX IF NOT EXISTS idx_submissions_assign_correct ON submissions(assignment_id, is_correct);
 CREATE INDEX IF NOT EXISTS idx_variants_cat ON challenge_variants(challenge_category_id);
 CREATE INDEX IF NOT EXISTS idx_labevents_assignment ON lab_events(assignment_id);
 CREATE INDEX IF NOT EXISTS idx_ps_team ON participant_sessions(team_id);
 CREATE INDEX IF NOT EXISTS idx_ps_status ON participant_sessions(status);
+CREATE INDEX IF NOT EXISTS idx_ps_token_round ON participant_sessions(token, round_name);
+CREATE INDEX IF NOT EXISTS idx_teams_r1_access ON teams(round1_access_id COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS idx_teams_r2_access ON teams(round2_access_id COLLATE NOCASE);
 
 -- Team IDs are treated as case-insensitive so CT2026-001 cannot be
 -- duplicated as ct2026-001 or any other mixed-case variant.
@@ -299,9 +303,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_teams_team_id_ci ON teams(team_id COLLATE 
 
 def get_connection():
     """Return a new SQLite connection with row factory enabled."""
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA synchronous = NORMAL")
+    conn.execute("PRAGMA busy_timeout = 30000")
     return conn
 
 

@@ -454,13 +454,17 @@ def validate_participant(round_name=None):
         return None
 
     # Valid request -> lightweight heartbeat so the admin sees online status.
-    conn = db.get_connection()
-    try:
-        conn.execute("UPDATE participant_sessions SET last_seen=? WHERE token=?",
-                     (db.now_ms(), token))
-        conn.commit()
-    finally:
-        conn.close()
+    # Throttled to once every 30s per session to eliminate DB write churn on GET requests.
+    now = db.now_ms()
+    if now - (s.get("_last_seen_beat") or 0) > 30000:
+        s["_last_seen_beat"] = now
+        conn = db.get_connection()
+        try:
+            conn.execute("UPDATE participant_sessions SET last_seen=? WHERE token=?",
+                         (now, token))
+            conn.commit()
+        finally:
+            conn.close()
 
     # Ensure the required session keys are present (e.g. after server restart
     # while the browser cookie survives).

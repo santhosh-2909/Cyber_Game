@@ -97,15 +97,20 @@
 }
 
 /* Atmospheric purple light sources (monitors + ambient backlight) */
-.cs-glows::before,
+.cs-glows::before {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  width: 460px; height: 360px; left: 30%; top: 30%; transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, rgba(108, 43, 255, 0.12) 0%, rgba(108, 43, 255, 0.04) 40%, transparent 70%);
+}
 .cs-glows::after {
   content: '';
   position: absolute;
   border-radius: 50%;
-  filter: blur(70px);
+  width: 420px; height: 340px; right: 28%; top: 30%; transform: translateX(50%);
+  background: radial-gradient(ellipse at center, rgba(155, 77, 255, 0.10) 0%, rgba(155, 77, 255, 0.03) 40%, transparent 70%);
 }
-.cs-glows::before { width: 460px; height: 360px; left: 30%; top: 30%; transform: translateX(-50%); background: rgba(108, 43, 255, 0.06); }
-.cs-glows::after { width: 420px; height: 340px; right: 28%; top: 30%; transform: translateX(50%); background: rgba(155, 77, 255, 0.05); }
 
 /* Old CSS side-monitor placeholders are replaced by the SVG scene */
 .cs-monitor { display: none; }

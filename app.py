@@ -12,6 +12,7 @@ import round1.db as db
 
 app = Flask(__name__)
 app.secret_key = "forencis-csae-secret-key-2026"
+app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 
 @app.template_filter("ts")

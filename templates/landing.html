@@ -52,12 +52,12 @@
 
   <!-- Sparse purple binary rain -->
   <div class="matrix-rain" aria-hidden="true">
-    {% for col in range(20) %}
+    {% for col in range(8) %}
     {% set glyph = '01' if col % 2 == 0 else '10' %}
     {% set head = '0' if col % 3 == 0 else '1' %}
-    <div class="mcol" style="left:{{ col * 5.2 }}%; --fall:{{ (9 + (col * 37) % 13) }}s; --delay:{{ '%.2f'|format(-(col * 1.1) % 10) }}s;">
+    <div class="mcol" style="left:{{ col * 12.5 + 3 }}%; --fall:{{ (10 + (col * 37) % 8) }}s; --delay:{{ '%.2f'|format(-(col * 1.5) % 6) }}s;">
       <span class="mhead">{{ head }}</span>
-      <span class="mbody">{{ glyph * 120 }}</span>
+      <span class="mbody">{{ glyph * 36 }}</span>
     </div>
     {% endfor %}
   </div>

@@ -1,34 +1,97 @@
-{% extends "base.html" %}
-{% block title %}Team Login - Cyber Detective{% endblock %}
-{% block content %}
-<div style="max-width:460px;margin:60px auto;">
-    <div style="text-align:center;margin-bottom:28px;">
-        <div style="font-size:56px;margin-bottom:8px;">🕵️</div>
-        <h1 style="font-size:26px;">Cyber Detective</h1>
-        <p class="muted" style="margin-top:6px;">Round 2 — Forensic Investigation</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Login - Cyber Detective</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/globe-login.css') }}">
+</head>
+<body class="hx-frame">
+  <div class="r1-bg-image" aria-hidden="true"></div>
+  <div class="hx-crt" aria-hidden="true"></div>
+  <div class="hx-secstrip" aria-hidden="true">
+    <div class="hx-sec-left">
+      <span class="hx-seg"><span class="dot"></span>SECURE CHANNEL</span>
+      <span class="hx-pipe">|</span>
+      <span class="hx-seg">ENCRYPTED</span>
     </div>
-    <div class="card" style="padding:28px;">
-        <h2 style="text-align:center;">Team Login</h2>
-        {% if error %}<p style="color:var(--red);text-align:center;margin-top:10px;">{{ error }}</p>{% endif %}
-        <form method="POST" action="{{ url_for('login') }}" style="margin-top:18px;">
-            <div style="margin-bottom:14px;">
-                <label class="muted" style="display:block;margin-bottom:6px;font-weight:600;">TEAM NAME</label>
-                <input type="text" name="team_name" required placeholder="e.g. Cyber Ninjas"
-                    style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:15px;">
-            </div>
-            <div style="margin-bottom:14px;">
-                <label class="muted" style="display:block;margin-bottom:6px;font-weight:600;">TEAM ID</label>
-                <input type="text" name="team_id" required placeholder="e.g. TEAM-01"
-                    style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:15px;">
-            </div>
-            <div style="margin-bottom:20px;">
-                <label class="muted" style="display:block;margin-bottom:6px;font-weight:600;">CAPTAIN NAME</label>
-                <input type="text" name="captain" required placeholder="e.g. Alex Kumar"
-                    style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:15px;">
-            </div>
-            <button type="submit" class="btn" style="width:100%;padding:13px;font-size:15px;">Enter Investigation →</button>
-        </form>
+    <div class="hx-sec-center hx-seg"><span class="hx-cursor">AUTH GATE</span></div>
+    <div class="hx-sec-right">
+      <span class="hx-seg">FIREWALL <span class="hx-blink">UP</span></span>
     </div>
-    <p class="muted" style="text-align:center;margin-top:18px;font-size:13px;">You will be assigned a case automatically.</p>
-</div>
-{% endblock %}
+  </div>
+
+  <div class="pub-stage globe-login-stage">
+    <div class="cyber-scene" aria-hidden="true">
+      <div class="cs-glows"></div>
+      <div class="cs-hood"></div>
+      <div class="cs-binary"></div>
+      <div class="cs-overlay"></div>
+    </div>
+
+    <div class="globe-login-container">
+      <!-- Login Form Section -->
+      <div class="auth-column">
+        <a href="{{ url_for('landing') }}" class="hud-nav-link hud-btn-ghost" style="display:inline-flex;margin-bottom:16px;width:fit-content;">&larr; BACK TO MAIN PAGE</a>
+
+        <div class="pub-auth-card">
+          <div class="text-center mb-xl">
+            <div class="login-brand-icon"><span>CD</span></div>
+            <h1 style="font-size:1.25rem;margin-top:16px;letter-spacing:0.1em;">CYBER CHALLENGE 2026</h1>
+            <p class="text-muted font-mono" style="font-size:0.6875rem;margin-top:4px;letter-spacing:0.06em;">ONE TEAM LOGIN · BOTH ROUNDS</p>
+          </div>
+
+          <div class="auth-switch">
+            <a class="active" href="{{ url_for('start') }}">TEAM LOGIN</a>
+            <a href="{{ url_for('r1.r1_login') }}">ROUND 1</a>
+            <a href="{{ url_for('r2_login') }}">ROUND 2</a>
+          </div>
+
+          {% if error %}
+          <div class="login-error animate-slide-up">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            {{ error }}
+          </div>
+          {% endif %}
+
+          <div class="card" style="background:var(--accent-glow);border:none;padding:12px 16px;margin-bottom:20px;">
+            <div class="flex items-center gap-sm">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="flex-shrink:0;"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M17.6 13.41c.04-.47.04-.94 0-1.41l1.7-1.33-1.7-2.94-2.02.65a7 7 0 0 0-2.4-1.4L13 3.59H9.02l-.18 2.16a7 7 0 0 0-2.4 1.4l-2.02-.65-1.7 2.94 1.7 1.33c-.05.47-.05.94 0 1.41l-1.7 1.33 1.7 2.94 2.02-.65a7 7 0 0 0 2.4 1.4l.18 2.16h3.96l.18-2.16a7 7 0 0 0 2.4-1.4l2.02.65 1.7-2.94-1.7-1.33z"/></svg>
+              <span class="text-secondary" style="font-size:0.85rem;">Team access is <strong>provisioned by the administrator</strong>. Use the Team Name and Team ID issued for your team — no public registration.</span>
+            </div>
+          </div>
+
+          <!-- Terminal security verification -->
+          <div class="hx-verify" style="margin-bottom:20px;">
+            <div class="hx-vlock">🔒</div>
+            <div class="hx-vtxt">
+              <div class="hx-vtitle">Secure Auth Gate</div>
+              <div class="hx-vsub">token handshake · server-side validation</div>
+            </div>
+            <span class="hx-vbadge">ENCRYPTED</span>
+          </div>
+
+          <form method="POST" action="{{ url_for('start') }}">
+            <div class="form-group">
+              <label class="form-label">TEAM NAME</label>
+              <input type="text" name="team_name" required placeholder="e.g. Cyber Ninjas" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">TEAM ID</label>
+              <input type="text" name="team_id" required placeholder="e.g. TEAM-01" class="form-input form-input-mono">
+            </div>
+            <button type="submit" class="btn btn-primary w-full btn-lg" style="margin-top:8px;">
+              ENTER THE COMPETITION
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

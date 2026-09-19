@@ -261,14 +261,35 @@
   function el(id) { return document.getElementById(id); }
 
   /********************** ANALYSIS PANELS **********************/
+  const renderedTabs = new Set();
+
+  function renderTab(name) {
+    if (renderedTabs.has(name)) return;
+    renderedTabs.add(name);
+    if (name === 'text') renderText();
+    else if (name === 'hex') renderHex();
+    else if (name === 'strings') renderStrings();
+    else if (name === 'email') renderEmail();
+    else if (name === 'log') renderLog();
+    else if (name === 'timeline') renderTimeline();
+    else if (name === 'network') renderNetwork();
+    else if (name === 'hash') renderHashes();
+  }
+
   function renderAll() {
-    renderText(); renderHex(); renderStrings(); renderEmail();
-    renderLog(); renderTimeline(); renderNetwork(); renderHashes();
+    renderTab('text');
   }
 
   function renderText() {
-    el('raw-body').innerHTML = lines().map(l =>
-      '<span class="t-ln">' + (l.trim() ? tokenize(l) : '&nbsp;') + '</span>').join('') || '<span class="term-empty">(empty artifact)</span>';
+    const allLines = lines();
+    const maxLines = 1000;
+    const toRender = allLines.slice(0, maxLines);
+    let html = toRender.map(l =>
+      '<span class="t-ln">' + (l.trim() ? tokenize(l) : '&nbsp;') + '</span>').join('');
+    if (allLines.length > maxLines) {
+      html += '<div class="term-empty" style="margin-top:8px;">[Display truncated: showing first ' + maxLines + ' of ' + allLines.length + ' lines. Use Download for full artifact.]</div>';
+    }
+    el('raw-body').innerHTML = html || '<span class="term-empty">(empty artifact)</span>';
   }
 
   function renderHex() {
@@ -397,36 +418,41 @@
       btn.classList.add('is-active');
       const p = document.querySelector('.tb-panel[data-panel2="' + btn.dataset.panel2 + '"]');
       if (p) p.classList.add('is-active');
+      renderTab(btn.dataset.panel2);
     });
   });
 
   /********************** SEARCH **********************/
+  let searchT = null;
   document.getElementById('search-input').addEventListener('input', e => {
-    const q = e.target.value.trim().toLowerCase();
-    const box = el('search-body');
-    if (!q) { box.innerHTML = '<span class="term-empty">type a term to search the artifact…</span>'; return; }
-    let hits = 0;
-    let out = '';
-    lines().forEach((l, i) => {
-      const li = l.toLowerCase();
-      let idx = -1; const found = [];
-      while ((idx = li.indexOf(q, idx + 1)) !== -1) { found.push([idx, idx + q.length]); }
-      if (!found.length) return;
-      hits++;
-      const from = Math.max(0, (found[0][0] < 6 ? 0 : found[0][0] - 6));
-      let line = l;
-      let shown = line.slice(from);
-      found.forEach(([s, end], j) => {
-        const relS = Math.max(0, s - from), relE = end - from, add = (3 - j) * 3;
-        shown = shown.slice(0, relS + add) + '\u0001' + shown.slice(relS + add, relE + add) + '\u0002' + shown.slice(relE + add);
+    clearTimeout(searchT);
+    searchT = setTimeout(() => {
+      const q = e.target.value.trim().toLowerCase();
+      const box = el('search-body');
+      if (!q) { box.innerHTML = '<span class="term-empty">type a term to search the artifact…</span>'; return; }
+      let hits = 0;
+      let out = '';
+      lines().forEach((l, i) => {
+        const li = l.toLowerCase();
+        let idx = -1; const found = [];
+        while ((idx = li.indexOf(q, idx + 1)) !== -1) { found.push([idx, idx + q.length]); }
+        if (!found.length) return;
+        hits++;
+        const from = Math.max(0, (found[0][0] < 6 ? 0 : found[0][0] - 6));
+        let line = l;
+        let shown = line.slice(from);
+        found.forEach(([s, end], j) => {
+          const relS = Math.max(0, s - from), relE = end - from, add = (3 - j) * 3;
+          shown = shown.slice(0, relS + add) + '\u0001' + shown.slice(relS + add, relE + add) + '\u0002' + shown.slice(relE + add);
+        });
+        const html = esc(shown.replace(/\u0001/g, '')).replace(/\]\u0002/g, '');
+        out += '<span class="t-ln" style="color:var(--text-dim);">' + (i + 1) + '</span> ';
+        out += '<span class="t-ln">' + tokenize(shown.replace(/^\u0001/, '').replace(/\u0002$/, '')) + '</span>';
       });
-      const html = esc(shown.replace(/\u0001/g, '')).replace(/\]\u0002/g, '');
-      out += '<span class="t-ln" style="color:var(--text-dim);">' + (i + 1) + '</span> ';
-      out += '<span class="t-ln">' + tokenize(shown.replace(/^\u0001/, '').replace(/\u0002$/, '')) + '</span>';
-    });
-    box.innerHTML = hits
-      ? out
-      : '<span class="term-empty">no occurrences of &quot;' + esc(q) + '&quot;</span>';
+      box.innerHTML = hits
+        ? out
+        : '<span class="term-empty">no occurrences of &quot;' + esc(q) + '&quot;</span>';
+    }, 250);
   });
 
   /********************** HINT **********************/
@@ -485,13 +511,15 @@
     const save = el('note-save');
     save.classList.remove('show');
     clearTimeout(saveT);
-    const body = { station_id: stationId, text: noteEl.value };
-    fetch('/api/notes', { method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body) }).then(() => {
-        save.classList.add('show');
-        saveT = setTimeout(() => save.classList.remove('show'), 1800);
-      }).catch(() => {});
+    saveT = setTimeout(() => {
+      const body = { station_id: stationId, text: noteEl.value };
+      fetch('/api/notes', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body) }).then(() => {
+          save.classList.add('show');
+          setTimeout(() => save.classList.remove('show'), 1800);
+        }).catch(() => {});
+    }, 800);
   });
   {% endif %}
 })();
