@@ -1,4 +1,4 @@
-# Cyber Detective 2026 — Forensic Investigation & Cyber Puzzle Platform
+# Cyber Investigation 2026 — Forensic Investigation & Cyber Puzzle Platform
 
 A self-contained, single-instance Flask application that runs a two-round technical
 competition:
@@ -22,7 +22,7 @@ and the admin / participant feature surface.
 
 | Property          | Value                                                        |
 | ----------------- | ------------------------------------------------------------ |
-| Application       | Cyber Detective 2026                                         |
+| Application       | Cyber Investigation 2026                                     |
 | Type              | Flask (Python) web application                               |
 | Database          | SQLite 3 (single file: `round1/round1.db`)                   |
 | Rendering         | Server-side Jinja2 templates + vanilla JavaScript            |
@@ -244,7 +244,7 @@ frame: sidebar + topbar are locked, content scrolls internally.
 
 - Add a `.gitignore` covering `__pycache__/`, `.DS_Store`, `.venv/`, `/tmp` files,
   `round1.db` (optional — include if you want to ship seed data).
-- Suggested first commit message: `Initial commit — Cyber Detective 2026 platform`.
+- Suggested first commit message: `Initial commit — Cyber Investigation 2026 platform`.
 - Keep `app.secret_key` out of public log output; it is currently a fixed dev key
   (`forencis-csae-secret-key-2026`) in `app.py:13`.
 - The app binds only to `127.0.0.1:5000` — for remote hosting we'd expose it behind a

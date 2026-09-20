@@ -1,5 +1,5 @@
 /* ============================================================
-   CYBER DETECTIVE — Application JavaScript
+   CYBER INVESTIGATION — Application JavaScript
    ============================================================ */
 
 (function() {

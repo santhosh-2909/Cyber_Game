@@ -1,7 +1,7 @@
 """Unified single-link project helpers.
 
 Bridges Round 1 (Cyber Puzzle, backed by round1.db) and Round 2
-(Cyber Detective, in-memory session) so a team signs in ONCE from a single
+(Cyber Investigation, in-memory session) so a team signs in ONCE from a single
 landing page and moves through Round 1 -> Round 2 sequentially.
 
 Authorization for the unified participant session is enforced by

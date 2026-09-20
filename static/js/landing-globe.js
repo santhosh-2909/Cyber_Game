@@ -1,6 +1,6 @@
 /**
  * Tactical Orthographic 2D Canvas Globe Engine with Great-Circle Arc Telemetry
- * Cyber Detective 2026 — Phase 3b-L Production Implementation (Gate L2b)
+ * Cyber Investigation 2026 — Phase 3b-L Production Implementation (Gate L2b)
  * Zero external libraries, zero WebGL, pure Canvas 2D, bit-packed binary coordinates.
  */
 (function (global) {

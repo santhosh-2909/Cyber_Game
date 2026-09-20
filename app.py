@@ -2187,7 +2187,7 @@ app.register_blueprint(r1)
 
 if __name__ == "__main__":
     print("==============================================")
-    print(" CYBER DETECTIVE - FORENSIC INVESTIGATION APP")
+    print(" CYBER INVESTIGATION - FORENSIC INVESTIGATION APP")
     print(" Running at: http://127.0.0.1:5000")
     print("==============================================")
     app.run(host="127.0.0.1", port=5000, debug=False)

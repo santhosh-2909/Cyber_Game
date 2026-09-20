@@ -1,5 +1,5 @@
 /**
- * Cyber Detective 2026 — Core UI Behavior Engine (core.js)
+ * Cyber Investigation 2026 — Core UI Behavior Engine (core.js)
  * Pure vanilla JavaScript. Zero framework dependencies.
  * Complies with strict Content-Security-Policy (no eval, no external fetch).
  *
