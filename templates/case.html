@@ -1,100 +1,143 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% block title %}Case Brief — {{ case.title }} · {{ case.code }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/forensics.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="fs-shell">
-  <header class="fs-masthead">
-    <div class="file-icon">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-    </div>
-    <div>
-      <div class="flex items-center gap-sm" style="flex-wrap:wrap;">
-        <span class="fs-chip violet">{{ case.code }}</span>
-        <span class="fs-chip dim">CASE BRIEF</span>
+<div class="fs-shell" style="max-width:1280px;margin:0 auto;padding:var(--space-6, 24px) 0;">
+  <header class="fs-masthead" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:20px 24px;margin-bottom:var(--space-6, 24px);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;box-shadow:var(--shadow-sm);">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div class="file-icon" style="width:42px;height:42px;border-radius:var(--radius-sm);background-color:rgba(191,165,255,0.12);border:1px solid rgba(191,165,255,0.3);display:flex;align-items:center;justify-content:center;color:var(--accent-purple);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       </div>
-      <div class="mh-title">{{ case.title | upper }}</div>
-      <div class="mh-sub">{{ team.name }} &middot; {{ team.captain }} &middot; {{ case.company }}</div>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+          <span class="badge badge-secondary font-mono" style="font-size:11px;">{{ case.code }}</span>
+          <span class="badge badge-outline font-mono" style="font-size:11px;">CASE BRIEF</span>
+        </div>
+        <h1 class="mh-title" style="font-family:var(--font-display);font-size:1.5rem;font-weight:700;color:var(--text-primary);margin:0;letter-spacing:0.02em;">
+          {{ case.title | upper }}
+        </h1>
+        <div class="mh-sub font-mono" style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">
+          {{ team.name }} &middot; {{ team.captain }} &middot; {{ case.company }}
+        </div>
+      </div>
     </div>
-    <div class="mh-right">
-      <div class="fs-meter">
-        <span class="fs-overline">EVIDENCE</span>
-        <div class="m-track"><div class="m-fill" style="width:{{ (verified * 100 / case.stations|length)|round|int }}%"></div></div>
-        <span class="fs-mono" style="font-size:.72rem;color:var(--text-secondary);">{{ verified }}/{{ case.stations|length }}</span>
+    <div class="mh-right" style="display:flex;align-items:center;gap:16px;">
+      <div class="fs-meter" style="text-align:right;">
+        <span class="fs-overline font-mono" style="font-size:10px;color:var(--text-tertiary);letter-spacing:0.06em;display:block;margin-bottom:4px;">EVIDENCE PROGRESS</span>
+        <div class="m-track" style="width:120px;height:6px;background:var(--bg-surface-3);border-radius:3px;overflow:hidden;margin-left:auto;">
+          <div class="m-fill" style="height:100%;background:var(--state-success);width:{{ (verified * 100 / case.stations|length)|round|int }}%;"></div>
+        </div>
+        <span class="fs-mono" style="font-size:12px;color:var(--text-secondary);font-weight:600;display:block;margin-top:4px;">{{ verified }}/{{ case.stations|length }} VERIFIED</span>
       </div>
     </div>
   </header>
 
-  <!-- Workflow -->
-  <div class="fs-card" style="padding:18px 20px;margin-bottom:14px;">
-    <div class="wf">
-      <div class="wf-step done"><div class="wf-dot">1</div><div class="wf-label">Case Opened</div></div>
-      <div class="wf-step {{ 'done' if stage in ('evidence','report','complete') else 'active' }}"><div class="wf-dot">2</div><div class="wf-label">Brief Read</div></div>
-      <div class="wf-step {{ 'done' if stage in ('report','complete') else 'active' if stage == 'evidence' }}"><div class="wf-dot">3</div><div class="wf-label">Evidence</div></div>
-      <div class="wf-step {{ 'done' if stage == 'complete' else 'active' if stage == 'report' }}"><div class="wf-dot">4</div><div class="wf-label">Verdict</div></div>
-      <div class="wf-step {{ 'active' if stage == 'complete' }}"><div class="wf-dot">5</div><div class="wf-label">Closed</div></div>
+  <!-- Workflow Progress Stepper -->
+  <div class="fs-card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:18px 24px;margin-bottom:var(--space-6, 24px);box-shadow:var(--shadow-sm);">
+    <div class="wf" style="display:flex;align-items:center;justify-content:space-between;position:relative;">
+      <div class="wf-step done" style="display:flex;align-items:center;gap:10px;">
+        <div class="wf-dot" style="width:28px;height:28px;border-radius:50%;background:var(--state-success);color:#070B12;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px;">✓</div>
+        <div class="wf-label font-mono" style="font-size:12px;color:var(--text-primary);font-weight:600;">Case Opened</div>
+      </div>
+      <div style="flex:1;height:2px;background:var(--border-default);margin:0 12px;"></div>
+      <div class="wf-step {{ 'done' if stage in ('evidence','report','complete') else 'active' }}" style="display:flex;align-items:center;gap:10px;">
+        <div class="wf-dot" style="width:28px;height:28px;border-radius:50%;background:{% if stage in ('evidence','report','complete') %}var(--state-success){% else %}var(--accent-purple){% endif %};color:#070B12;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px;">2</div>
+        <div class="wf-label font-mono" style="font-size:12px;color:var(--text-primary);font-weight:600;">Brief Read</div>
+      </div>
+      <div style="flex:1;height:2px;background:var(--border-default);margin:0 12px;"></div>
+      <div class="wf-step {{ 'done' if stage in ('report','complete') else 'active' if stage == 'evidence' }}" style="display:flex;align-items:center;gap:10px;">
+        <div class="wf-dot" style="width:28px;height:28px;border-radius:50%;background:{% if stage in ('report','complete') %}var(--state-success){% elif stage == 'evidence' %}var(--accent-purple){% else %}var(--bg-surface-3){% endif %};color:{% if stage in ('report','complete','evidence') %}#070B12{% else %}var(--text-tertiary){% endif %};font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px;">3</div>
+        <div class="wf-label font-mono" style="font-size:12px;color:var(--text-primary);font-weight:600;">Evidence</div>
+      </div>
+      <div style="flex:1;height:2px;background:var(--border-default);margin:0 12px;"></div>
+      <div class="wf-step {{ 'done' if stage == 'complete' else 'active' if stage == 'report' }}" style="display:flex;align-items:center;gap:10px;">
+        <div class="wf-dot" style="width:28px;height:28px;border-radius:50%;background:{% if stage == 'complete' %}var(--state-success){% elif stage == 'report' %}var(--accent-purple){% else %}var(--bg-surface-3){% endif %};color:{% if stage in ('complete','report') %}#070B12{% else %}var(--text-tertiary){% endif %};font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px;">4</div>
+        <div class="wf-label font-mono" style="font-size:12px;color:var(--text-primary);font-weight:600;">Verdict</div>
+      </div>
+      <div style="flex:1;height:2px;background:var(--border-default);margin:0 12px;"></div>
+      <div class="wf-step {{ 'active' if stage == 'complete' }}" style="display:flex;align-items:center;gap:10px;">
+        <div class="wf-dot" style="width:28px;height:28px;border-radius:50%;background:{% if stage == 'complete' %}var(--state-success){% else %}var(--bg-surface-3){% endif %};color:{% if stage == 'complete' %}#070B12{% else %}var(--text-tertiary){% endif %};font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px;">5</div>
+        <div class="wf-label font-mono" style="font-size:12px;color:var(--text-primary);font-weight:600;">Closed</div>
+      </div>
     </div>
   </div>
 
-  <!-- Narrative cards -->
-  <div class="fs-card" style="padding:22px 24px;margin-bottom:14px;">
-    <div class="flex items-center gap-sm" style="margin-bottom:10px;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg>
-      <div class="fs-overline"><strong>COMPANY BACKGROUND</strong></div>
+  <!-- Narrative Cards -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6, 24px);margin-bottom:var(--space-6, 24px);">
+    <div class="fs-card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:22px 24px;box-shadow:var(--shadow-sm);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <div style="width:32px;height:32px;border-radius:var(--radius-xs);background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);display:flex;align-items:center;justify-content:center;color:var(--accent-cyan);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg>
+        </div>
+        <div class="fs-overline font-mono font-bold" style="font-size:11px;color:var(--text-secondary);letter-spacing:0.06em;">COMPANY BACKGROUND</div>
+      </div>
+      <p style="line-height:1.7;color:var(--text-secondary);margin:0;font-size:14px;">
+        <strong style="color:var(--text-primary);">{{ case.company }}</strong> &mdash; {{ case.incident }}
+      </p>
     </div>
-    <p style="line-height:1.75;color:var(--text-secondary);">
-      <strong style="color:var(--text-primary);">{{ case.company }}</strong> — {{ case.incident }}
-    </p>
-  </div>
 
-  <div class="fs-card" style="padding:22px 24px;margin-bottom:14px;">
-    <div class="flex items-center gap-sm" style="margin-bottom:10px;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <div class="fs-overline"><strong>INVESTIGATION OBJECTIVE</strong></div>
-    </div>
-    <p style="line-height:1.75;color:var(--text-secondary);">{{ case.objective }}</p>
-    <p class="fs-mono" style="font-size:.72rem;color:var(--text-muted);margin-top:8px;">Every conclusion must be supported by the evidence you uncover in the stations below.</p>
-  </div>
-
-  <div class="fs-card" style="padding:22px 24px;margin-bottom:14px;">
-    <div class="flex items-center gap-sm" style="margin-bottom:10px;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      <div class="fs-overline"><strong>RULES &amp; INSTRUCTIONS</strong></div>
-    </div>
-    <div class="fs-mono" style="font-size:.72rem;line-height:1.7;color:var(--text-secondary);">
-      <div style="display:flex;gap:8px;margin-bottom:6px;"><span style="color:var(--accent);width:18px;">01</span>Investigate the <strong style="color:var(--text-primary);">5 evidence stations</strong> in sequence via the Evidence Vault.</div>
-      <div style="display:flex;gap:8px;margin-bottom:6px;"><span style="color:var(--accent);width:18px;">02</span>Each station requires a <strong style="color:var(--text-primary);">verified finding</strong> submitted through the workstation.</div>
-      <div style="display:flex;gap:8px;margin-bottom:6px;"><span style="color:var(--accent);width:18px;">03</span>Up to <strong style="color:var(--text-primary);">5 attempts</strong> per station — flag the station after max attempts.</div>
-      <div style="display:flex;gap:8px;margin-bottom:6px;"><span style="color:var(--accent);width:18px;">04</span>Use the toolbox panels to analyze artifacts: text, hex, strings, email, log, timeline, network.</div>
-      <div style="display:flex;gap:8px;margin-bottom:6px;"><span style="color:var(--accent);width:18px;">05</span>Record investigator notes — they persist across refreshes.</div>
-      <div style="display:flex;gap:8px;"><span style="color:var(--accent);width:18px;">06</span>Complete the <strong style="color:var(--text-primary);">Final Incident Report</strong> and identify the persons involved.</div>
+    <div class="fs-card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:22px 24px;box-shadow:var(--shadow-sm);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <div style="width:32px;height:32px;border-radius:var(--radius-xs);background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);display:flex;align-items:center;justify-content:center;color:var(--state-danger);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="fs-overline font-mono font-bold" style="font-size:11px;color:var(--text-secondary);letter-spacing:0.06em;">INVESTIGATION OBJECTIVE</div>
+      </div>
+      <p style="line-height:1.7;color:var(--text-secondary);margin:0;font-size:14px;">{{ case.objective }}</p>
+      <p class="fs-mono" style="font-size:11px;color:var(--text-tertiary);margin-top:10px;margin-bottom:0;">Every conclusion must be supported by the evidence uncovered in the stations below.</p>
     </div>
   </div>
 
-  <!-- Evidence vault snapshot -->
-  <div class="fs-card" style="padding:22px 24px;margin-bottom:18px;">
-    <div class="flex items-center justify-between" style="margin-bottom:14px;">
-      <div class="fs-overline"><strong>EVIDENCE VAULT</strong> — {{ case.stations|length }} STATIONS</div>
-      <div class="fs-chip violet">SEQUENTIAL</div>
+  <!-- Rules & Instructions -->
+  <div class="fs-card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:22px 24px;margin-bottom:var(--space-6, 24px);box-shadow:var(--shadow-sm);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div style="width:32px;height:32px;border-radius:var(--radius-xs);background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);display:flex;align-items:center;justify-content:center;color:var(--accent-amber);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div class="fs-overline font-mono font-bold" style="font-size:11px;color:var(--text-secondary);letter-spacing:0.06em;">RULES &amp; PROTOCOLS</div>
     </div>
-    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+    <div class="font-mono" style="font-size:12px;line-height:1.8;color:var(--text-secondary);display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;">
+      <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">01</span><span>Investigate the <strong style="color:var(--text-primary);">5 evidence stations</strong> in sequence via the Evidence Vault.</span></div>
+      <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">02</span><span>Each station requires a <strong style="color:var(--text-primary);">verified finding</strong> submitted through the workstation.</span></div>
+      <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">03</span><span>Up to <strong style="color:var(--text-primary);">5 attempts</strong> per station &mdash; flag station after max attempts.</span></div>
+      <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">04</span><span>Use the toolbox panels to analyze artifacts: text, hex, strings, email, log, timeline, network.</span></div>
+      <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">05</span><span>Record investigator notes &mdash; they persist across workstation refreshes.</span></div>
+      <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">06</span><span>Complete the <strong style="color:var(--text-primary);">Final Incident Report</strong> and identify the persons involved.</span></div>
+    </div>
+  </div>
+
+  <!-- Evidence Vault Snapshot -->
+  <div class="fs-card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:22px 24px;margin-bottom:var(--space-8, 32px);box-shadow:var(--shadow-sm);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div class="fs-overline font-mono font-bold" style="font-size:12px;color:var(--text-secondary);letter-spacing:0.06em;">
+        EVIDENCE VAULT &mdash; {{ case.stations|length }} STATIONS
+      </div>
+      <span class="badge badge-secondary font-mono" style="font-size:11px;">SEQUENTIAL ACCESS</span>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;">
       {% for s in case.stations %}
       {% set f = findings.get(s.id, {}) %}
       {% set st = 'verified' if (f and f.get('status') == 'verified') else ('locked' if loop.index0 > 0 and not (findings.get(case.stations[loop.index0-1].id, {}).get('status') == 'verified') else 'opened') %}
-      <div class="vault-item vault-{{ st }}" style="padding:12px;cursor:default;pointer-events:none;">
-        <span class="vault-idx">{{ s.id }}</span>
-        <span class="vault-body">
-          <span class="vault-name">{{ s.name }}</span>
-          <span class="vault-meta">{{ s.domain }}</span>
+      <div class="vault-item vault-{{ st }}" style="padding:14px 16px;background-color:var(--bg-surface-2);border:1px solid {% if st == 'verified' %}rgba(16,185,129,0.35){% elif st == 'opened' %}rgba(191,165,255,0.35){% else %}var(--border-subtle){% endif %};border-radius:var(--radius-sm);display:flex;align-items:center;gap:12px;cursor:default;">
+        <span class="vault-idx font-mono font-bold" style="width:28px;height:28px;border-radius:var(--radius-xs);background:var(--bg-surface-3);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text-primary);">{{ s.id }}</span>
+        <span class="vault-body" style="flex:1;min-width:0;">
+          <span class="vault-name" style="display:block;font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.name }}</span>
+          <span class="vault-meta font-mono" style="display:block;font-size:11px;color:var(--text-tertiary);">{{ s.domain }}</span>
         </span>
-        <span class="vault-state">{{ st }}</span>
+        <span class="vault-state badge {% if st == 'verified' %}badge-success{% elif st == 'opened' %}badge-secondary{% else %}badge-outline{% endif %} font-mono" style="font-size:10px;">{{ st|upper }}</span>
       </div>
       {% endfor %}
     </div>
   </div>
 
-  <div class="text-center" style="margin-bottom:40px;">
-    <a href="{{ url_for('evidence', station_id=case.stations[0].id) }}" class="btn btn-primary btn-xl">
-      ENTER INVESTIGATION
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+  <div class="text-center" style="margin-bottom:var(--space-8, 32px);text-align:center;">
+    <a href="{{ url_for('evidence', station_id=case.stations[0].id) }}" class="btn btn-primary btn-lg" style="padding:14px 32px;font-size:15px;">
+      ENTER INVESTIGATION WORKSTATION
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:8px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
     </a>
   </div>
 </div>

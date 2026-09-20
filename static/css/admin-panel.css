@@ -11,20 +11,20 @@
 html, body { height: 100%; }
 
 .ap-colors {
-  --ap-bg0: #030309;
-  --ap-bg1: #05050F;
-  --ap-bg2: #080817;
-  --ap-bg3: #0D0B20;
-  --ap-bg4: #111024;
-  --ap-accent: #6C2BFF;
-  --ap-accent2: #7B2FFF;
-  --ap-accent3: #9B4DFF;
-  --ap-accent4: #B56CFF;
-  --ap-text: #F5F3FF;
-  --ap-muted: #B8B2D6;
-  --ap-success: #00E6A8;
-  --ap-warning: #FFB020;
-  --ap-danger: #FF4D6D;
+  --ap-bg0: var(--bg-canvas, #070B12);
+  --ap-bg1: var(--bg-surface-1, #0D131F);
+  --ap-bg2: var(--bg-surface-2, #141D2E);
+  --ap-bg3: var(--bg-surface-2, #141D2E);
+  --ap-bg4: var(--bg-surface-3, #1E293B);
+  --ap-accent: var(--accent-purple, #BFA5FF);
+  --ap-accent2: #9D7BFF;
+  --ap-accent3: #BFA5FF;
+  --ap-accent4: #D8C7FF;
+  --ap-text: var(--text-primary, #F8FAFC);
+  --ap-muted: var(--text-secondary, #94A3B8);
+  --ap-success: var(--state-success, #10B981);
+  --ap-warning: var(--state-warning, #F59E0B);
+  --ap-danger: var(--state-danger, #EF4444);
 }
 
 .ap-layout {
@@ -32,19 +32,19 @@ html, body { height: 100%; }
   grid-template-columns: 264px minmax(0, 1fr);
   height: 100vh;
   overflow: hidden;
-  background: var(--ap-bg1);
+  background: var(--bg-canvas, #070B12);
   color: var(--ap-muted);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body, 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
 }
 
 body {
   margin: 0;
   color: var(--ap-text);
   color-scheme: dark;
-  background: var(--ap-bg1);
+  background: var(--bg-canvas, #070B12);
 }
 
-/* Universe backdrop — matches the Round 1 HUD frame across admin */
+/* Universe backdrop — subtle dark graphite glow */
 body::before {
   content: "";
   position: fixed;
@@ -52,10 +52,8 @@ body::before {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(1200px 520px at 85% -10%, rgba(108, 43, 255, 0.10), transparent 60%),
-    radial-gradient(900px 480px at -10% 20%, rgba(34, 211, 238, 0.05), transparent 55%),
-    url('/static/img/r1-universe.jpg') 50% 22% / cover no-repeat;
-  opacity: .16;
+    radial-gradient(1200px 520px at 85% -10%, rgba(191, 165, 255, 0.04), transparent 60%),
+    radial-gradient(900px 480px at -10% 20%, rgba(0, 240, 255, 0.03), transparent 55%);
 }
 .ap-layout {
   position: relative;
@@ -65,8 +63,8 @@ body::before {
 /* ------------------------------- Sidebar ------------------------------- */
 
 .ap-sidebar {
-  background: linear-gradient(180deg, var(--ap-bg0), var(--ap-bg2));
-  border-right: 1px solid rgba(108, 43, 255, 0.22);
+  background: var(--bg-surface-1, #0D131F);
+  border-right: 1px solid var(--border-default, #1E293B);
   position: sticky;
   top: 0;
   height: 100vh;
@@ -77,7 +75,7 @@ body::before {
 
 .ap-sidebar-head {
   padding: 18px 18px 14px;
-  border-bottom: 1px solid rgba(108, 43, 255, 0.14);
+  border-bottom: 1px solid var(--border-subtle, #1E293B);
 }
 
 .ap-brand {

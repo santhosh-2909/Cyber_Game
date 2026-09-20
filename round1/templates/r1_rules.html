@@ -1,50 +1,100 @@
-{% extends "r1_base.html" %}
-{% block title %}Rules - Cyber Puzzle{% endblock %}
+{% extends "r1_base_v2.html" %}
+{% block title %}Rules & Protocols — Cyber Puzzle Round 1{% endblock %}
+
 {% block content %}
-<div style="margin-bottom:26px;">
-  <div class="hud-kicker">KNOW THE GAME</div>
-  <h1 class="hud-h1" style="font-size:clamp(1.6rem,3vw,2.2rem);margin-top:6px;">Round 1 Rules</h1>
-</div>
-
-<div class="grid grid-2" style="gap:20px;">
-  <div class="hud-panel hud-panel-cn">
-    <div class="hud-panel-title">Setup</div>
-    <ul style="padding-left:18px;margin:0;color:var(--hud-muted);line-height:1.9;font-size:0.9375rem;">
-      <li>Each team registers with a unique Team ID.</li>
-      <li>Press <strong style="color:var(--hud-text);">Start</strong> to generate a random, server-assigned set of <strong style="color:var(--hud-text);">6 challenges</strong>.</li>
-      <li>Your 6 are drawn from across the <strong style="color:var(--hud-text);">12 cyber fundamentals</strong> categories.</li>
-      <li>Assignments are permanent: refreshing or logging back in resumes the same round.</li>
-    </ul>
+<div class="r1-rules-container" style="max-width:1140px;margin:0 auto;padding:var(--space-6, 24px) 0;">
+  <!-- Header Banner -->
+  <div style="margin-bottom:var(--space-8, 32px);">
+    <div class="badge badge-outline font-mono" style="color:var(--accent-signal);margin-bottom:var(--space-2, 8px);">
+      [OPERATION DIRECTIVE] · ROUND 1 PROTOCOLS
+    </div>
+    <h1 style="font-family:var(--font-display);font-size:clamp(1.8rem, 3.5vw, 2.5rem);font-weight:700;color:var(--text-primary);letter-spacing:0.02em;margin:0 0 var(--space-2, 8px) 0;">
+      TACTICAL RULES &amp; SCORING MATRIX
+    </h1>
+    <p style="font-size:var(--font-size-md, 1.125rem);color:var(--text-secondary);max-width:70ch;line-height:var(--line-height-normal, 1.5);margin:0;">
+      Review the competition constraints, scoring algorithms, and anti-tamper protocols before initiating your assigned cyber challenges.
+    </p>
   </div>
 
-  <div class="hud-panel hud-panel-cn">
-    <div class="hud-panel-title">Timing &amp; Scoring</div>
-    <ul style="padding-left:18px;margin:0;color:var(--hud-muted);line-height:1.9;font-size:0.9375rem;">
-      <li>You have <strong style="color:var(--hud-text);">30 minutes</strong>, enforced server-side. Warnings at 10, 5, and 1 minute.</li>
-      <li>Each challenge is worth <strong style="color:var(--hud-text);">100 points</strong> (max 600).</li>
-      <li>Points are awarded only when the server validates a correct flag.</li>
-      <li>Resubmitting a solved challenge earns no extra points.</li>
-    </ul>
+  <!-- Rules Grid -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:var(--space-5, 20px);margin-bottom:var(--space-8, 32px);">
+    <!-- Card 1: Setup & Allocation -->
+    <div class="card card-interactive" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:var(--space-6, 24px);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:var(--space-4, 16px);">
+        <div style="width:28px;height:28px;border-radius:var(--radius-sm);background-color:rgba(0, 240, 255, 0.12);border:1px solid var(--border-signal);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--accent-signal);">01</div>
+        <h2 style="font-family:var(--font-display);font-size:var(--font-size-lg, 1.25rem);font-weight:700;color:var(--text-primary);margin:0;">
+          Challenge Allocation
+        </h2>
+      </div>
+      <ul style="padding-left:20px;margin:0;color:var(--text-secondary);line-height:1.7;font-size:var(--font-size-sm, 14px);">
+        <li>Each registered team is assigned a deterministic set of <strong style="color:var(--text-primary);">6 challenge variants</strong> drawn from the cyber fundamentals corpus.</li>
+        <li>Assignments are persisted server-side: refreshing the browser or re-authenticating seamlessly restores your active challenge state.</li>
+        <li>Categories span Ciphers, Packet Forensics, Steganography, Binary Obfuscation, and Protocol Decoding.</li>
+      </ul>
+    </div>
+
+    <!-- Card 2: Timing & Scoring -->
+    <div class="card card-interactive" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:var(--space-6, 24px);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:var(--space-4, 16px);">
+        <div style="width:28px;height:28px;border-radius:var(--radius-sm);background-color:rgba(16, 185, 129, 0.12);border:1px solid rgba(16, 185, 129, 0.32);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--state-success);">02</div>
+        <h2 style="font-family:var(--font-display);font-size:var(--font-size-lg, 1.25rem);font-weight:700;color:var(--text-primary);margin:0;">
+          Timing &amp; Point Valuation
+        </h2>
+      </div>
+      <ul style="padding-left:20px;margin:0;color:var(--text-secondary);line-height:1.7;font-size:var(--font-size-sm, 14px);">
+        <li>Standard engagement duration is <strong style="color:var(--text-primary);">30 minutes</strong>, synchronized authoritative to the server clock.</li>
+        <li>Each verified flag awards up to <strong style="color:var(--text-primary);">100 points</strong> (maximum 600 total base score).</li>
+        <li>Points are allocated atomically upon cryptographic validation of the submission payload. Resubmitting an already solved challenge yields no duplicate points.</li>
+      </ul>
+    </div>
+
+    <!-- Card 3: Flag Verification & Hints -->
+    <div class="card card-interactive" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:var(--space-6, 24px);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:var(--space-4, 16px);">
+        <div style="width:28px;height:28px;border-radius:var(--radius-sm);background-color:rgba(245, 158, 11, 0.12);border:1px solid rgba(245, 158, 11, 0.32);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--accent-amber);">03</div>
+        <h2 style="font-family:var(--font-display);font-size:var(--font-size-lg, 1.25rem);font-weight:700;color:var(--text-primary);margin:0;">
+          Flag Syntax &amp; Hints
+        </h2>
+      </div>
+      <ul style="padding-left:20px;margin:0;color:var(--text-secondary);line-height:1.7;font-size:var(--font-size-sm, 14px);">
+        <li>Submit findings matching standard format specifications (e.g., <code class="font-mono" style="color:var(--accent-signal);background-color:var(--bg-surface-2);padding:2px 6px;border-radius:2px;">FLAG{...}</code> or exact tokens).</li>
+        <li>Submissions are normalized for whitespace and evaluated case-insensitively.</li>
+        <li>Tactical intelligence hints are available per station; decrypting a hint incurs a fixed point mitigation deduction.</li>
+      </ul>
+    </div>
+
+    <!-- Card 4: Anti-Tamper & LAN Conduct -->
+    <div class="card card-interactive" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:var(--space-6, 24px);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:var(--space-4, 16px);">
+        <div style="width:28px;height:28px;border-radius:var(--radius-sm);background-color:rgba(248, 113, 113, 0.12);border:1px solid rgba(248, 113, 113, 0.32);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--state-danger);">04</div>
+        <h2 style="font-family:var(--font-display);font-size:var(--font-size-lg, 1.25rem);font-weight:700;color:var(--text-primary);margin:0;">
+          Anti-Tamper &amp; Integrity
+        </h2>
+      </div>
+      <ul style="padding-left:20px;margin:0;color:var(--text-secondary);line-height:1.7;font-size:var(--font-size-sm, 14px);">
+        <li>All submissions are audited against brute-force rate-limiting (burst limit triggers HTTP 429 cooling windows).</li>
+        <li>Timer calculations and challenge verifications execute strictly on the isolated server daemon.</li>
+        <li>Cooperation between opposing teams is prohibited. Maintain forensic custody and tactical discipline.</li>
+      </ul>
+    </div>
   </div>
 
-  <div class="hud-panel hud-panel-cn">
-    <div class="hud-panel-title">Flags &amp; Answers</div>
-    <ul style="padding-left:18px;margin:0;color:var(--hud-muted);line-height:1.9;font-size:0.9375rem;">
-      <li>Submit the exact flag or answer the challenge requests.</li>
-      <li>Answers are matched case-insensitively and ignoring extra spaces.</li>
-      <li>Flags are stored only server-side and never revealed on the page.</li>
-      <li>Use the <strong style="color:var(--hud-text);">Hint</strong> button only if you are stuck.</li>
-    </ul>
-  </div>
-
-  <div class="hud-panel hud-panel-cn">
-    <div class="hud-panel-title">Conduct</div>
-    <ul style="padding-left:18px;margin:0;color:var(--hud-muted);line-height:1.9;font-size:0.9375rem;">
-      <li>Do not share flags or answers with other teams.</li>
-      <li>The timer, scoring, and validation are all handled by the server — tampering is not possible.</li>
-      <li>Repeat submissions are rate-limited to prevent spam.</li>
-      <li>Have fun and solve like a pro.</li>
-    </ul>
+  <!-- Action Bar -->
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:var(--space-5, 20px);background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span class="status-dot active" style="width:8px;height:8px;border-radius:50%;background-color:var(--state-success);"></span>
+      <span class="font-mono" style="font-size:var(--font-size-sm, 14px);color:var(--text-secondary);">
+        SYSTEM STATUS: <strong style="color:var(--text-primary);">ARMED &amp; OPERATIONAL</strong>
+      </span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <a href="{{ url_for('landing') }}" class="btn btn-ghost">
+        &larr; MISSION PORTAL
+      </a>
+      <a href="{{ url_for('r1.r1_dashboard') }}" class="btn btn-primary font-mono" style="padding:10px 24px;font-size:14px;font-weight:700;letter-spacing:0.04em;">
+        ENTER ROUND 1 DASHBOARD &rarr;
+      </a>
+    </div>
   </div>
 </div>
 {% endblock %}

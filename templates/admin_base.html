@@ -1,29 +1,40 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Admin Control - Cyber Detective{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/utilities.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-panel.css') }}?v=4">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}?v=4">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%238B5CF6'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='18' font-weight='bold' font-family='monospace'>CD</text></svg>">
   {% block head %}{% endblock %}
 </head>
 <body>
-  <div class="hx-crt" aria-hidden="true"></div>
-  <div class="ap-layout ap-colors">
+  <!-- Skip Link for Keyboard Accessibility -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- Connection Monitor Banner -->
+  <div id="connection-banner" class="connection-banner" role="alert" aria-live="assertive">
+    [OFFLINE] LAN CONNECTION INTERRUPTED &mdash; BUFFERING SUBMISSIONS LOCALLY
+  </div>
+
+  <div class="ap-layout ap-colors" style="display:flex;min-height:100vh;">
     <!-- Sidebar -->
-    <aside class="ap-sidebar">
-      <div class="ap-sidebar-head">
-        <a class="ap-brand" href="{{ url_for('admin_dashboard') }}">
-          <div class="ap-brand-mark">CD</div>
-          <div class="ap-brand-text">CYBER DETECTIVE
-            <small>ACCESS CONTROL CENTER</small>
+    <aside class="ap-sidebar" style="width:260px;background-color:var(--bg-surface-1);border-right:1px solid var(--border-default);display:flex;flex-direction:column;flex-shrink:0;">
+      <div class="ap-sidebar-head" style="padding:20px 16px;border-bottom:1px solid var(--border-subtle);">
+        <a class="ap-brand" href="{{ url_for('admin_dashboard') }}" style="display:flex;align-items:center;gap:12px;text-decoration:none;">
+          <img src="{{ url_for('static', filename='images/logo.svg') }}" width="32" height="32" alt="Cyber Detective Shield Logo" />
+          <div class="ap-brand-text" style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--text-primary);line-height:1.2;">
+            CYBER DETECTIVE
+            <small style="display:block;font-family:var(--font-mono);font-size:12px;color:var(--text-tertiary);letter-spacing:0.06em;">ADMIN CONTROL</small>
           </div>
         </a>
       </div>
 
-      <nav class="ap-sidebar-nav" id="apSidebar">
+      <nav class="ap-sidebar-nav" id="apSidebar" style="flex:1;overflow-y:auto;padding:16px 12px;">
         {% macro item(endpoint, label, icon='rect') %}
         <a href="{{ url_for(endpoint) }}" class="ap-nav-item {% if request.endpoint == endpoint %}active{% endif %}">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -67,7 +78,7 @@
         {% endmacro %}
 
         <div class="ap-nav-section">
-          <div class="ap-nav-section-title">GENERAL</div>
+          <div class="ap-nav-section-title font-mono" style="font-size:12px;">GENERAL</div>
           {{ item('admin_dashboard', 'Dashboard', 'grid') }}
           {{ group('teams', 'Team Members', 'users',
                    ('admin_round1_teams', 'admin_round2_teams', 'admin_team_logins'),
@@ -75,7 +86,7 @@
         </div>
 
         <div class="ap-nav-section">
-          <div class="ap-nav-section-title">ROUND 1</div>
+          <div class="ap-nav-section-title font-mono" style="font-size:12px;">ROUND 1</div>
           {{ group('r1', 'MIXED FUNDAMENTALS', 'shield',
                    ('admin_round1_overview', 'admin_r1_challenges', 'admin_r1_questions',
                     'admin_r1_validation', 'admin_r1_scoring', 'admin_r1_settings'),
@@ -88,7 +99,7 @@
         </div>
 
         <div class="ap-nav-section">
-          <div class="ap-nav-section-title">ROUND 2</div>
+          <div class="ap-nav-section-title font-mono" style="font-size:12px;">ROUND 2</div>
           {{ group('r2', 'DIGITAL FORENSICS', 'case',
                    ('admin_round2_overview', 'admin_r2_cases', 'admin_r2_case_detail',
                     'admin_r2_evidence', 'admin_r2_tasks', 'admin_r2_questions',
@@ -105,7 +116,7 @@
         </div>
 
         <div class="ap-nav-section">
-          <div class="ap-nav-section-title">OPERATIONS</div>
+          <div class="ap-nav-section-title font-mono" style="font-size:12px;">OPERATIONS</div>
           {{ item('admin_monitoring', 'Live Monitoring', 'activity') }}
           {{ item('admin_submissions', 'Submissions', 'check') }}
           {{ item('admin_review', 'Report Review', 'eye') }}
@@ -115,48 +126,59 @@
         </div>
       </nav>
 
-      <div class="ap-sidebar-foot">
-        <a href="{{ url_for('landing') }}" class="ap-btn ghost sm w-100" style="justify-content:center;width:100%;">BACK TO PLATFORM</a>
+      <div class="ap-sidebar-foot" style="padding:16px;border-top:1px solid var(--border-subtle);">
+        <a href="{{ url_for('landing') }}" class="btn btn-ghost btn-sm w-full" style="justify-content:center;font-size:12px;">BACK TO PLATFORM</a>
       </div>
     </aside>
 
     <!-- Main -->
-    <div class="ap-main">
-            <header class="ap-topbar">
-        <div class="ap-row" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-          <div class="ap-row" style="display: flex; align-items: center; gap: 12px;">
-            <button class="ap-btn ghost sm ap-mobile-toggle" id="apMobileToggle" style="display: none;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-            </button>
-            <span class="ap-topbar-title" id="apTopTitle">Overview</span>
-          </div>
-          <span class="ap-badge success" id="apRoundStatus">CONTROL ACTIVE</span>
-          <span class="hx-badge" style="margin-left:8px;">PRIVILEGED</span>
+    <main id="main-content" class="ap-main" style="flex:1;display:flex;flex-direction:column;min-width:0;background-color:var(--bg-canvas);" role="main">
+      <header class="ap-topbar" style="height:56px;background-color:var(--bg-surface-1);border-bottom:1px solid var(--border-default);padding:0 24px;display:flex;align-items:center;justify-content:space-between;">
+        <div class="ap-row" style="display:flex;align-items:center;gap:12px;">
+          <button class="btn btn-ghost btn-sm ap-mobile-toggle" id="apMobileToggle" style="display:none;" aria-label="Toggle Navigation">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <span class="ap-topbar-title font-bold" id="apTopTitle" style="font-size:16px;color:var(--text-primary);">Overview</span>
+          <span class="badge badge-success" id="apRoundStatus" style="font-size:12px;">CONTROL ACTIVE</span>
+          <span class="badge badge-outline font-mono" style="font-size:12px;">PRIVILEGED</span>
         </div>
-        <div class="ap-row">
-          <span class="ap-mono ap-muted" style="font-size:11px;">CYBER DETECTIVE 2026</span>
-          <a href="{{ url_for('r1.r1_admin_logout') }}" class="ap-btn ghost sm">LOGOUT</a>
+        <div class="ap-row" style="display:flex;align-items:center;gap:16px;">
+          <button type="button" id="theme-toggle" class="btn btn-ghost btn-sm" aria-label="Toggle theme" style="padding:2px 8px;font-size:12px;border:1px solid var(--border-subtle);">
+            <span class="theme-label font-mono" style="font-size:12px;">THEME</span>
+          </button>
+          <span class="font-mono text-tertiary" style="font-size:12px;">CYBER DETECTIVE 2026</span>
+          <a href="{{ url_for('r1.r1_admin_logout') }}" class="btn btn-ghost btn-sm" style="font-size:12px;">LOGOUT</a>
         </div>
       </header>
 
-      <div class="ap-content">
+      <div class="ap-content" style="flex:1;padding:24px;overflow-y:auto;">
         {% block content %}{% endblock %}
       </div>
-    </div>
+    </main>
   </div>
 
+  <!-- Admin Modal Frame -->
   <div class="ap-modal" id="apModal" onclick="if(event.target===this)ApCloseModal()">
     <div class="ap-modal-card">{% block modal %}{% endblock %}</div>
   </div>
 
+  <!-- Admin Toast Alert Hook -->
   <div class="ap-toast" id="apToast"></div>
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <!-- Core Behaviors Engine -->
+  <script src="{{ url_for('static', filename='js/core.js') }}"></script>
+
+  <!-- Admin Interactive Control Globals -->
   <script>
     (function () {
-      document.getElementById('apMobileToggle').addEventListener('click', function() {
-        document.getElementById('apSidebar').classList.toggle('open');
-      });
+      var mobileToggle = document.getElementById('apMobileToggle');
+      if (mobileToggle) {
+        mobileToggle.addEventListener('click', function() {
+          var sb = document.getElementById('apSidebar');
+          if (sb) sb.classList.toggle('open');
+        });
+      }
 
       // Collapsible nav groups
       document.querySelectorAll('.ap-nav-group-toggle').forEach(function (btn) {
@@ -169,6 +191,7 @@
           } catch (e) {}
         });
       });
+
       // Restore open state
       document.querySelectorAll('.ap-nav-group').forEach(function (grp) {
         try {
@@ -176,7 +199,8 @@
               !grp.classList.contains('open')) return;
         } catch (e) {}
       });
-      // Topbar title from the active nav item
+
+      // Topbar title from active nav item
       var topTitle = document.getElementById('apTopTitle');
       if (topTitle) {
         var act = document.querySelector('.ap-nav-item.active, .ap-nav-sub.active');
@@ -185,6 +209,7 @@
           if (t) topTitle.textContent = t;
         }
       }
+
       // Escape closes the modal
       document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') ApCloseModal();
@@ -193,25 +218,25 @@
 
     function apToast(msg, isError) {
       var t = document.getElementById('apToast');
-      t.textContent = msg;
-      t.className = 'ap-toast show' + (isError ? ' error' : '');
-      clearTimeout(t._h);
-      t._h = setTimeout(function () {
-      document.getElementById('apMobileToggle').addEventListener('click', function() {
-        document.getElementById('apSidebar').classList.toggle('open');
-      });
- t.classList.remove('show'); }, 3600);
+      if (t) {
+        t.textContent = msg;
+        t.className = 'ap-toast show' + (isError ? ' error' : '');
+        clearTimeout(t._h);
+        t._h = setTimeout(function () { t.classList.remove('show'); }, 3600);
+      }
     }
 
     function ApCloseModal() {
-      document.getElementById('apModal').classList.remove('open');
+      var m = document.getElementById('apModal');
+      if (m) m.classList.remove('open');
     }
 
     function ApShowPanel(panelId) {
       document.querySelectorAll('#apModal .ap-modal-panel').forEach(function (el) {
         el.style.display = (el.id === panelId) ? 'block' : 'none';
       });
-      document.getElementById('apModal').classList.add('open');
+      var m = document.getElementById('apModal');
+      if (m) m.classList.add('open');
     }
 
     function ApOpenForm(url, payload) {
@@ -219,29 +244,18 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
-      }).then(function (r) { return r.json().catch(function () {
-      document.getElementById('apMobileToggle').addEventListener('click', function() {
-        document.getElementById('apSidebar').classList.toggle('open');
-      });
- return {}; }); })
+      }).then(function (r) { return r.json().catch(function () { return {}; }); })
         .then(function (d) {
           if (d && d.ok) {
             apToast('Saved');
-            setTimeout(function () {
-      document.getElementById('apMobileToggle').addEventListener('click', function() {
-        document.getElementById('apSidebar').classList.toggle('open');
-      });
- window.location.reload(); }, 400);
+            setTimeout(function () { window.location.reload(); }, 400);
           } else {
             apToast((d && d.error) || 'Request failed.', true);
           }
-        }).catch(function () {
-      document.getElementById('apMobileToggle').addEventListener('click', function() {
-        document.getElementById('apSidebar').classList.toggle('open');
-      });
- apToast('Request failed.', true); });
+        }).catch(function () { apToast('Request failed.', true); });
     }
   </script>
+
   {% block scripts %}{% endblock %}
 </body>
 </html>

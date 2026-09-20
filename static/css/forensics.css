@@ -6,46 +6,46 @@
    ============================================================ */
 
 :root {
-  /* Backgrounds — deep purple laboratory */
-  --bg-base:        #030309;
-  --bg-panel:       #0D0B20;
-  --bg-elevated:    #111024;
-  --bg-secondary:   #16132A;
-  --bg-tertiary:    #1B1736;
-  --bg-input:       #080817;
+  /* Backgrounds — dark-first graphite palette */
+  --bg-base:        var(--bg-canvas, #070B12);
+  --bg-panel:       var(--bg-surface-1, #0D131F);
+  --bg-elevated:    var(--bg-surface-2, #141D2E);
+  --bg-secondary:   var(--bg-surface-2, #141D2E);
+  --bg-tertiary:    var(--bg-surface-3, #1E293B);
+  --bg-input:       var(--bg-surface-2, #141D2E);
 
-  /* Accent — neon violet */
-  --accent:         #7B2FFF;
-  --accent-dim:     #6C2BFF;
-  --accent-glow:    rgba(123, 47, 255, 0.16);
-  --accent-border:  rgba(155, 77, 255, 0.38);
+  /* Accent — restrained purple & signal */
+  --accent:         var(--accent-purple, #BFA5FF);
+  --accent-dim:     #9D7BFF;
+  --accent-glow:    rgba(191, 165, 255, 0.12);
+  --accent-border:  rgba(191, 165, 255, 0.35);
 
-  /* Semantic — forensic palette */
-  --success:        #00E6A8;
-  --success-dim:    #00C18C;
-  --success-bg:     rgba(0, 230, 168, 0.09);
-  --warning:        #FFB020;
-  --warning-dim:    #E09A0A;
-  --warning-bg:     rgba(255, 176, 32, 0.09);
-  --danger:         #FF4D6D;
-  --danger-dim:     #E93A5B;
-  --danger-bg:      rgba(255, 77, 109, 0.10);
-  --cyan:           #22D3EE;
-  --cyan-bg:        rgba(34, 211, 238, 0.08);
+  /* Semantic — high contrast accessible tokens */
+  --success:        var(--state-success, #10B981);
+  --success-dim:    #059669;
+  --success-bg:     rgba(16, 185, 129, 0.12);
+  --warning:        var(--state-warning, #F59E0B);
+  --warning-dim:    #D97706;
+  --warning-bg:     rgba(245, 158, 11, 0.12);
+  --danger:         var(--state-danger, #EF4444);
+  --danger-dim:     #DC2626;
+  --danger-bg:      rgba(239, 68, 68, 0.12);
+  --cyan:           var(--accent-cyan, #38BDF8);
+  --cyan-bg:        rgba(56, 189, 248, 0.12);
 
-  /* Text — cool lavender-whites */
-  --text-primary:   #F5F3FF;
-  --text-secondary: #B8B2D6;
-  --text-muted:     #8A84AD;
-  --text-dim:       #6E6793;
+  /* Text — accessible contrast >= 4.5:1 */
+  --text-primary:   var(--text-primary, #F8FAFC);
+  --text-secondary: var(--text-secondary, #94A3B8);
+  --text-muted:     var(--text-tertiary, #64748B);
+  --text-dim:       #475569;
 
-  /* Borders — violet tints */
-  --border:         rgba(181, 108, 255, 0.12);
-  --border-strong:  rgba(181, 108, 255, 0.24);
-  --border-accent:  rgba(155, 77, 255, 0.3);
+  /* Borders — accessible contrast >= 3:1 */
+  --border:         var(--border-subtle, #1E293B);
+  --border-strong:  var(--border-default, #334155);
+  --border-accent:  rgba(191, 165, 255, 0.35);
 
   /* Glow */
-  --shadow-glow:    0 0 24px rgba(108, 43, 255, 0.22);
+  --shadow-glow:    0 0 16px rgba(0, 240, 255, 0.08);
 }
 
 /* ============================================================
@@ -254,10 +254,10 @@ html, body { overflow-x: hidden; }
 .fs-overline strong { color: var(--accent); font-weight: 700; }
 
 .fs-card {
-  background: linear-gradient(180deg, rgba(17, 16, 36, 0.9), rgba(13, 11, 32, 0.85));
-  border: 1px solid var(--border-accent);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 8px 32px rgba(3, 3, 9, 0.55);
+  background: var(--bg-surface-1, #0D131F);
+  border: 1px solid var(--border-default, #1E293B);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: var(--shadow-sm);
 }
 
 .fs-chip {
@@ -280,11 +280,10 @@ html, body { overflow-x: hidden; }
   content: "";
   width: 6px; height: 6px; border-radius: 50%;
   background: currentColor;
-  box-shadow: 0 0 8px currentColor;
 }
-.fs-chip.ok      { color: var(--success); border-color: rgba(0, 230, 168, 0.35); background: var(--success-bg); }
-.fs-chip.warn    { color: var(--warning); border-color: rgba(255, 176, 32, 0.35); background: var(--warning-bg); }
-.fs-chip.dead    { color: var(--danger);  border-color: rgba(255, 77, 109, 0.35); background: var(--danger-bg); }
+.fs-chip.ok      { color: var(--success); border-color: rgba(16, 185, 129, 0.35); background: var(--success-bg); }
+.fs-chip.warn    { color: var(--warning); border-color: rgba(245, 158, 11, 0.35); background: var(--warning-bg); }
+.fs-chip.dead    { color: var(--danger);  border-color: rgba(239, 68, 68, 0.35); background: var(--danger-bg); }
 .fs-chip.violet  { color: var(--accent);  border-color: var(--accent-border); background: var(--accent-glow); }
 .fs-chip.dim     { color: var(--text-muted); }
 
@@ -299,19 +298,19 @@ html, body { overflow-x: hidden; }
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  padding: 14px 18px;
-  margin-bottom: 14px;
-  background: linear-gradient(180deg, rgba(17, 16, 36, 0.92), rgba(13, 11, 32, 0.72));
-  border: 1px solid var(--border-accent);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 8px 32px rgba(3, 3, 9, 0.5);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  background: var(--bg-surface-1, #0D131F);
+  border: 1px solid var(--border-default, #1E293B);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: var(--shadow-sm);
 }
-.fs-masthead .mh-title { font-size: 1.1rem; font-weight: 800; letter-spacing: 0.03em; color: var(--text-primary); }
-.fs-masthead .mh-sub  { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+.fs-masthead .mh-title { font-size: 1.15rem; font-weight: 700; font-family: var(--font-display); letter-spacing: 0.02em; color: var(--text-primary); }
+.fs-masthead .mh-sub  { font-size: 0.75rem; font-family: var(--font-mono); color: var(--text-muted); margin-top: 2px; }
 .fs-masthead .mh-right { margin-left: auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .fs-meter { display: flex; align-items: center; gap: 8px; }
-.fs-meter .m-track { width: 130px; height: 5px; border-radius: 99px; background: var(--bg-tertiary); overflow: hidden; }
-.fs-meter .m-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), #B56CFF); box-shadow: 0 0 10px rgba(123, 47, 255, 0.6); }
+.fs-meter .m-track { width: 130px; height: 6px; border-radius: 99px; background: var(--bg-tertiary); overflow: hidden; }
+.fs-meter .m-fill { height: 100%; border-radius: 99px; background: var(--state-success, #10B981); }
 
 /* ============================================================
    WORKSTATION — 3-pane layout (vault / viewer / findings)

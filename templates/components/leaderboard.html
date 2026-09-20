@@ -1,0 +1,104 @@
+{# Cyber Detective 2026 — Shared Leaderboard Component #}
+<div class="leaderboard-component">
+  <!-- Top 3 Podium -->
+  {% if teams and teams|length >= 3 %}
+  <div class="podium-grid" style="display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:16px;align-items:flex-end;margin-bottom:var(--space-6, 24px);max-width:800px;margin-left:auto;margin-right:auto;">
+    <!-- 2nd Place (Silver) -->
+    <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:20px 16px;text-align:center;box-shadow:var(--shadow-sm);">
+      <div class="font-mono font-bold" style="font-size:20px;color:var(--text-tertiary);margin-bottom:6px;">02</div>
+      <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+        {{ teams[1].team_name if teams[1].team_name is defined else teams[1][0] }}
+      </div>
+      <div class="font-mono font-bold" style="font-size:18px;color:var(--accent-signal);margin-top:6px;">
+        {{ teams[1].score if teams[1].score is defined else teams[1][1] }} <small style="font-size:11px;color:var(--text-tertiary);">PTS</small>
+      </div>
+      <div style="height:48px;background:var(--bg-surface-2);border-radius:var(--radius-xs);margin-top:12px;border:1px solid var(--border-subtle);"></div>
+    </div>
+
+    <!-- 1st Place (Gold / Champion) -->
+    <div class="card" style="background-color:var(--bg-surface-1);border:1px solid rgba(245, 158, 11, 0.4);border-radius:var(--radius-md);padding:24px 16px;text-align:center;box-shadow:var(--shadow-md);transform:translateY(-8px);">
+      <div style="width:36px;height:36px;border-radius:50%;background-color:rgba(245, 158, 11, 0.15);border:1px solid rgba(245, 158, 11, 0.4);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;color:var(--accent-amber);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+      </div>
+      <div class="font-mono font-bold" style="font-size:12px;letter-spacing:0.08em;color:var(--accent-amber);">CHAMPION</div>
+      <div style="font-family:var(--font-display);font-weight:700;font-size:18px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">
+        {{ teams[0].team_name if teams[0].team_name is defined else teams[0][0] }}
+      </div>
+      <div class="font-mono font-bold" style="font-size:22px;color:var(--accent-amber);margin-top:6px;">
+        {{ teams[0].score if teams[0].score is defined else teams[0][1] }} <small style="font-size:12px;color:var(--text-tertiary);">PTS</small>
+      </div>
+      <div style="height:72px;background:rgba(245, 158, 11, 0.08);border-radius:var(--radius-xs);margin-top:12px;border:1px solid rgba(245, 158, 11, 0.25);"></div>
+    </div>
+
+    <!-- 3rd Place (Bronze) -->
+    <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:18px 16px;text-align:center;box-shadow:var(--shadow-sm);">
+      <div class="font-mono font-bold" style="font-size:20px;color:var(--text-tertiary);margin-bottom:6px;">03</div>
+      <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+        {{ teams[2].team_name if teams[2].team_name is defined else teams[2][0] }}
+      </div>
+      <div class="font-mono font-bold" style="font-size:18px;color:var(--accent-signal);margin-top:6px;">
+        {{ teams[2].score if teams[2].score is defined else teams[2][1] }} <small style="font-size:11px;color:var(--text-tertiary);">PTS</small>
+      </div>
+      <div style="height:36px;background:var(--bg-surface-2);border-radius:var(--radius-xs);margin-top:12px;border:1px solid var(--border-subtle);"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Full Table of Standings -->
+  <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-sm);">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="status-dot active" style="width:8px;height:8px;border-radius:50%;background-color:var(--state-success);"></span>
+        <h2 style="font-family:var(--font-mono);font-size:13px;font-weight:700;letter-spacing:0.06em;color:var(--text-secondary);margin:0;">
+          LIVE STANDINGS MATRIX
+        </h2>
+      </div>
+      <span class="font-mono" style="font-size:11px;color:var(--text-tertiary);">SYNCHRONIZED REAL-TIME</span>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;text-align:left;font-size:14px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border-default);color:var(--text-tertiary);font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;background-color:var(--bg-surface-2);">
+            <th style="padding:12px 18px;width:70px;">RANK</th>
+            <th style="padding:12px 18px;">TEAM IDENTIFIER</th>
+            <th style="padding:12px 18px;text-align:center;">SOLVES</th>
+            <th style="padding:12px 18px;text-align:right;">TOTAL SCORE</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if teams %}
+            {% for t in teams %}
+            {% set rank = loop.index %}
+            <tr style="border-bottom:1px solid var(--border-subtle);transition:background-color 0.15s ease;"
+                onmouseover="this.style.backgroundColor='var(--bg-surface-2)'"
+                onmouseout="this.style.backgroundColor='transparent'">
+              <td style="padding:14px 18px;font-family:var(--font-mono);font-weight:700;color:{% if rank == 1 %}var(--accent-amber){% elif rank <= 3 %}var(--accent-signal){% else %}var(--text-tertiary){% endif %};">
+                #{{ '%02d' | format(rank) }}
+              </td>
+              <td style="padding:14px 18px;font-weight:600;color:var(--text-primary);">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  {% if rank == 1 %}<span style="color:var(--accent-amber);">★</span>{% endif %}
+                  <span>{{ t.team_name if t.team_name is defined else t[0] }}</span>
+                </div>
+              </td>
+              <td style="padding:14px 18px;text-align:center;font-family:var(--font-mono);color:var(--text-secondary);">
+                {{ t.solved if t.solved is defined else (t[2] if t|length > 2 else '—') }}
+              </td>
+              <td style="padding:14px 18px;text-align:right;font-family:var(--font-mono);font-weight:700;color:var(--accent-signal);font-size:15px;">
+                {{ t.score if t.score is defined else t[1] }} <small style="font-size:11px;color:var(--text-tertiary);font-weight:400;">PTS</small>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="4" style="padding:32px;text-align:center;color:var(--text-tertiary);font-family:var(--font-mono);">
+                No competition scores logged yet. Be the first team on the board!
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

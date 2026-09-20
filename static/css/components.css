@@ -1253,7 +1253,7 @@
 }
 
 .auth-nav-tab .tab-badge {
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1;
   padding: 1px 4px;
   border-radius: 2px;
@@ -1266,7 +1266,7 @@
 
 @media (max-width: 480px) {
   .auth-nav-tab {
-    font-size: 11px;
+    font-size: 12px;
     padding: 2px 4px;
   }
 }

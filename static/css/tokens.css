@@ -137,6 +137,7 @@
   --text-primary: #F1F5F9;    /* 17.99:1 on canvas, 13.45:1 on surface-3 */
   --text-secondary: #94A3B8;  /* 7.69:1 on canvas, 5.75:1 on surface-3 */
   --text-tertiary: #9AAEC4;   /* 8.66:1 on canvas, 6.47:1 on surface-3 */
+  --text-base: #94A3B8;       /* Canonical body text alias -> text-secondary (7.69:1 on canvas) */
   --text-inverse: #070B12;
 
   /* Primary Signal Accent: ELECTRIC CYAN */
@@ -218,6 +219,7 @@
   --z-header: 500;
   --z-drawer: 800;
   --z-modal: 1000;
+  --z-tooltip: 1200;
   --z-toast: 2000;
 }
 
@@ -245,6 +247,7 @@
   --text-primary: #0F172A;    /* 17.06:1 on canvas */
   --text-secondary: #334155;  /* 9.90:1 on canvas */
   --text-tertiary: #475569;   /* 7.24:1 on canvas, 6.15:1 on surface-3 */
+  --text-base: #334155;       /* Canonical body text alias -> text-secondary (9.90:1 on canvas) */
   --text-inverse: #F8FAFC;
 
   /* Calibrated Light Accents (All >= 4.5:1 on ALL light surfaces) */

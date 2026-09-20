@@ -1,5 +1,8 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% block title %}{% if unlocked %}Station {{ station.id }} - {{ station.name }}{% else %}Station Locked{% endif %} · {{ case.code }}{% endblock %}
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/forensics.css') }}">
+{% endblock %}
 {% block content %}
 {% set next_open = case.stations[0].id %}
 {% for item in vault %}

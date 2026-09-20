@@ -1,103 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Round 1 Leaderboard</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}">
-  <style>
-    .r1-bg-image{position:fixed;inset:0;z-index:0;background:url('/static/img/r1-universe.jpg') 50% 22%/cover no-repeat;opacity:.18;pointer-events:none}
-    .r1-bg-image::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 28%,transparent,rgba(3,7,15,.6) 82%)}
-    .r1-bg-image~.topnav,.r1-bg-image~.container-wide{position:relative;z-index:1}
-  </style>
-</head>
-<body class="hx-frame">
-  <div class="r1-bg-image" aria-hidden="true"></div>
-  <div class="hx-crt" aria-hidden="true"></div>
-  <div class="hx-phosphor" aria-hidden="true"></div>
-  <div class="hx-secstrip" aria-hidden="true">
-    <div class="hx-sec-left">
-      <span class="hx-seg"><span class="dot"></span>SECURE CHANNEL</span>
-      <span class="hx-pipe">|</span>
-      <span class="hx-seg">R1 LAB</span>
+{% extends "r1_base_v2.html" %}
+{% block title %}Tactical Leaderboard — Cyber Puzzle Round 1{% endblock %}
+
+{% block content %}
+<div class="r1-leaderboard-container" style="max-width:1140px;margin:0 auto;padding:var(--space-6, 24px) 0;">
+  <!-- Header Banner -->
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:var(--space-8, 32px);">
+    <div>
+      <div class="badge badge-outline font-mono" style="color:var(--accent-signal);margin-bottom:var(--space-2, 8px);">
+        [LAN COMPETITION TELEMETRY] &middot; ROUND 1 PODIUM
+      </div>
+      <h1 style="font-family:var(--font-display);font-size:clamp(1.8rem, 3.5vw, 2.5rem);font-weight:700;color:var(--text-primary);letter-spacing:0.02em;margin:0 0 var(--space-2, 8px) 0;">
+        CYBER PUZZLE LEADERBOARD
+      </h1>
+      <p style="font-size:var(--font-size-md, 1.125rem);color:var(--text-secondary);max-width:65ch;line-height:var(--line-height-normal, 1.5);margin:0;">
+        Real-time tournament standings for Round 1. Rank determination is strictly governed by total validated flag score, solved count, and elapsed completion timestamp.
+      </p>
     </div>
-    <div class="hx-sec-center hx-seg"><span class="hx-cursor">RANKING NODE</span></div>
-    <div class="hx-sec-right">
-      <span class="hx-seg">FIREWALL <span class="hx-blink">UP</span></span>
-    </div>
-  </div>
-  <div class="cyber-scene" aria-hidden="true">
-    <div class="cs-glows"></div>
-    <div class="cs-monitor cs-monitor-l"></div>
-    <div class="cs-monitor cs-monitor-r"></div>
-    <div class="cs-hood"></div>
-    <div class="cs-binary"></div>
-    <div class="cs-overlay"></div>
-  </div>
-  <nav class="topnav">
-    <div class="topnav-inner">
-      <a href="{{ url_for('r1.r1_landing') }}" class="topnav-brand">
-        <div class="topnav-brand-icon">R1</div>
-        <div class="topnav-brand-text">CYBER<span>PUZZLE</span></div>
+
+    <div>
+      <a href="{{ url_for('r1.r1_dashboard') }}" class="btn btn-primary font-mono" style="padding:10px 22px;font-size:13px;font-weight:700;">
+        &larr; MY ENGAGEMENT
       </a>
-      <div class="topnav-links">
-        <a href="{{ url_for('r1.r1_landing') }}" class="topnav-link">Home</a>
-        <a href="{{ url_for('r1.r1_rules') }}" class="topnav-link">Rules</a>
-        <a href="{{ url_for('r1.r1_leaderboard') }}" class="topnav-link active">Leaderboard</a>
-      </div>
-      <div class="topnav-right">
-        {% if team %}
-          <div class="topnav-team">
-            <div class="topnav-team-name">{{ team.team_name }}</div>
-          </div>
-          <a href="{{ url_for('r1.r1_dashboard') }}" class="btn btn-primary btn-sm">MY ROUND</a>
-        {% else %}
-          <a href="{{ url_for('r1.r1_login') }}" class="btn btn-ghost btn-sm">LOGIN</a>
-        {% endif %}
-      </div>
     </div>
-  </nav>
-
-  <div class="container-wide" style="padding:32px 0 80px;">
-    <div class="section-header" style="text-align:center;margin-bottom:28px;">
-      <div class="hero-badge"><span class="badge badge-accent badge-dot">ROUND 1</span></div>
-      <h2 style="font-size:2rem;margin-top:10px;">Live Leaderboard</h2>
-      <p class="text-secondary">Completed rounds, ranked by score then speed.</p>
-    </div>
-
-    {% if leaderboard %}
-    <div class="table-wrapper">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Rank</th>
-            <th>Team</th>
-            <th>Score</th>
-            <th>Solved</th>
-            <th>Finished</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in leaderboard %}
-          <tr>
-            <td><span class="font-mono">#{{ loop.index }}</span></td>
-            <td><span style="font-weight:600;color:var(--text-primary);">{{ r.team_name }}</span></td>
-            <td><span class="font-mono text-primary">{{ r.score }}</span></td>
-            <td><span class="font-mono">{{ r.challenges_solved }}/6</span></td>
-            <td><span class="font-mono text-muted">{{ r.completed_at or '—' }}</span></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <div class="card" style="padding:40px;text-align:center;">
-      <p class="text-secondary">No completed rounds yet. Scores will appear here once teams finish.</p>
-    </div>
-    {% endif %}
   </div>
-</body>
-</html>
+
+  <!-- Shared Leaderboard Component -->
+  {% with teams = leaderboard %}
+    {% include "components/leaderboard.html" %}
+  {% endwith %}
+</div>
+{% endblock %}

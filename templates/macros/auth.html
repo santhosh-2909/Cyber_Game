@@ -26,16 +26,14 @@
     {% endif %}
 
     <div class="auth-header">
-      <div class="auth-logo">
-        {% if card_theme == 'r1' %}
-        <span class="font-mono font-bold" style="font-size:16px;color:var(--accent-signal);">R1</span>
-        {% elif card_theme == 'r2' %}
-        <span class="font-mono font-bold" style="font-size:16px;color:var(--accent-purple);">R2</span>
-        {% elif card_theme == 'admin' %}
-        <span class="font-mono font-bold" style="font-size:16px;color:var(--state-warning);">ADM</span>
-        {% else %}
-        <span class="font-mono font-bold" style="font-size:16px;color:var(--accent-signal);">CD</span>
-        {% endif %}
+      <div class="auth-logo-badge" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:var(--space-3, 12px);">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" width="32" height="32" alt="Cyber Detective Shield Logo" />
+        <span class="badge badge-outline font-mono" style="font-size:11px;letter-spacing:0.06em;">
+          {% if card_theme == 'r1' %}ROUND 1 AUTH
+          {% elif card_theme == 'r2' %}ROUND 2 AUTH
+          {% elif card_theme == 'admin' %}ADMIN GATE
+          {% else %}UNIFIED ACCESS{% endif %}
+        </span>
       </div>
       <h1 class="auth-title">{{ title }}</h1>
       <p class="auth-subtitle">{{ subtitle }}</p>

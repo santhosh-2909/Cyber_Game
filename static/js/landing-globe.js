@@ -116,10 +116,11 @@
   }
 
   TacticalGlobe.prototype.applyTierSettings = function () {
+    // Quality Tiers (Monotonic):
     // Tier 0: 1732 dots, max 6 arcs, native DPR (up to 2)
     // Tier 1: 866 dots, max 3 arcs, DPR 1
     // Tier 2: 433 dots, max 1 arc, DPR 1
-    // Tier 3: static poster + pause
+    // Tier 3: static poster + paused
     if (this.tier === 0) {
       this.stride = 1;
       this.maxArcs = 6;
@@ -146,16 +147,40 @@
       this.maxArcs = Math.min(this.maxArcs, 3);
     }
 
+    // Bug Fix (R2.c): Clamp arcs immediately so arcCount never stays at 6 upon tier downgrade
+    if (this.arcs.length > this.maxArcs) {
+      this.arcs = this.arcs.slice(0, this.maxArcs);
+    }
+
     this.rebuildPoints();
+    this.initSize();
     sessionStorage.setItem('tactical_globe_tier', this.tier);
   };
 
   TacticalGlobe.prototype.triggerTier3Poster = function () {
     this.isPaused = true;
     var poster = document.getElementById('globe-poster');
-    if (poster) {
-      poster.style.display = 'block';
-      this.canvas.style.display = 'none';
+    var canvas = this.canvas;
+    var banner = document.getElementById('globe-reduced-banner');
+    var resumeBtn = document.getElementById('globe-resume-btn');
+    var self = this;
+
+    if (poster) poster.style.display = 'block';
+    if (canvas) canvas.style.display = 'none';
+    if (banner) banner.style.display = 'flex';
+
+    if (resumeBtn && !resumeBtn._bound) {
+      resumeBtn._bound = true;
+      resumeBtn.addEventListener('click', function () {
+        resumeBtn.setAttribute('aria-pressed', 'true');
+        if (banner) banner.style.display = 'none';
+        if (poster) poster.style.display = 'none';
+        if (canvas) canvas.style.display = 'block';
+        self.tier = 2; // resume at Tier 2
+        self.applyTierSettings();
+        self.isPaused = false;
+        self.lastFrameStamp = performance.now();
+      });
     }
   };
 
@@ -191,13 +216,22 @@
     this.centerX = width / 2;
     this.centerY = height / 2;
     this.radius = Math.min(width, height) * 0.40;
+
+    // Cache atmospheric radial gradient (R2.e hotspot elimination)
+    this.cachedAtmosphereGrad = this.ctx.createRadialGradient(
+      this.centerX, this.centerY, this.radius * 0.78,
+      this.centerX, this.centerY, this.radius * 1.12
+    );
+    this.cachedAtmosphereGrad.addColorStop(0, 'rgba(0, 240, 255, 0.0)');
+    this.cachedAtmosphereGrad.addColorStop(0.85, 'rgba(0, 240, 255, 0.14)');
+    this.cachedAtmosphereGrad.addColorStop(1, 'rgba(0, 240, 255, 0.0)');
   };
 
   TacticalGlobe.prototype.seedInitialArcs = function () {
     this.arcs = [];
     var count = this.maxArcs;
     for (var i = 0; i < count; i++) {
-      this.spawnArc(i / count);
+      this.spawnArc(i / Math.max(1, count));
     }
   };
 
@@ -216,13 +250,28 @@
     var startVec = (this.rng() < 0.5) ? this.homeVec : this.unitPoints[startIdx];
     var endVec = (startVec === this.homeVec) ? this.unitPoints[endIdx] : this.homeVec;
 
+    // Precalculate 20 geodesic waypoints (R2.e hotspot elimination: zero runtime slerp in draw loop)
+    var waypoints = [];
+    var STEPS = 20;
+    for (var s = 0; s <= STEPS; s++) {
+      var st = s / STEPS;
+      var sv = slerp(startVec, endVec, st);
+      var sh = 1.0 + Math.sin(Math.PI * st) * 0.12;
+      waypoints.push({
+        x: sv.x * sh,
+        y: sv.y * sh,
+        z: sv.z * sh
+      });
+    }
+
     this.arcs.push({
       startVec: startVec,
       endVec: endVec,
       stage: stage,
       progress: initialProgress || 0,
-      speed: 0.005 + this.rng() * 0.005, // travel duration ~3-5 seconds
+      speed: 0.005 + this.rng() * 0.005,
       trailLength: 0.22,
+      waypoints: waypoints,
       isExfil: stage.type === 'EXFIL'
     });
   };
@@ -314,23 +363,41 @@
     }
   };
 
-  // Automated Tier Degrader based on rolling draw p95 (Condition 2)
+  // Automated Tier Degrader based on rolling draw p95 (Condition 2 / R2.a, R2.b, R2.c)
   TacticalGlobe.prototype.checkPerformanceConvergence = function () {
+    if (this.tier >= 3) return;
+
+    var now = performance.now();
+    if (!this.initTime) this.initTime = now;
+    // Condition R2.b: Exclude initial 5s warm-up from degrader decisions
+    if (now - this.initTime < 5000) return;
+
+    // Check every 30 draw samples
     if (this.drawTimes.length < 30) return;
 
     var sorted = this.drawTimes.slice().sort(function (a, b) { return a - b; });
     var p95 = sorted[Math.floor(sorted.length * 0.95)];
 
-    // Target budget: 60fps requires frame execution < 12ms.
-    // If p95 exceeds 12ms under load, degrade quality tier immediately
-    if (p95 > 24 && this.tier < 3) {
-      this.tier = Math.min(3, this.tier + 2); // fast 2-step degrade
-      this.applyTierSettings();
-      this.drawTimes = [];
-    } else if (p95 > 12 && this.tier < 3) {
+    // Target budget:
+    // A healthy 1x machine stays at Tier 0 (draw p95 is ~3-8ms, well below 16ms).
+    // If p95 > 35ms (fps < 28) or p95 > 18ms consistently with hysteresis:
+    if (p95 > 35) {
+      // Immediate degradation for severe bottleneck (<28 fps)
       this.tier++;
+      this.consecutiveSlowChecks = 0;
       this.applyTierSettings();
       this.drawTimes = [];
+    } else if (p95 > 18) {
+      // Hysteresis: requires 2 consecutive slow checks before degrading
+      this.consecutiveSlowChecks = (this.consecutiveSlowChecks || 0) + 1;
+      if (this.consecutiveSlowChecks >= 2) {
+        this.tier++;
+        this.consecutiveSlowChecks = 0;
+        this.applyTierSettings();
+        this.drawTimes = [];
+      }
+    } else {
+      this.consecutiveSlowChecks = 0;
     }
   };
 
@@ -351,15 +418,13 @@
       this.inertiaY *= 0.94;
     }
 
-    // 1. Direction B Atmospheric Rim Glow Ring (Pure radial gradient, zero blur)
-    var grad = ctx.createRadialGradient(cx, cy, r * 0.78, cx, cy, r * 1.12);
-    grad.addColorStop(0, 'rgba(0, 240, 255, 0.0)');
-    grad.addColorStop(0.85, 'rgba(0, 240, 255, 0.14)');
-    grad.addColorStop(1, 'rgba(0, 240, 255, 0.0)');
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r * 1.12, 0, Math.PI * 2);
-    ctx.fill();
+    // 1. Direction B Atmospheric Rim Glow Ring (Cached radial gradient, zero blur)
+    if (this.cachedAtmosphereGrad) {
+      ctx.fillStyle = this.cachedAtmosphereGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 1.12, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // 2. Horizon Wireframe Ring & Latitude Reticles
     ctx.save();
@@ -388,11 +453,14 @@
     var cosTilt = Math.cos(effTilt);
     var sinTilt = Math.sin(effTilt);
 
-    // 3. Project Land Nodes via Coordinate Batching
+    // 3. Project Land Nodes via Coordinate Batching into 4 Discrete Alpha Buckets (R2.e)
     var points = this.unitPoints;
     var len = points.length;
     var backBatch = [];
-    var frontBatch = [];
+    var bucket0 = []; // alpha ~0.40, depth < 0.25
+    var bucket1 = []; // alpha ~0.60, depth 0.25 - 0.50
+    var bucket2 = []; // alpha ~0.80, depth 0.50 - 0.75
+    var bucket3 = []; // alpha ~1.00, depth >= 0.75
 
     for (var i = 0; i < len; i++) {
       var pt = points[i];
@@ -403,31 +471,49 @@
       var ryT = ry * cosTilt - rz * sinTilt;
       var rzT = ry * sinTilt + rz * cosTilt;
 
-      var sx = cx + rx * r;
-      var sy = cy - ryT * r;
+      var sx = (cx + rx * r) | 0;
+      var sy = (cy - ryT * r) | 0;
 
       if (rzT >= 0) {
-        frontBatch.push(sx, sy, rzT);
+        if (rzT < 0.25) {
+          bucket0.push(sx, sy);
+        } else if (rzT < 0.50) {
+          bucket1.push(sx, sy);
+        } else if (rzT < 0.75) {
+          bucket2.push(sx, sy);
+        } else {
+          bucket3.push(sx, sy);
+        }
       } else {
         backBatch.push(sx, sy);
       }
     }
 
-    // Draw Dim Back Hemisphere Points
+    // Draw Dim Back Hemisphere Points (1 fillStyle assignment)
     ctx.fillStyle = 'rgba(98, 125, 159, 0.20)';
-    var blen = backBatch.length;
-    for (var j = 0; j < blen; j += 2) {
-      ctx.fillRect(backBatch[j], backBatch[j + 1], 1.2, 1.2);
+    for (var j = 0, blen = backBatch.length; j < blen; j += 2) {
+      ctx.fillRect(backBatch[j], backBatch[j + 1], 1, 1);
     }
 
-    // Draw Front Hemisphere Points with depth-scaled size and opacity (Direction B depth cues)
-    var flen = frontBatch.length;
-    for (var k = 0; k < flen; k += 3) {
-      var depth = frontBatch[k + 2];
-      var pSize = 1.0 + depth * 1.0;
-      var pAlpha = 0.35 + depth * 0.65;
-      ctx.fillStyle = 'rgba(0, 240, 255, ' + pAlpha.toFixed(2) + ')';
-      ctx.fillRect(frontBatch[k] - pSize / 2, frontBatch[k + 1] - pSize / 2, pSize, pSize);
+    // Draw 4 Discrete Front Alpha Buckets (Only 4 fillStyle assignments per frame!)
+    ctx.fillStyle = 'rgba(0, 240, 255, 0.40)';
+    for (var b0 = 0, l0 = bucket0.length; b0 < l0; b0 += 2) {
+      ctx.fillRect(bucket0[b0], bucket0[b0 + 1], 1, 1);
+    }
+
+    ctx.fillStyle = 'rgba(0, 240, 255, 0.60)';
+    for (var b1 = 0, l1 = bucket1.length; b1 < l1; b1 += 2) {
+      ctx.fillRect(bucket1[b1], bucket1[b1 + 1], 1, 1);
+    }
+
+    ctx.fillStyle = 'rgba(0, 240, 255, 0.80)';
+    for (var b2 = 0, l2 = bucket2.length; b2 < l2; b2 += 2) {
+      ctx.fillRect(bucket2[b2], bucket2[b2 + 1], 2, 2);
+    }
+
+    ctx.fillStyle = 'rgba(0, 240, 255, 1.00)';
+    for (var b3 = 0, l3 = bucket3.length; b3 < l3; b3 += 2) {
+      ctx.fillRect(bucket3[b3] - 1, bucket3[b3 + 1] - 1, 2, 2);
     }
 
     // 4. Render Incident Great-Circle Arcs (Condition 3: entry -> pivot -> C2 -> exfil)
@@ -446,7 +532,6 @@
       arc.progress += arc.speed;
 
       if (arc.progress >= 1.0) {
-        // Spawn arrival ripple at destination
         this.arrivalRipples.push({
           vec: arc.endVec,
           color: arc.stage.color,
@@ -460,72 +545,66 @@
         continue;
       }
 
+      var waypoints = arc.waypoints;
+      if (!waypoints || waypoints.length === 0) continue;
+
+      var totalSteps = waypoints.length - 1;
       var headT = arc.progress;
       var tailT = Math.max(0, headT - arc.trailLength);
-      var steps = 14;
-      var stepDelta = (headT - tailT) / steps;
+
+      var startIdx = Math.floor(tailT * totalSteps);
+      var endIdx = Math.min(totalSteps, Math.ceil(headT * totalSteps));
 
       ctx.save();
+      ctx.strokeStyle = arc.stage.color;
       ctx.lineWidth = 1.6;
       ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.85;
 
-      // Trace arc trail segments with fading gradient alpha
-      for (var s = 0; s < steps; s++) {
-        var t1 = tailT + s * stepDelta;
-        var t2 = t1 + stepDelta;
+      // Single continuous path stroke per arc (R2.e hotspot elimination)
+      ctx.beginPath();
+      var pathStarted = false;
+      var headScreenX = 0, headScreenY = 0, headVisible = false;
 
-        // Spherical geodesic interpolation
-        var v1 = slerp(arc.startVec, arc.endVec, t1);
-        var v2 = slerp(arc.startVec, arc.endVec, t2);
+      for (var s = startIdx; s <= endIdx; s++) {
+        var wp = waypoints[s];
+        var rx = wp.x * cosRot + wp.z * sinRot;
+        var ry = wp.y;
+        var rz = -wp.x * sinRot + wp.z * cosRot;
+        var ryT = ry * cosTilt - rz * sinTilt;
+        var rzT = ry * sinTilt + rz * cosTilt;
 
-        // Geodesic elevation curve: h(t) = 1 + sin(pi * t) * 0.12
-        var h1 = 1.0 + Math.sin(Math.PI * t1) * 0.12;
-        var h2 = 1.0 + Math.sin(Math.PI * t2) * 0.12;
-
-        // 3D rotation projection
-        var rx1 = (v1.x * cosRot + v1.z * sinRot) * h1;
-        var ry1 = v1.y * h1;
-        var rz1 = (-v1.x * sinRot + v1.z * cosRot) * h1;
-        var ryT1 = ry1 * cosTilt - rz1 * sinTilt;
-        var rzT1 = ry1 * sinTilt + rz1 * cosTilt;
-
-        var rx2 = (v2.x * cosRot + v2.z * sinRot) * h2;
-        var ry2 = v2.y * h2;
-        var rz2 = (-v2.x * sinRot + v2.z * cosRot) * h2;
-        var ryT2 = ry2 * cosTilt - rz2 * sinTilt;
-        var rzT2 = ry2 * sinTilt + rz2 * cosTilt;
-
-        // Draw only if in front hemisphere
-        if (rzT1 > -0.1 || rzT2 > -0.1) {
-          var segAlpha = (s / steps) * (rzT2 > 0 ? 0.9 : 0.25);
-          ctx.strokeStyle = arc.stage.color;
-          ctx.globalAlpha = segAlpha;
-          ctx.beginPath();
-          ctx.moveTo(cx + rx1 * r, cy - ryT1 * r);
-          ctx.lineTo(cx + rx2 * r, cy - ryT2 * r);
-          ctx.stroke();
+        if (rzT > -0.1) {
+          var px = (cx + rx * r) | 0;
+          var py = (cy - ryT * r) | 0;
+          if (!pathStarted) {
+            ctx.moveTo(px, py);
+            pathStarted = true;
+          } else {
+            ctx.lineTo(px, py);
+          }
+          if (s === endIdx) {
+            headScreenX = px;
+            headScreenY = py;
+            headVisible = (rzT > -0.05);
+          }
         }
+      }
+      if (pathStarted) {
+        ctx.stroke();
       }
 
       // Leading Pulse Head
-      var vHead = slerp(arc.startVec, arc.endVec, headT);
-      var hHead = 1.0 + Math.sin(Math.PI * headT) * 0.12;
-      var hx = (vHead.x * cosRot + vHead.z * sinRot) * hHead;
-      var hy = vHead.y * hHead;
-      var hz = (-vHead.x * sinRot + vHead.z * cosRot) * hHead;
-      var hyT = hy * cosTilt - hz * sinTilt;
-      var hzT = hy * sinTilt + hz * cosTilt;
-
-      if (hzT > -0.05) {
+      if (headVisible && pathStarted) {
         ctx.globalAlpha = 1.0;
         ctx.fillStyle = '#FFFFFF';
         ctx.beginPath();
-        ctx.arc(cx + hx * r, cy - hyT * r, 2.2, 0, Math.PI * 2);
+        ctx.arc(headScreenX, headScreenY, 2.2, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.fillStyle = arc.stage.color;
         ctx.beginPath();
-        ctx.arc(cx + hx * r, cy - hyT * r, 3.8, 0, Math.PI * 2);
+        ctx.arc(headScreenX, headScreenY, 3.8, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -651,7 +730,16 @@
     }
   };
 
-  TacticalGlobe.prototype.startBenchmark = function () {
+  TacticalGlobe.prototype.setTier = function (t) {
+    this.tier = Math.max(0, Math.min(3, t));
+    this.applyTierSettings();
+    this.drawTimes = [];
+  };
+
+  TacticalGlobe.prototype.startBenchmark = function (targetTier) {
+    if (typeof targetTier === 'number') {
+      this.setTier(targetTier);
+    }
     this.benchmarkActive = true;
     this.benchmarkFrames = [];
     this.droppedFrames = 0;

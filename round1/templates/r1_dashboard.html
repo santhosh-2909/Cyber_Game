@@ -1,128 +1,214 @@
-{% extends "r1_base.html" %}
-{% block title %}My Round - Cyber Puzzle{% endblock %}
+{% extends "r1_base_v2.html" %}
+{% block title %}Tactical Operations — Round 1 Dashboard{% endblock %}
+
 {% block content %}
+<div class="r1-dashboard-shell" style="max-width:1280px;margin:0 auto;padding:var(--space-5, 20px) 0;">
 
 {% if session_row is none %}
-  <!-- No active session yet -->
-  <div class="hud-panel hud-panel-cn" style="max-width:620px;margin:3vh auto 0;text-align:center;padding:40px;">
-    <div class="hud-complete-check" style="width:60px;height:60px;font-size:26px;">&#9654;</div>
-    <div class="hud-kicker" style="margin-top:18px;">READY TO START</div>
-    <h2 class="hud-h1" style="margin:8px 0 10px;">Your Round Is Waiting</h2>
-    <p class="hud-sub" style="max-width:460px;margin:0 auto 24px;">
-      Welcome, <span style="color:var(--hud-purple-lt);font-weight:700;">{{ team.team_name }}</span>. When you press start, the server
-      will securely generate a random set of six challenges across the twelve cyber fundamentals domains
-      and begin your 30-minute timer.
+  <!-- State: No active session (Pre-engagement) -->
+  <div class="card" style="max-width:680px;margin:5vh auto;background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:var(--space-8, 32px);text-align:center;box-shadow:var(--shadow-lg);">
+    <div style="width:64px;height:64px;border-radius:50%;background-color:rgba(0, 240, 255, 0.12);border:1px solid var(--border-signal);display:flex;align-items:center;justify-content:center;margin:0 auto var(--space-4, 16px);color:var(--accent-signal);">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+      </svg>
+    </div>
+    <div class="badge badge-outline font-mono" style="color:var(--accent-signal);margin-bottom:var(--space-2, 8px);">
+      ENGAGEMENT BRIEFING
+    </div>
+    <h1 style="font-family:var(--font-display);font-size:2rem;font-weight:700;color:var(--text-primary);margin:0 0 var(--space-3, 12px) 0;">
+      Round 1 Gauntlet Armed
+    </h1>
+    <p style="font-size:var(--font-size-md, 1.125rem);color:var(--text-secondary);max-width:52ch;line-height:1.6;margin:0 auto var(--space-6, 24px);">
+      Authenticated unit: <strong style="color:var(--text-primary);font-family:var(--font-mono);">{{ team.team_name }}</strong>. 
+      Activating the sequence provisions 6 random challenge variants across the fundamentals matrix and initiates your 30-minute server countdown.
     </p>
+
     <form method="POST" action="{{ url_for('r1.r1_start') }}">
-      <button type="submit" class="hud-btn hud-btn-green" style="width:100%;padding:14px 24px;">
-        &#9654; START MY 30-MINUTE ROUND
+      <button type="submit" class="btn btn-primary font-mono" style="width:100%;max-width:380px;padding:14px 28px;font-size:15px;font-weight:700;letter-spacing:0.04em;">
+        START 30-MINUTE ROUND &rarr;
       </button>
     </form>
-    <p class="hud-sub" style="font-size:10px;letter-spacing:0.12em;margin-top:14px;text-transform:uppercase;opacity:0.7;">
-      Verified server-side &middot; no round may be replayed
-    </p>
+
+    <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-top:var(--space-5, 20px);color:var(--text-tertiary);font-size:12px;font-family:var(--font-mono);">
+      <span>&bull; Server-authoritative timing</span>
+      <span>&bull; Anti-replay locked</span>
+      <span>&bull; 600 max points</span>
+    </div>
   </div>
+
 {% else %}
   {% set a = unlocked %}
 
-  <!-- Kicker -->
-  <div style="margin-bottom:22px;">
-    <div class="hud-kicker">MY ROUND / SESSION {{ session_row.id }}</div>
-    <h1 class="hud-h1">ROUND 1</h1>
+  <!-- State: Active Tactical Session -->
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:var(--space-6, 24px);">
+    <div>
+      <div class="badge badge-outline font-mono" style="color:var(--accent-signal);margin-bottom:6px;">
+        OPERATION LIVE &middot; SESSION #{{ session_row.id }}
+      </div>
+      <h1 style="font-family:var(--font-display);font-size:clamp(1.8rem, 3.5vw, 2.5rem);font-weight:700;color:var(--text-primary);margin:0;">
+        CYBER PUZZLE MATRIX
+      </h1>
+    </div>
+
+    <!-- Quick Stats Strip -->
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div class="card" style="padding:8px 16px;background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-sm);display:flex;align-items:center;gap:10px;">
+        <span style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);letter-spacing:0.06em;">TOTAL SCORE</span>
+        <span class="font-mono font-bold" style="font-size:18px;color:var(--accent-signal);">{{ session_row.score }} <small style="font-size:12px;color:var(--text-tertiary);">/ 600</small></span>
+      </div>
+
+      <div class="card" style="padding:8px 16px;background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-sm);display:flex;align-items:center;gap:10px;">
+        <span style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);letter-spacing:0.06em;">SOLVED</span>
+        <span class="font-mono font-bold" style="font-size:18px;color:var(--state-success);">{{ completed }} <small style="font-size:12px;color:var(--text-tertiary);">/ 6</small></span>
+      </div>
+    </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 300px;gap:22px;align-items:start;">
-
-    <!-- LEFT: current mission + status -->
+  <div style="display:grid;grid-template-columns:1fr 340px;gap:var(--space-6, 24px);align-items:start;">
+    <!-- Main Column: Current Active Mission -->
     <div>
-      <a href="{{ url_for('r1.r1_challenge', assignment_id=a.assignment_id) }}"
-         class="hud-mission">
-        <div class="hud-mission-top">
-          <span class="hud-mission-seq">CURRENT MISSION</span>
-          <span class="hud-badge hud-badge-purple">CHALLENGE {{ a.display_order }} / 6</span>
+      {% if a %}
+      <div class="card card-interactive" style="background-color:var(--bg-surface-1);border:1px solid var(--border-signal);border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-md);">
+        <!-- Card Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-subtle);background-color:rgba(0, 240, 255, 0.04);">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="status-dot active" style="width:8px;height:8px;border-radius:50%;background-color:var(--accent-signal);"></span>
+            <span class="font-mono font-bold" style="font-size:12px;letter-spacing:0.08em;color:var(--accent-signal);">CURRENT DIRECTIVE</span>
+          </div>
+          <span class="badge badge-secondary font-mono" style="font-size:11px;">
+            CHALLENGE {{ a.display_order }} OF 6
+          </span>
         </div>
-        <div class="hud-mission-body">
-          <div class="hud-kicker" style="color:var(--hud-green);font-size:10px;">{{ a.challenge_code }} &middot; {{ a.difficulty | upper }}</div>
-          <h2 class="hud-mission-title">{{ a.title }}</h2>
-          <div class="hud-mission-cat">{{ a.domain }} &middot; Cyber Fundamentals</div>
-        </div>
-        <div class="hud-mission-foot">
-          <span class="hud-badge hud-badge-muted">{{ a.points }} PTS</span>
-          {% if a.lab_status == 'LAB_COMPLETED' %}
-            <span class="hud-badge hud-badge-green">SUBMIT FLAG &rarr;</span>
-          {% elif a.lab_status == 'IN_PROGRESS' %}
-            <span class="hud-badge hud-badge-purple">RESUME LAB &rarr;</span>
-          {% else %}
-            <span class="hud-nav-arrow">OPEN LAB &rarr;</span>
-          {% endif %}
-        </div>
-      </a>
 
-      <!-- System status panel -->
-      <div class="hud-panel" style="margin-top:20px;">
-        <div class="hud-panel-title">System Status</div>
-        <div class="hud-datarow"><span class="k">Firewall</span><span class="v">Active</span></div>
-        <div class="hud-datarow"><span class="k">Challenge</span><span class="v">{{ 'Online' if a.lab_status != 'LAB_COMPLETED' else 'Handed Off' }}</span></div>
-        <div class="hud-datarow"><span class="k">Session</span><span class="v">{{ session_row.status }} Secure</span></div>
-        <div class="hud-datarow"><span class="k">Team</span><span class="v">Connected</span></div>
+        <!-- Card Body -->
+        <div style="padding:24px 20px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <span class="badge badge-outline font-mono" style="font-size:12px;color:var(--state-success);">{{ a.challenge_code }}</span>
+            <span class="badge badge-outline font-mono" style="font-size:11px;">{{ a.difficulty | upper }}</span>
+            <span style="font-size:12px;color:var(--text-tertiary);">&bull;</span>
+            <span style="font-size:13px;color:var(--text-secondary);">{{ a.domain }}</span>
+          </div>
+
+          <h2 style="font-family:var(--font-display);font-size:1.6rem;font-weight:700;color:var(--text-primary);margin:0 0 12px 0;">
+            {{ a.title }}
+          </h2>
+          <p style="font-size:14px;color:var(--text-secondary);line-height:1.6;margin:0 0 20px 0;">
+            Tactical challenge ready for execution. Inspect provided challenge parameters, decrypt artifacts, or solve the embedded mini-lab to recover the validation flag.
+          </p>
+
+          <!-- Card Actions -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-top:16px;border-top:1px solid var(--border-subtle);">
+            <span class="badge badge-outline font-mono" style="font-size:13px;font-weight:700;color:var(--text-primary);">
+              {{ a.points }} PTS AWARD
+            </span>
+
+            <a href="{{ url_for('r1.r1_challenge', assignment_id=a.assignment_id) }}" class="btn btn-primary font-mono" style="padding:8px 20px;font-size:13px;">
+              {% if a.lab_status == 'LAB_COMPLETED' %}
+                SUBMIT FLAG &rarr;
+              {% elif a.lab_status == 'IN_PROGRESS' %}
+                RESUME LAB &rarr;
+              {% else %}
+                ENGAGE LAB &rarr;
+              {% endif %}
+            </a>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <!-- All Solved State -->
+      <div class="card" style="background-color:var(--bg-surface-1);border:1px solid rgba(16, 185, 129, 0.4);border-radius:var(--radius-md);padding:32px;text-align:center;">
+        <div style="color:var(--state-success);font-size:36px;margin-bottom:12px;">&#10003;</div>
+        <h2 style="font-family:var(--font-display);font-size:1.8rem;color:var(--text-primary);margin:0 0 8px 0;">Round 1 Completed</h2>
+        <p style="color:var(--text-secondary);font-size:14px;margin:0 0 20px 0;">You have successfully completed all challenges assigned for Round 1.</p>
+        <a href="{{ url_for('r1.r1_complete', session_id=session_row.id) }}" class="btn btn-primary font-mono">
+          VIEW FINAL REPORT &rarr;
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- System Diagnostic Panel -->
+      <div class="card" style="margin-top:var(--space-5, 20px);background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:16px 20px;">
+        <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:0.06em;color:var(--text-secondary);margin-bottom:12px;">
+          SYSTEM TELEMETRY &amp; SESSION CONTROLS
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;">
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-subtle);font-size:13px;">
+            <span style="color:var(--text-tertiary);">Session Auth</span>
+            <span class="font-mono" style="color:var(--state-success);">SECURE (LAN)</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-subtle);font-size:13px;">
+            <span style="color:var(--text-tertiary);">Variant Seed</span>
+            <span class="font-mono" style="color:var(--text-secondary);">#{{ session_row.assignment_set_id if session_row.assignment_set_id is defined else session_row.id }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-subtle);font-size:13px;">
+            <span style="color:var(--text-tertiary);">Flag Submissions</span>
+            <span class="font-mono" style="color:var(--accent-signal);">RATE-LIMIT PROTECTED</span>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- RIGHT: progress + mission log -->
+    <!-- Sidebar: Progress Bar & Mission Event Log -->
     <div>
-      <div class="hud-panel">
-        <div class="hud-panel-title">Round 1 Progress</div>
-        <div style="display:flex;align-items:baseline;gap:8px;">
-          <span class="hud-bigstat">{{ completed }}<span class="u">/6</span></span>
-          <span class="hud-stat-label" style="margin-top:0;">Solved</span>
+      <!-- Progress Card -->
+      <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:20px;margin-bottom:var(--space-5, 20px);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <span style="font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:0.06em;color:var(--text-secondary);">
+            GAUNTLET PROGRESS
+          </span>
+          <span class="font-mono font-bold" style="font-size:13px;color:var(--accent-signal);">
+            {{ ((completed * 100) / 6) | round(0) | int }}%
+          </span>
         </div>
-        <div class="hud-progress-track" style="margin:14px 0 16px;">
-          <div class="hud-progress-fill" style="width:{{ (completed * 100 / 6) }}%;"></div>
+
+        <div style="width:100%;height:6px;background-color:var(--bg-surface-2);border-radius:3px;overflow:hidden;margin-bottom:16px;">
+          <div style="width:{{ (completed * 100 / 6) }}%;height:100%;background-color:var(--accent-signal);transition:width 0.3s ease;"></div>
         </div>
-        <div class="hud-datarow"><span class="k">Time Left</span><span class="v purple" id="hud-timer">--:--</span></div>
-        <div class="hud-datarow"><span class="k">Score</span><span class="v">{{ session_row.score }} <span style="color:var(--hud-dim);">/ 600</span></span></div>
+
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border-subtle);font-size:13px;">
+          <span style="color:var(--text-tertiary);">Time Remaining:</span>
+          <!-- Persistent Hud Timer Hook -->
+          <span class="font-mono font-bold" id="hud-timer" style="color:var(--accent-signal);font-size:14px;">--:--</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border-subtle);font-size:13px;">
+          <span style="color:var(--text-tertiary);">Current Score:</span>
+          <span class="font-mono font-bold" style="color:var(--text-primary);">{{ session_row.score }} pts</span>
+        </div>
       </div>
 
-      <div class="hud-panel" style="margin-top:20px;">
-        <div class="hud-panel-title">Mission Log</div>
+      <!-- Mission Event Log -->
+      <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:20px;">
+        <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:0.06em;color:var(--text-secondary);margin-bottom:12px;">
+          MISSION AUDIT LOG
+        </div>
         {% if events %}
+        <div style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;">
           {% for e in events %}
-          <div class="hud-log-line">
-            <span class="t">[{{ ((e.occurred_at - session_row.started_at) / 60000) | round(0, 'floor') | int }}:{{ '%02d' | format(((e.occurred_at - session_row.started_at) % 60000) / 1000 | round(0, 'floor') | int) }}]</span>
-            <span class="txt">
-              {%- if e.kind == 'lab_opened' %}Lab opened — activity started
-              {%- elif e.kind == 'lab_completed' %}Lab objective complete
-              {%- elif e.kind == 'flag_submitted' and e.detail == 'correct' %}Flag verified — points credited
-              {%- elif e.kind == 'flag_submitted' %}Flag submitted — invalid
-              {%- elif e.kind == 'flag_revealed' %}Flag revealed
-              {%- else %}{{ e.kind }} registered
+          <div style="font-family:var(--font-mono);font-size:11px;padding:6px 8px;background-color:var(--bg-surface-2);border-radius:var(--radius-xs);border-left:2px solid var(--accent-signal);">
+            <div style="color:var(--text-tertiary);margin-bottom:2px;">
+              [{{ ((e.occurred_at - session_row.started_at) / 60000) | round(0, 'floor') | int }}:{{ '%02d' | format(((e.occurred_at - session_row.started_at) % 60000) / 1000 | round(0, 'floor') | int) }}]
+            </div>
+            <div style="color:var(--text-secondary);">
+              {%- if e.kind == 'lab_opened' %}Lab workspace initialized
+              {%- elif e.kind == 'lab_completed' %}Objective completed successfully
+              {%- elif e.kind == 'flag_submitted' and e.detail == 'correct' %}<span style="color:var(--state-success);font-weight:700;">Flag validated (+100 pts)</span>
+              {%- elif e.kind == 'flag_submitted' %}<span style="color:var(--state-danger);">Flag rejected</span>
+              {%- elif e.kind == 'flag_revealed' %}Hint revealed
+              {%- else %}{{ e.kind }} recorded
               {%- endif -%}
-            </span>
+            </div>
           </div>
           {% endfor %}
+        </div>
         {% else %}
-          <div class="hud-log-line"><span class="txt">Awaiting first system event...</span></div>
+        <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-tertiary);text-align:center;padding:16px 0;">
+          No operational events recorded yet.
+        </div>
         {% endif %}
       </div>
     </div>
   </div>
 
-  <script>
-    (function() {
-      var endMs = new Date().getTime() + parseInt({{ session_row.remaining_ms }}, 10);
-      var el = document.getElementById('hud-timer');
-      function pad(n){ return String(n).padStart(2,'0'); }
-      function tick(){
-        var rem = endMs - new Date().getTime();
-        if (rem <= 0){ el.textContent = '00:00'; el.style.color = 'var(--hud-red)'; return; }
-        var m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000);
-        el.textContent = pad(m) + ':' + pad(s);
-        if (rem <= 60000) el.style.color = 'var(--hud-red)';
-        else if (rem <= 5*60000) el.style.color = 'var(--hud-amber)';
-      }
-      tick();
-      setInterval(tick, 1000);
-    })();
-  </script>
 {% endif %}
+</div>
 {% endblock %}

@@ -1,123 +1,131 @@
-{% extends "base.html" %}
-{% block title %}Challenge {{ '%02d' % (cid + 1) }} - {{ challenge.title }}{% endblock %}
+{% extends "base_v2.html" %}
+{% block title %}Challenge {{ '%02d' % (cid + 1) }} — {{ challenge.title }}{% endblock %}
+
 {% block content %}
-<div class="layout-investigation">
-  <div class="layout-main" style="padding:32px;max-width:100%;">
+<div class="challenge-detail-shell" style="max-width:1280px;margin:0 auto;padding:var(--space-6, 24px) 0;">
 
-    <!-- Back -->
-    <div class="flex items-center gap-sm mb-xl animate-slide-up">
-      <a href="{{ url_for('puzzle_lab') }}" class="btn btn-subtle btn-sm">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-        BACK TO PUZZLE LAB
-      </a>
-    </div>
+  <!-- Back Link -->
+  <div style="margin-bottom:var(--space-6, 24px);">
+    <a href="{{ url_for('puzzle_lab') }}" class="btn btn-ghost btn-sm" style="display:inline-flex;align-items:center;gap:8px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      BACK TO PUZZLE LAB
+    </a>
+  </div>
 
-    <div style="display:grid;grid-template-columns:1fr 400px;gap:20px;">
-      <!-- Left: Challenge info -->
-      <div>
-        <div class="card mb-lg animate-slide-up">
-          <div class="flex items-center gap-md mb-md">
-            <span class="font-overline text-muted">CHALLENGE {{ '%02d' % (cid + 1) }}</span>
-            <span class="badge {% if challenge.solved %}badge-success badge-dot{% else %}badge-neutral{% endif %}">
-              {{ 'SOLVED' if challenge.solved else 'UNSOLVED' }}
-            </span>
-          </div>
-          <h1 style="font-size:1.75rem;">{{ challenge.title }}</h1>
-          <div class="flex items-center gap-md mt-sm">
-            <span class="badge badge-accent">{{ challenge.domain }}</span>
-            <span class="badge badge-neutral">{{ challenge.difficulty }}</span>
-            <span class="font-mono text-accent" style="font-weight:700;">{{ challenge.points }} PTS</span>
-          </div>
+  <div style="display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:flex-start;">
+    <!-- Left: Challenge Info -->
+    <div>
+      <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;box-shadow:var(--shadow-sm);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <span class="badge badge-outline font-mono" style="font-size:11px;">CHALLENGE {{ '%02d' % (cid + 1) }}</span>
+          <span class="badge {% if challenge.solved %}badge-success{% else %}badge-outline{% endif %} font-mono" style="font-size:11px;">
+            {{ 'SOLVED' if challenge.solved else 'UNSOLVED' }}
+          </span>
         </div>
-
-        <div class="card mb-lg animate-slide-up stagger-1">
-          <div class="card-header">
-            <h3>TASK DESCRIPTION</h3>
-          </div>
-          <p style="line-height:1.8;color:var(--text-secondary);">{{ challenge.description }}</p>
+        <h1 style="font-family:var(--font-display);font-size:1.75rem;font-weight:700;color:var(--text-primary);margin:0 0 12px 0;">
+          {{ challenge.title }}
+        </h1>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span class="badge badge-secondary font-mono" style="font-size:11px;">{{ challenge.domain }}</span>
+          <span class="badge badge-outline font-mono" style="font-size:11px;">{{ challenge.difficulty }}</span>
+          <span class="font-mono font-bold" style="font-size:14px;color:var(--accent-signal);">{{ challenge.points }} PTS</span>
         </div>
-
-        <div class="card mb-lg animate-slide-up stagger-2">
-          <div class="card-header">
-            <div class="flex items-center gap-sm">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              <h3>AVAILABLE ARTIFACT</h3>
-            </div>
-          </div>
-          <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:12px;">
-            <div class="meta-row" style="border:none;">
-              <span class="meta-label">FILE</span>
-              <span class="meta-value text-primary font-mono">{{ challenge.artifact }}</span>
-            </div>
-            {% if challenge.artifact_url %}
-            <a href="{{ challenge.artifact_url }}" class="btn btn-ghost">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              DOWNLOAD ARTIFACT
-            </a>
-            {% else %}
-            <span class="text-muted font-mono" style="font-size:0.75rem;">EMBEDDED IN TASK</span>
-            {% endif %}
-          </div>
-        </div>
-
-        <!-- Instructions if any -->
-        {% if challenge.instructions %}
-        <div class="card mb-lg animate-slide-up stagger-3">
-          <div class="card-header"><h3>INSTRUCTIONS</h3></div>
-          <div style="padding-left:8px;">
-            {% for inst in challenge.instructions %}
-            <div class="meta-row">
-              <span class="meta-label" style="min-width:24px;color:var(--accent);">{{ '%02d' % loop.index }}</span>
-              <span class="meta-value" style="color:var(--text-secondary);">{{ inst }}</span>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-        {% endif %}
       </div>
 
-      <!-- Right: Submission Terminal -->
-      <div>
-        <div class="card" style="position:sticky;top:calc(var(--nav-height) + 24px);" id="submit-panel">
-          <div class="card-header">
-            <div class="flex items-center gap-sm">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-              <h3>FORENSIC TERMINAL</h3>
-            </div>
-          </div>
+      <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;box-shadow:var(--shadow-sm);">
+        <h2 style="font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:0.06em;color:var(--text-secondary);margin:0 0 12px 0;">
+          TASK BRIEFING
+        </h2>
+        <p style="line-height:1.75;color:var(--text-secondary);font-size:14px;margin:0;">
+          {{ challenge.description }}
+        </p>
+      </div>
 
-          <div class="font-overline text-muted mb-sm">FLAG SUBMISSION</div>
-          <div class="flag-input-group mb-md">
-            <div class="flag-input-prefix">flag{</div>
-            <input type="text" id="flag-value" class="flag-input" placeholder="enter flag..." autocomplete="off" spellcheck="false">
-            <div class="flag-input-prefix">}</div>
+      <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;box-shadow:var(--shadow-sm);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <div style="width:32px;height:32px;border-radius:var(--radius-xs);background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);display:flex;align-items:center;justify-content:center;color:var(--accent-cyan);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </div>
+          <h2 style="font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:0.06em;color:var(--text-secondary);margin:0;">
+            AVAILABLE ARTIFACT
+          </h2>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:12px 16px;background-color:var(--bg-surface-2);border-radius:var(--radius-xs);border:1px solid var(--border-subtle);">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="font-mono" style="font-size:11px;color:var(--text-tertiary);">FILE:</span>
+            <span class="font-mono font-bold" style="font-size:13px;color:var(--text-primary);">{{ challenge.artifact }}</span>
+          </div>
+          {% if challenge.artifact_url %}
+          <a href="{{ challenge.artifact_url }}" class="btn btn-ghost btn-sm" style="font-size:12px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            DOWNLOAD ARTIFACT
+          </a>
+          {% else %}
+          <span class="font-mono" style="font-size:11px;color:var(--text-tertiary);">EMBEDDED IN TASK</span>
+          {% endif %}
+        </div>
+      </div>
 
-          <button class="btn btn-primary w-full btn-lg" id="submit-flag">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-            SUBMIT FLAG
+      {% if challenge.instructions %}
+      <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:24px;box-shadow:var(--shadow-sm);">
+        <h2 style="font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:0.06em;color:var(--text-secondary);margin:0 0 14px 0;">
+          INVESTIGATION PROTOCOL
+        </h2>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          {% for inst in challenge.instructions %}
+          <div style="display:flex;align-items:flex-start;gap:12px;">
+            <span class="font-mono font-bold" style="color:var(--accent-signal);font-size:12px;min-width:24px;">{{ '%02d' % loop.index }}</span>
+            <span style="color:var(--text-secondary);font-size:13px;line-height:1.6;">{{ inst }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Right: Submission Terminal (Preserves IDs: submit-panel, flag-value, submit-flag, flag-result, attempts, hint-btn, hint-block) -->
+    <div>
+      <div class="card" id="submit-panel" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:24px;box-shadow:var(--shadow-md);position:sticky;top:80px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <div style="width:32px;height:32px;border-radius:var(--radius-xs);background:rgba(191,165,255,0.12);border:1px solid rgba(191,165,255,0.3);display:flex;align-items:center;justify-content:center;color:var(--accent-purple);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          </div>
+          <h2 style="font-family:var(--font-mono);font-size:13px;font-weight:700;letter-spacing:0.06em;color:var(--text-secondary);margin:0;">
+            FORENSIC TERMINAL
+          </h2>
+        </div>
+
+        <label class="font-mono font-bold" style="display:block;font-size:10px;color:var(--text-tertiary);letter-spacing:0.08em;margin-bottom:8px;">FLAG SUBMISSION</label>
+        <div class="flag-input-group" style="display:flex;align-items:center;background:var(--bg-surface-2);border:1px solid var(--border-default);border-radius:var(--radius-xs);overflow:hidden;margin-bottom:16px;">
+          <span class="flag-input-prefix font-mono" style="padding:10px 12px;color:var(--text-tertiary);background:var(--bg-surface-3);font-size:13px;border-right:1px solid var(--border-subtle);">flag{</span>
+          <input type="text" id="flag-value" class="flag-input font-mono" placeholder="enter flag payload..." autocomplete="off" spellcheck="false" style="flex:1;background:transparent;border:none;padding:10px 12px;color:var(--text-primary);font-size:13px;outline:none;">
+          <span class="flag-input-prefix font-mono" style="padding:10px 12px;color:var(--text-tertiary);font-size:13px;">}</span>
+        </div>
+
+        <button type="button" class="btn btn-primary btn-lg" id="submit-flag" style="width:100%;padding:12px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          SUBMIT FLAG
+        </button>
+
+        <div id="flag-result" style="margin-top:16px;display:none;"></div>
+
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-subtle);display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;">
+            <span class="font-mono" style="color:var(--text-tertiary);">ATTEMPTS</span>
+            <span class="font-mono font-bold" id="attempts" style="color:var(--text-primary);">0</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;">
+            <span class="font-mono" style="color:var(--text-tertiary);">REWARD</span>
+            <span class="font-mono font-bold" style="color:var(--accent-signal);">{{ challenge.points }} PTS</span>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <button type="button" class="btn btn-ghost btn-sm" id="hint-btn" style="width:100%;font-size:12px;color:var(--text-secondary);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            USE HINT (-10 PTS)
           </button>
-
-          <div id="flag-result" class="mt-lg" style="display:none;"></div>
-
-          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
-            <div class="meta-row">
-              <span class="meta-label">ATTEMPTS</span>
-              <span class="meta-value text-primary" id="attempts">0</span>
-            </div>
-            <div class="meta-row">
-              <span class="meta-label">POINTS</span>
-              <span class="meta-value text-primary font-mono">{{ challenge.points }}</span>
-            </div>
-          </div>
-
-          <div style="margin-top:16px;">
-            <button class="btn btn-ghost btn-sm w-full" id="hint-btn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              USE HINT (-10 PTS)
-            </button>
-            <div id="hint-block" class="mt-sm" style="display:none;"></div>
-          </div>
+          <div id="hint-block" style="margin-top:12px;display:none;"></div>
         </div>
       </div>
     </div>
@@ -144,21 +152,21 @@ document.getElementById('submit-flag').addEventListener('click', function() {
 
   if (value === actualFlag.toLowerCase() || actualFlag.toLowerCase().includes(value)) {
     solved = true;
-    result.innerHTML = '<div class="card-section" style="border-left:3px solid var(--success);background:var(--success-bg);"><div class="flex items-center gap-sm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><strong style="color:var(--success);">VERIFIED</strong></div><p style="margin-top:6px;font-size:0.8125rem;color:var(--text-secondary);">Flag accepted. +{{ challenge.points }} points awarded.</p></div>';
+    result.innerHTML = '<div style="padding:12px 14px;background:rgba(16,185,129,0.12);border-left:3px solid var(--state-success);border-radius:var(--radius-xs);"><div style="display:flex;align-items:center;gap:8px;"><strong style="color:var(--state-success);font-size:13px;">✓ VERIFIED</strong></div><p style="margin:4px 0 0 0;font-size:12px;color:var(--text-secondary);">Flag accepted. +{{ challenge.points }} points awarded.</p></div>';
     this.classList.remove('btn-primary');
     this.classList.add('btn-success');
-    this.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> VERIFIED';
-    showToast('Flag accepted', 'success');
+    this.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> VERIFIED';
+    if (typeof showToast === 'function') showToast('Flag accepted', 'success');
   } else {
-    result.innerHTML = '<div class="card-section" style="border-left:3px solid var(--danger);background:var(--danger-bg);"><div class="flex items-center gap-sm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><strong style="color:var(--danger);">INVALID FLAG</strong></div><p style="margin-top:6px;font-size:0.8125rem;color:var(--text-secondary);">Review the evidence and try again.</p></div>';
-    showToast('Invalid flag', 'error');
+    result.innerHTML = '<div style="padding:12px 14px;background:rgba(239,68,68,0.12);border-left:3px solid var(--state-danger);border-radius:var(--radius-xs);"><div style="display:flex;align-items:center;gap:8px;"><strong style="color:var(--state-danger);font-size:13px;">✗ INVALID FLAG</strong></div><p style="margin:4px 0 0 0;font-size:12px;color:var(--text-secondary);">Review the artifact and try again.</p></div>';
+    if (typeof showToast === 'function') showToast('Invalid flag', 'error');
   }
 });
 
 document.getElementById('hint-btn').addEventListener('click', function() {
   const block = document.getElementById('hint-block');
   block.style.display = 'block';
-  block.innerHTML = '<div class="card-section" style="border-left:3px solid var(--warning);background:var(--warning-bg);"><div class="flex items-center gap-sm mb-xs"><strong style="color:var(--warning);">HINT (-10 PTS)</strong></div><p style="font-size:0.8125rem;color:var(--text-secondary);">' + hint + '</p></div>';
+  block.innerHTML = '<div style="padding:12px 14px;background:rgba(245,158,11,0.12);border-left:3px solid var(--accent-amber);border-radius:var(--radius-xs);"><strong style="color:var(--accent-amber);font-size:12px;display:block;margin-bottom:4px;">HINT (-10 PTS)</strong><p style="font-size:12px;color:var(--text-secondary);margin:0;">' + hint + '</p></div>';
   this.style.display = 'none';
 });
 </script>

@@ -51,8 +51,8 @@
     <div class="topnav-inner" style="max-width:1440px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px;">
       <div style="display:flex;align-items:center;gap:20px;">
         <a href="{{ url_for('dashboard') }}" class="topnav-brand" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
-          <div style="width:32px;height:32px;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--accent-signal),var(--accent-purple));display:flex;align-items:center;justify-content:center;font-weight:800;font-family:var(--font-mono);font-size:14px;color:#070B12;">CD</div>
-          <div style="font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:0.06em;color:var(--text-primary);">CYBER<span style="color:var(--accent-signal);">DETECTIVE</span></div>
+          <img src="{{ url_for('static', filename='images/logo.svg') }}" width="28" height="28" alt="Shield Logo" />
+          <div style="font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:0.06em;color:var(--text-primary);">CYBER <span style="color:var(--accent-signal);">DETECTIVE</span></div>
         </a>
         <span class="badge badge-outline" style="font-size:12px;">R2 FORENSICS</span>
 

@@ -1,81 +1,109 @@
-{% extends "base.html" %}
-{% block title %}Case Overview — {{ case.code }}{% endblock %}
+{% extends "base_v2.html" %}
+{% block title %}Case Evidence Overview — {{ case.code }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/forensics.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="fs-shell">
-  <header class="fs-masthead">
-    <div class="file-icon">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-    </div>
-    <div>
-      <div class="flex items-center gap-sm" style="flex-wrap:wrap;">
-        <span class="fs-chip violet">{{ case.code }}</span>
-        <span class="fs-chip {% if stage == 'complete' %}ok{% else %}warn{% endif %}">{{ stage|upper }}</span>
-        <span class="hx-badge">CUSTODY OK</span>
+<div class="fs-shell" style="max-width:1280px;margin:0 auto;padding:var(--space-6, 24px) 0;">
+  <header class="fs-masthead" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:20px 24px;margin-bottom:var(--space-6, 24px);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;box-shadow:var(--shadow-sm);">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div class="file-icon" style="width:42px;height:42px;border-radius:var(--radius-sm);background-color:rgba(191,165,255,0.12);border:1px solid rgba(191,165,255,0.3);display:flex;align-items:center;justify-content:center;color:var(--accent-purple);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       </div>
-      <div class="mh-title">CASE OVERVIEW</div>
-      <div class="mh-sub">{{ case.title }} — {{ team.name }}</div>
-    </div>
-    <div class="mh-right">
-      <div class="fs-meter">
-        <span class="fs-overline">VERIFIED</span>
-        <div class="m-track"><div class="m-fill" style="width:{{ (verified * 100 / case.stations|length)|round|int }}%"></div></div>
-        <span class="fs-mono" style="font-size:.72rem;color:var(--text-secondary);">{{ verified }}/{{ case.stations|length }}</span>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+          <span class="badge badge-secondary font-mono" style="font-size:11px;">{{ case.code }}</span>
+          <span class="badge {% if stage == 'complete' %}badge-success{% else %}badge-outline{% endif %} font-mono" style="font-size:11px;">{{ stage|upper }}</span>
+          <span class="badge badge-outline font-mono" style="font-size:11px;">CUSTODY OK</span>
+        </div>
+        <h1 class="mh-title" style="font-family:var(--font-display);font-size:1.5rem;font-weight:700;color:var(--text-primary);margin:0;letter-spacing:0.02em;">
+          ATTACK RECONSTRUCTION &amp; EVIDENCE BOARD
+        </h1>
+        <div class="mh-sub font-mono" style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">
+          {{ case.title }} &mdash; {{ team.name }}
+        </div>
       </div>
-      <a href="{{ url_for('evidence', station_id=case.stations[0].id) }}" class="btn btn-primary btn-sm">WORKSTATION</a>
+    </div>
+    <div class="mh-right" style="display:flex;align-items:center;gap:16px;">
+      <div class="fs-meter" style="text-align:right;">
+        <span class="fs-overline font-mono" style="font-size:10px;color:var(--text-tertiary);letter-spacing:0.06em;display:block;margin-bottom:4px;">CHAIN PROGRESS</span>
+        <div class="m-track" style="width:120px;height:6px;background:var(--bg-surface-3);border-radius:3px;overflow:hidden;margin-left:auto;">
+          <div class="m-fill" style="height:100%;background:var(--state-success);width:{{ (verified * 100 / case.stations|length)|round|int }}%;"></div>
+        </div>
+        <span class="fs-mono" style="font-size:12px;color:var(--text-secondary);font-weight:600;display:block;margin-top:4px;">{{ verified }}/{{ case.stations|length }} VERIFIED</span>
+      </div>
+      <a href="{{ url_for('evidence', station_id=case.stations[0].id) }}" class="btn btn-primary btn-sm" style="font-size:13px;padding:8px 16px;">
+        WORKSTATION
+      </a>
     </div>
   </header>
 
   <!-- Evidence chain -->
-  <div class="fs-card" style="padding:22px 24px;margin-bottom:14px;">
-    <div class="fs-overline" style="margin-bottom:12px;"><strong>EVIDENCE CHAIN</strong> — ATTACK FLOW</div>
-    <div class="chain">
+  <div class="fs-card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:24px;margin-bottom:var(--space-6, 24px);box-shadow:var(--shadow-sm);">
+    <div class="fs-overline font-mono font-bold" style="font-size:11px;color:var(--text-secondary);letter-spacing:0.06em;margin-bottom:16px;">
+      EVIDENCE CHAIN &mdash; ATTACK FLOW
+    </div>
+    <div class="chain" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:16px;">
       {% for node in board %}
       {% set st = vault[loop.index0].state if vault and loop.index0 < vault|length else 'locked' %}
-      <div class="chain-node {{ 'cn-done' if st == 'verified' or st == 'reviewed' else 'cn-next' if st == 'opened' or st == 'analyzing' else 'cn-lock' }}">
-        <div class="cn-icon">{{ node.icon }}</div>
-        <div class="cn-label">{{ node.label }}</div>
-        <div class="cn-detail">{{ node.detail }}</div>
+      <div class="chain-node {{ 'cn-done' if st == 'verified' or st == 'reviewed' else 'cn-next' if st == 'opened' or st == 'analyzing' else 'cn-lock' }}" style="background:var(--bg-surface-2);border:1px solid {% if st in ('verified','reviewed') %}rgba(16,185,129,0.35){% elif st in ('opened','analyzing') %}rgba(191,165,255,0.35){% else %}var(--border-subtle){% endif %};border-radius:var(--radius-sm);padding:16px;position:relative;">
+        <div class="cn-icon font-mono font-bold" style="font-size:18px;margin-bottom:8px;color:{% if st in ('verified','reviewed') %}var(--state-success){% elif st in ('opened','analyzing') %}var(--accent-signal){% else %}var(--text-tertiary){% endif %};">
+          {{ node.icon }}
+        </div>
+        <div class="cn-label" style="font-weight:700;font-size:14px;color:var(--text-primary);margin-bottom:4px;">
+          {{ node.label }}
+        </div>
+        <div class="cn-detail font-mono" style="font-size:12px;color:var(--text-secondary);line-height:1.5;">
+          {{ node.detail }}
+        </div>
       </div>
       {% endfor %}
     </div>
   </div>
 
   <!-- Verified findings table -->
-  <div class="fs-card" style="padding:22px 24px;margin-bottom:14px;">
-    <div class="flex items-center justify-between" style="margin-bottom:14px;">
-      <div class="fs-overline"><strong>FINDINGS MATRIX</strong></div>
-      <div class="fs-mono" style="font-size:.6875rem;color:var(--text-muted);">{{ verified }} / {{ case.stations|length }} VERIFIED</div>
+  <div class="fs-card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:24px;margin-bottom:var(--space-6, 24px);box-shadow:var(--shadow-sm);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div class="fs-overline font-mono font-bold" style="font-size:11px;color:var(--text-secondary);letter-spacing:0.06em;">FINDINGS MATRIX</div>
+      <div class="fs-mono" style="font-size:12px;color:var(--text-tertiary);font-weight:600;">{{ verified }} / {{ case.stations|length }} VERIFIED</div>
     </div>
-    <div class="table-wrapper">
-      <table class="table">
+    <div class="table-wrapper" style="overflow-x:auto;">
+      <table class="table" style="width:100%;border-collapse:collapse;text-align:left;font-size:14px;">
         <thead>
-          <tr><th>STATION</th><th>DOMAIN</th><th>YOUR FINDING</th><th>STATUS</th></tr>
+          <tr style="border-bottom:1px solid var(--border-default);background-color:var(--bg-surface-2);color:var(--text-tertiary);font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;">
+            <th style="padding:12px 16px;">STATION</th>
+            <th style="padding:12px 16px;">FORENSIC DOMAIN</th>
+            <th style="padding:12px 16px;">YOUR FINDING</th>
+            <th style="padding:12px 16px;text-align:right;">STATUS</th>
+          </tr>
         </thead>
         <tbody>
           {% for s in case.stations %}
           {% set f = findings.get(s.id) %}
-          <tr>
-            <td>
-              <div class="flex items-center gap-sm">
-                <span class="vault-idx" style="width:28px;height:28px;font-size:.625rem;">{{ s.id }}</span>
-                <strong style="color:var(--text-primary);font-size:.875rem;">{{ s.name }}</strong>
+          <tr style="border-bottom:1px solid var(--border-subtle);">
+            <td style="padding:14px 16px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span class="vault-idx font-mono font-bold" style="width:28px;height:28px;background:var(--bg-surface-3);border-radius:var(--radius-xs);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-primary);">{{ s.id }}</span>
+                <strong style="color:var(--text-primary);font-size:13px;">{{ s.name }}</strong>
               </div>
             </td>
-            <td><span class="badge badge-neutral">{{ s.domain }}</span></td>
-            <td>
+            <td style="padding:14px 16px;"><span class="badge badge-outline font-mono" style="font-size:11px;">{{ s.domain }}</span></td>
+            <td style="padding:14px 16px;">
               {% if f %}
-              <span class="fs-mono" style="font-size:.8rem;color:var(--text-primary);">{{ f.value }}</span>
+              <span class="fs-mono" style="font-size:13px;color:var(--accent-signal);font-weight:600;">{{ f.value }}</span>
               {% else %}
-              <span style="color:var(--text-dim);">—</span>
+              <span style="color:var(--text-tertiary);font-mono:var(--font-mono);">&mdash;</span>
               {% endif %}
             </td>
-            <td>
+            <td style="padding:14px 16px;text-align:right;">
               {% if f and f.status == 'verified' %}
-              <span class="fs-chip ok">VERIFIED</span>
+              <span class="badge badge-success font-mono" style="font-size:11px;">VERIFIED</span>
               {% elif f and f.status == 'incorrect' %}
-              <span class="fs-chip dead">INCORRECT</span>
+              <span class="badge badge-danger font-mono" style="font-size:11px;">INCORRECT</span>
               {% else %}
-              <span class="fs-chip dim">PENDING</span>
+              <span class="badge badge-outline font-mono" style="font-size:11px;">PENDING</span>
               {% endif %}
             </td>
           </tr>
@@ -85,10 +113,10 @@
     </div>
   </div>
 
-  <div class="text-center" style="margin-bottom:40px;">
-    <a href="{{ url_for('report') }}" class="btn btn-primary btn-lg">
+  <div class="text-center" style="margin-bottom:var(--space-8, 32px);text-align:center;">
+    <a href="{{ url_for('report') }}" class="btn btn-primary btn-lg" style="padding:14px 32px;font-size:15px;">
       CONTINUE TO FINAL REPORT
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:8px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
     </a>
   </div>
 </div>

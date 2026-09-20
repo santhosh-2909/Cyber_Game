@@ -1,181 +1,205 @@
-{% extends "base.html" %}
-{% block title %}Operations Center - Cyber Challenge 2026{% endblock %}
+{% extends "base_v2.html" %}
+{% block title %}Operations Center — Cyber Detective 2026{% endblock %}
+
 {% block content %}
-<div class="fs-shell">
+<div class="operations-center-shell" style="max-width:1366px;margin:0 auto;padding:var(--space-6, 24px) 0;">
 
-  <!-- Masthead -->
-  <header class="fs-masthead" style="padding:22px 24px;">
-    <div class="file-icon" style="width:40px;height:40px;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M2 12h20"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z"/></svg>
-    </div>
-    <div>
-      <div class="flex items-center gap-sm" style="flex-wrap:wrap;">
-        <span class="fs-chip violet">CYBER CHALLENGE 2026</span>
-        <span class="fs-chip ok">ONE LOGIN · BOTH ROUNDS</span>
-        <span class="fs-chip dim">TEAM {{ team.team_id|upper }}</span>
-        <span class="hx-badge">SESSION SECURE</span>
+  <!-- Operation Command Header -->
+  <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:var(--space-6, 24px) var(--space-8, 32px);margin-bottom:var(--space-6, 24px);box-shadow:var(--shadow-sm);">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;">
+      <div style="display:flex;align-items:center;gap:18px;">
+        <div style="width:48px;height:48px;border-radius:var(--radius-md);background:linear-gradient(135deg,rgba(0,240,255,0.15),rgba(191,165,255,0.15));border:1px solid var(--border-signal);display:flex;align-items:center;justify-content:center;color:var(--accent-signal);">
+          <img src="{{ url_for('static', filename='images/logo.svg') }}" width="28" height="28" alt="Shield Logo" />
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap;">
+            <span class="badge badge-outline font-mono" style="color:var(--accent-signal);">OPERATIONS COMMAND</span>
+            <span class="badge badge-outline font-mono" style="color:var(--state-success);">AUTHENTICATED · BOTH ROUNDS</span>
+            <span class="font-mono" style="font-size:12px;color:var(--text-tertiary);">SQUAD: <strong style="color:var(--text-primary);">{{ team.team_id|upper }}</strong></span>
+          </div>
+          <h1 style="font-family:var(--font-display);font-size:1.85rem;font-weight:700;color:var(--text-primary);margin:0;">
+            INVESTIGATION HEADQUARTERS
+          </h1>
+          <p style="font-size:14px;color:var(--text-secondary);margin:4px 0 0 0;">
+            Unit: <strong style="color:var(--text-primary);">{{ team.name }}</strong> &middot; Launch or resume your assigned tactical operations below.
+          </p>
+        </div>
       </div>
-      <div class="mh-title" style="font-size:1.45rem;margin-top:4px;">OPERATIONS CENTER</div>
-      <div class="mh-sub">Welcome back, {{ team.name }} · Squad: {{ team.name }}</div>
-    </div>
-    <div class="mh-right">
-      <div class="fs-mono" style="text-align:right;">
-        <div class="fs-overline">ROUND 1 CHALLENGES SOLVED</div>
-        <div style="font-size:1.6rem;font-weight:800;color:var(--accent);">{{ r1_stats.solved if r1_stats else 0 }}<span style="font-size:.85rem;color:var(--text-muted);">/6</span></div>
+
+      <!-- Quick R1 Stat Dial -->
+      <div class="card" style="background-color:var(--bg-surface-2);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:12px 20px;text-align:right;">
+        <div class="font-mono" style="font-size:11px;color:var(--text-tertiary);letter-spacing:0.06em;">ROUND 1 SOLVED</div>
+        <div class="font-mono font-bold" style="font-size:1.75rem;color:var(--accent-signal);line-height:1.1;">
+          {{ r1_stats.solved if r1_stats else 0 }}<span style="font-size:14px;color:var(--text-tertiary);">/6</span>
+        </div>
+        <div class="font-mono" style="font-size:11px;color:var(--state-success);margin-top:2px;">
+          SCORE: {{ r1_stats.score if r1_stats else 0 }} PTS
+        </div>
       </div>
-    </div>
-  </header>
-
-  <!-- Intro -->
-  <div class="fs-card" style="padding:18px 20px;margin-bottom:14px;border-color:var(--accent-border);">
-    <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:14px;">
-      <p style="font-size:.88rem;color:var(--text-secondary);line-height:1.6;max-width:760px;">
-        Choose a round to launch. Your progress in each is saved automatically — solve the CYBER PUZZLE, then run the DIGITAL FORENSICS investigation.
-      </p>
-      <a href="{{ url_for('r1.r1_dashboard') }}" class="btn btn-primary btn-lg">
-        START ROUND 1
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-      </a>
-    </div>
-
-    <!-- Secure verification strip -->
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px dashed var(--border);">
-      <span class="hx-badge">⚙ USER {{ team.team_id|upper }}</span>
-      <span class="hx-badge cyan">AUTH {{ 'VERIFIED' if team else 'PENDING' }}</span>
-      <span class="hx-badge purple">ROUND 1 {{ r1_stage|upper|replace('_',' ') }}</span>
-      <span class="hx-badge neutral">NODE CONNECTED</span>
     </div>
   </div>
 
-  <!-- Mission cards -->
-  <div class="grid grid-3" style="margin-bottom:14px;">
+  <!-- Dual-Round Engagement Grid -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(360px, 1fr));gap:var(--space-6, 24px);margin-bottom:var(--space-6, 24px);">
 
-    <!-- ROUND 1 -->
-    <div class="fs-card" style="padding:22px 24px;border-color:var(--accent-border);">
-      <div class="flex items-center justify-between" style="margin-bottom:10px;">
-        <div>
-          <span class="fs-chip violet">ROUND 1</span>
-          <div class="mh-title" style="font-size:1.2rem;margin-top:8px;">MIXED FUNDAMENTALS</div>
-          <div class="fs-overline" style="margin-top:4px;">CYBER PUZZLE · 6 CHALLENGES · 30 MIN · 600 PTS</div>
+    <!-- ROUND 1 CARD -->
+    <div class="card card-interactive" style="background-color:var(--bg-surface-1);border:1px solid {% if r1_stage == 'complete' %}rgba(16,185,129,0.4){% elif r1_stage == 'in_progress' %}var(--border-signal){% else %}var(--border-default){% endif %};border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-md);display:flex;flex-direction:column;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border-subtle);background-color:rgba(0,240,255,0.03);display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="badge badge-outline font-mono" style="color:var(--accent-signal);">ROUND 01</span>
+          <span style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--text-secondary);">TACTICAL PUZZLE</span>
         </div>
+        <span class="badge {% if r1_stage == 'complete' %}badge-success{% elif r1_stage == 'in_progress' %}badge-secondary{% else %}badge-outline{% endif %} font-mono" style="font-size:11px;">
+          {{ r1_stage|upper|replace('_',' ') }}
+        </span>
       </div>
 
-      <p style="font-size:.85rem;color:var(--text-secondary);line-height:1.6;min-height:64px;">
-        {% if r1_stage == 'complete' %}
-          Round complete. Review your results or view the finished session.
-        {% elif r1_stage == 'in_progress' %}
-          You have an active timer. Resume exactly where you left off.
-        {% else %}
-          Draw from twelve cyber fundamentals categories. Every team gets a unique randomized set of six.
-        {% endif %}
-      </p>
+      <div style="padding:24px;flex:1;display:flex;flex-direction:column;">
+        <h2 style="font-family:var(--font-display);font-size:1.45rem;font-weight:700;color:var(--text-primary);margin:0 0 8px 0;">
+          Mixed Cyber Fundamentals
+        </h2>
+        <p style="font-size:14px;color:var(--text-secondary);line-height:1.6;margin:0 0 16px 0;flex:1;">
+          {% if r1_stage == 'complete' %}
+            Round 1 is fully complete. All challenge flags have been submitted and locked into your tournament record.
+          {% elif r1_stage == 'in_progress' %}
+            Active session in progress. Your 30-minute server countdown is ticking. Resume your active puzzle challenges immediately.
+          {% else %}
+            Six randomized challenge variants spanning cryptography, protocol ciphers, steganography, and binary decompilation.
+          {% endif %}
+        </p>
 
-      <div class="fs-overline" style="margin-bottom:8px;">
-        {% if r1_stage == 'in_progress' %}
-          <span class="fs-chip warn">IN PROGRESS · RESUME</span>
-        {% elif r1_stage == 'complete' %}
-          <span class="fs-chip ok">COMPLETED · REVIEW</span>
-        {% else %}
-          <span class="fs-chip dim">NOT STARTED · ENTER</span>
-        {% endif %}
-      </div>
-
-      {% if r1_stats %}
-      <div class="progress mt-md"><div class="progress-fill" style="width:{{ (r1_stats.solved * 100 / 6)|round|int }}%;"></div></div>
-      <div class="fs-mono" style="display:flex;justify-content:space-between;margin-top:8px;font-size:.72rem;color:var(--text-muted);">
-        <span>{{ r1_stats.solved }} OF 6 FLAGS · SCORE {{ r1_stats.score }}</span>
-        <span id="r1-rem-txt">COMPUTING…</span>
-      </div>
-      <script>
-        (function(){
-          var rem = {{ r1_stats.remaining_ms }};
-          if (rem <= 0){ document.getElementById('r1-rem-txt').textContent = 'TIME EXPIRED'; return; }
-          var el = document.getElementById('r1-rem-txt');
-          var pad = function(n){ return String(n).padStart(2,'0'); };
-          var tick = function(){
-            if (rem <= 0){ el.textContent='TIME EXPIRED'; return; }
-            var m=Math.floor(rem/60000), s=Math.floor((rem%60000)/1000);
-            el.textContent = 'LEFT ' + pad(m) + ':' + pad(s);
-            rem -= 1000;
-          };
-          tick(); setInterval(tick, 1000);
-        })();
-      </script>
-      {% endif %}
-
-      <a href="{{ url_for('r1.r1_dashboard') }}" class="btn {% if r1_stage == 'in_progress' %}btn-ghost{% elif r1_stage == 'complete' %}btn-success{% else %}btn-primary{% endif %} w-full" style="margin-top:16px;">
-        {% if r1_stage == 'in_progress' %}RESUME ROUND{% elif r1_stage == 'complete' %}REVIEW ROUND{% else %}ENTER ROUND 1{% endif %}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-      </a>
-    </div>
-
-    <!-- ROUND 2 -->
-    <div class="fs-card" style="padding:22px 24px;border-color:var(--accent-border);">
-      <div class="flex items-center justify-between" style="margin-bottom:10px;">
-        <div>
-          <span class="fs-chip ok">ROUND 2</span>
-          <div class="mh-title" style="font-size:1.2rem;margin-top:8px;">DIGITAL FORENSICS</div>
-          <div class="fs-overline" style="margin-top:4px;">CYBER DETECTIVE · NARRATIVE CASES · WORKSTATION</div>
-        </div>
-      </div>
-
-      <p style="font-size:.85rem;color:var(--text-secondary);line-height:1.6;min-height:64px;">
-        {% if team.case %}
-          Your assigned case is loaded. Open the forensic workstation to continue your investigation.
-        {% else %}
-          Step into the forensic workstation and take on a narrative investigation case.
-        {% endif %}
-      </p>
-
-      <div class="fs-overline" style="margin-bottom:8px;"><span class="fs-chip ok">OPEN · ENTER WORKSTATION</span></div>
-
-      <div class="progress mt-md"><div class="progress-fill success" style="width:100%;"></div></div>
-      <div class="fs-mono" style="display:flex;justify-content:space-between;margin-top:8px;font-size:.72rem;color:var(--text-muted);">
-        {% if team.case %}
-          <span>ASSIGNED</span>
-          <span style="color:var(--accent);">CASE {{ team.case }} ACTIVE</span>
-        {% else %}
-          <span>NO CASE ASSIGNED</span>
-          <span style="color:var(--text-muted);">READY TO START</span>
-        {% endif %}
-      </div>
-
-      <a href="{{ url_for('dashboard') }}" class="btn btn-primary w-full" style="margin-top:16px;">
-        ENTER WORKSTATION
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-      </a>
-    </div>
-
-    <!-- Team summary -->
-    <div class="fs-card" style="padding:22px 24px;">
-      <div class="fs-overline" style="margin-bottom:10px;"><strong>TEAM PROFILE</strong></div>
-      <div style="font-size:1.15rem;font-weight:800;color:var(--text-primary);">{{ team.name }}</div>
-      <div class="fs-mono" style="font-size:.72rem;color:var(--text-muted);margin-top:4px;">TEAM {{ team.team_id|upper }}</div>
-      <div class="fs-mono" style="display:grid;gap:6px;margin-top:16px;font-size:.72rem;color:var(--text-muted);">
-        <span>ROUND 1 STATUS · <b style="color:var(--accent);">{{ r1_stage|upper|replace('_',' ') }}</b></span>
         {% if r1_stats %}
-        <span>FLAGS SOLVED · <b style="color:var(--success);">{{ r1_stats.solved }}/6</b></span>
-        <span>SCORE · <b style="color:var(--accent);">{{ r1_stats.score }}</b></span>
+        <div style="margin-bottom:16px;background-color:var(--bg-surface-2);border-radius:var(--radius-sm);padding:10px 14px;border:1px solid var(--border-subtle);">
+          <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);margin-bottom:6px;">
+            <span>GAUNTLET PROGRESS</span>
+            <span id="r1-rem-txt" style="color:var(--accent-signal);font-weight:700;">COMPUTING...</span>
+          </div>
+          <div style="width:100%;height:4px;background-color:var(--bg-surface-3);border-radius:2px;overflow:hidden;">
+            <div style="width:{{ (r1_stats.solved * 100 / 6)|round|int }}%;height:100%;background-color:var(--accent-signal);"></div>
+          </div>
+        </div>
+
+        <script>
+          (function(){
+            var rem = {{ r1_stats.remaining_ms }};
+            var el = document.getElementById('r1-rem-txt');
+            if (!el) return;
+            if (rem <= 0){ el.textContent = 'TIME EXPIRED'; return; }
+            var pad = function(n){ return String(n).padStart(2,'0'); };
+            var tick = function(){
+              if (rem <= 0){ el.textContent='TIME EXPIRED'; return; }
+              var m=Math.floor(rem/60000), s=Math.floor((rem%60000)/1000);
+              el.textContent = 'TIME REMAINING: ' + pad(m) + ':' + pad(s);
+              rem -= 1000;
+            };
+            tick(); setInterval(tick, 1000);
+          })();
+        </script>
         {% endif %}
-        {% if r2_ready %}
-        <span>WORKSTATION · <b style="color:var(--success);">READY</b></span>
-        {% endif %}
+
+        <a href="{{ url_for('r1.r1_dashboard') }}" class="btn {% if r1_stage == 'complete' %}btn-secondary{% else %}btn-primary{% endif %} font-mono" style="width:100%;padding:12px;font-size:14px;text-align:center;">
+          {% if r1_stage == 'in_progress' %}RESUME ROUND 1 &rarr;{% elif r1_stage == 'complete' %}REVIEW RESULTS &rarr;{% else %}ENTER ROUND 1 GAUNTLET &rarr;{% endif %}
+        </a>
       </div>
-      <div class="mt-md">
-        <span class="badge badge-success badge-dot">SESSION ACTIVE</span>
+    </div>
+
+    <!-- ROUND 2 CARD -->
+    <div class="card card-interactive" style="background-color:var(--bg-surface-1);border:1px solid rgba(191,165,255,0.3);border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-md);display:flex;flex-direction:column;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border-subtle);background-color:rgba(191,165,255,0.03);display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="badge badge-outline font-mono" style="color:var(--accent-purple);">ROUND 02</span>
+          <span style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--text-secondary);">DIGITAL FORENSICS</span>
+        </div>
+        <span class="badge badge-outline font-mono" style="font-size:11px;color:var(--state-success);">
+          STATION READY
+        </span>
+      </div>
+
+      <div style="padding:24px;flex:1;display:flex;flex-direction:column;">
+        <h2 style="font-family:var(--font-display);font-size:1.45rem;font-weight:700;color:var(--text-primary);margin:0 0 8px 0;">
+          Incident Response Workstation
+        </h2>
+        <p style="font-size:14px;color:var(--text-secondary);line-height:1.6;margin:0 0 16px 0;flex:1;">
+          Full interactive digital forensics laboratory. Analyze raw memory dumps, inspect pcap network captures, parse hex dumps, reconstruct the multi-hop attack chain, and compile findings.
+        </p>
+
+        <div style="margin-bottom:16px;background-color:var(--bg-surface-2);border-radius:var(--radius-sm);padding:10px 14px;border:1px solid var(--border-subtle);">
+          <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);margin-bottom:4px;">
+            <span>ACTIVE DOSSIER:</span>
+            <span style="color:var(--accent-purple);font-weight:700;">{{ team.case if team.case else 'CASE S1 ACTIVE' }}</span>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);">
+            Evidence Locker: Unlocked &middot; Multi-hop telemetry mapped
+          </div>
+        </div>
+
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary font-mono" style="width:100%;padding:12px;font-size:14px;text-align:center;">
+          ENTER FORENSICS WORKSTATION &rarr;
+        </a>
+      </div>
+    </div>
+
+    <!-- TEAM PROFILE SUMMARY CARD -->
+    <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:24px;display:flex;flex-direction:column;">
+      <div class="badge badge-outline font-mono" style="color:var(--text-tertiary);margin-bottom:12px;">
+        UNIT CREDENTIALS
+      </div>
+
+      <div style="font-family:var(--font-display);font-size:1.3rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">
+        {{ team.name }}
+      </div>
+      <div class="font-mono" style="font-size:12px;color:var(--text-secondary);margin-bottom:18px;">
+        IDENTIFIER: <strong style="color:var(--accent-signal);">{{ team.team_id|upper }}</strong>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;flex:1;">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border-subtle);">
+          <span style="color:var(--text-tertiary);">LAN Node</span>
+          <span class="font-mono" style="color:var(--state-success);">&#10003; CONNECTED</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border-subtle);">
+          <span style="color:var(--text-tertiary);">Round 1 Status</span>
+          <span class="font-mono" style="color:var(--text-primary);">{{ r1_stage|upper|replace('_',' ') }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border-subtle);">
+          <span style="color:var(--text-tertiary);">Forensic Locker</span>
+          <span class="font-mono" style="color:var(--accent-signal);">PROVISIONED</span>
+        </div>
+      </div>
+
+      <a href="{{ url_for('scoreboard') }}" class="btn btn-ghost font-mono" style="width:100%;margin-top:16px;text-align:center;">
+        VIEW LIVE SCOREBOARD &nearr;
+      </a>
+    </div>
+  </div>
+
+  <!-- Competition Workflow Ladder -->
+  <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:20px 24px;">
+    <div class="font-mono" style="font-size:11px;font-weight:700;letter-spacing:0.06em;color:var(--text-tertiary);margin-bottom:14px;">
+      TOURNAMENT PROGRESSION LADDER
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:14px;">
+      <div style="padding:12px;background-color:var(--bg-surface-2);border-radius:var(--radius-sm);border-left:3px solid {% if r1_stage == 'complete' %}var(--state-success){% else %}var(--accent-signal){% endif %};">
+        <div class="font-mono font-bold" style="font-size:11px;color:{% if r1_stage == 'complete' %}var(--state-success){% else %}var(--accent-signal){% endif %};">STAGE 01</div>
+        <div style="font-weight:600;font-size:14px;color:var(--text-primary);margin-top:2px;">Round 1: Ciphers</div>
+      </div>
+
+      <div style="padding:12px;background-color:var(--bg-surface-2);border-radius:var(--radius-sm);border-left:3px solid var(--accent-purple);">
+        <div class="font-mono font-bold" style="font-size:11px;color:var(--accent-purple);">STAGE 02</div>
+        <div style="font-weight:600;font-size:14px;color:var(--text-primary);margin-top:2px;">Round 2: Forensics</div>
+      </div>
+
+      <div style="padding:12px;background-color:var(--bg-surface-2);border-radius:var(--radius-sm);border-left:3px solid var(--border-default);">
+        <div class="font-mono font-bold" style="font-size:11px;color:var(--text-tertiary);">STAGE 03</div>
+        <div style="font-weight:600;font-size:14px;color:var(--text-secondary);margin-top:2px;">Evidence &amp; Timeline</div>
+      </div>
+
+      <div style="padding:12px;background-color:var(--bg-surface-2);border-radius:var(--radius-sm);border-left:3px solid var(--border-default);">
+        <div class="font-mono font-bold" style="font-size:11px;color:var(--text-tertiary);">STAGE 04</div>
+        <div style="font-weight:600;font-size:14px;color:var(--text-secondary);margin-top:2px;">Final Report &amp; Score</div>
       </div>
     </div>
   </div>
 
-  <!-- Round-to-round workflow -->
-  <div class="fs-card" style="padding:18px 20px;">
-    <div class="fs-overline" style="margin-bottom:8px;">COMPETITION LADDER</div>
-    <div class="wf">
-      <div class="wf-step {{ 'done' if r1_stage == 'complete' else 'active' }}"><div class="wf-dot">1</div><div class="wf-label">Round 1 · Puzzle</div></div>
-      <div class="wf-step {{ 'done' if r2_ready else 'active' if r1_stage == 'complete' }}"><div class="wf-dot">2</div><div class="wf-label">Round 2 · Forensics</div></div>
-      <div class="wf-step"><div class="wf-dot">3</div><div class="wf-label">Report &amp; Verdict</div></div>
-      <div class="wf-step"><div class="wf-dot">4</div><div class="wf-label">Scoreboard</div></div>
-    </div>
-  </div>
 </div>
 {% endblock %}

@@ -6,7 +6,6 @@
 {% block head_extra %}
 <link rel="preload" href="{{ url_for('static', filename='fonts/oxanium-700.woff2') }}" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="{{ url_for('static', filename='fonts/jetbrains-mono-400.woff2') }}" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="{{ url_for('static', filename='fonts/plus-jakarta-sans-400.woff2') }}" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/landing.css') }}">
 {% endblock %}
 
@@ -19,7 +18,7 @@
         <div class="landing-brand-logo">
           <img src="{{ url_for('static', filename='images/logo.svg') }}" width="28" height="28" alt="{{ brand_name() }} Shield Logo" />
         </div>
-        <span>CYBER<strong>DETECTIVE</strong></span>
+        <span>CYBER <strong>DETECTIVE</strong></span>
       </a>
 
       <nav class="landing-nav-links" aria-label="Primary Navigation">
@@ -100,12 +99,19 @@
                   data-home-lon="77.2090">
           </canvas>
 
-          <!-- Fallback Poster SVG (Condition 10: Themed Vector Poster with land dots) -->
           <img id="globe-poster"
                class="globe-poster"
                src="{{ url_for('static', filename='images/globe-poster.svg') }}"
                alt="Tactical globe projection poster"
                style="display:none;" />
+
+          <!-- Tier 3 Reduced Graphics Indicator & Resume Control (Condition 2 / R2.c) -->
+          <div id="globe-reduced-banner" class="globe-reduced-banner" style="display:none;">
+            <span class="badge badge-outline font-mono" id="globe-reduced-label" style="font-size:11px;">Reduced graphics</span>
+            <button type="button" id="globe-resume-btn" class="globe-ctrl-btn font-mono" aria-pressed="false" style="padding:4px 8px;font-size:11px;" aria-label="Resume tactical globe animation">
+              RESUME 3D
+            </button>
+          </div>
 
           <!-- Bottom Overlay HUD -->
           <div class="globe-overlay-footer">
