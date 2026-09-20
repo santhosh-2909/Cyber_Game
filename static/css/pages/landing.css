@@ -348,10 +348,10 @@
   left: 14px;
   right: 14px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   font-family: var(--font-mono, monospace);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-tertiary, #9AAEC4);
   pointer-events: none;
   z-index: 4;
@@ -366,7 +366,7 @@
   justify-content: space-between;
   align-items: center;
   font-family: var(--font-mono, monospace);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-tertiary, #9AAEC4);
   pointer-events: none;
   z-index: 4;
@@ -581,8 +581,9 @@
 }
 
 /* --------------------------------------------------------------------------
-   7. ATTRACT MODE (Condition 6: Projector Kiosk View)
+   7. KIOSK ATTRACT MODE (Default Projector Kiosk View)
    -------------------------------------------------------------------------- */
+.landing-hero,
 body.attract-mode .landing-hero {
   min-height: calc(100vh - 64px);
   grid-template-columns: 1fr 1fr;
@@ -590,6 +591,7 @@ body.attract-mode .landing-hero {
   padding: 0;
 }
 
+.globe-viewport,
 body.attract-mode .globe-viewport {
   max-width: min(82vh, 820px);
   max-height: min(82vh, 820px);
@@ -598,8 +600,26 @@ body.attract-mode .globe-viewport {
   box-shadow: 0 0 60px rgba(0, 240, 255, 0.2);
 }
 
+.landing-title,
 body.attract-mode .landing-title {
   font-size: clamp(2.4rem, 4vw, 3.6rem);
+}
+
+@media (max-width: 1023px) {
+  .landing-hero,
+  body.attract-mode .landing-hero {
+    min-height: auto;
+    grid-template-columns: 1fr;
+    padding: var(--space-4, 16px) 0;
+    gap: var(--space-6, 24px);
+  }
+  .globe-viewport,
+  body.attract-mode .globe-viewport {
+    width: 100%;
+    height: auto;
+    max-width: min(440px, 90vw);
+    max-height: min(440px, 90vw);
+  }
 }
 
 /* --------------------------------------------------------------------------

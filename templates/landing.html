@@ -2,6 +2,7 @@
 {% from "macros/brand.html" import brand_name, event_name %}
 
 {% block title %}{{ brand_name() }} — Digital Forensics & Tactical CTF Platform{% endblock %}
+{% block body_class %}attract-mode{% endblock %}
 
 {% block head_extra %}
 <link rel="preload" href="{{ url_for('static', filename='fonts/oxanium-700.woff2') }}" as="font" type="font/woff2" crossorigin>
@@ -81,7 +82,6 @@
         <div class="globe-viewport" id="globe-viewport">
           <!-- Top Overlay HUD -->
           <div class="globe-overlay-header">
-            <span style="letter-spacing:0.08em;font-weight:600;color:var(--accent-signal);">ORBITAL RECON [2D]</span>
             <span id="globe-telemetry-nodes" class="font-mono">1,732 NODES</span>
           </div>
 
@@ -120,24 +120,10 @@
           </div>
         </div>
 
-        <!-- Interactive Controls Bar: Pause & Kiosk Mode Buttons (>=44px touch target, Condition 6 & 8) -->
-        <div class="globe-controls-bar">
-          <button type="button" id="globe-pause-btn" class="globe-ctrl-btn" aria-pressed="false" aria-label="Pause globe orbit animation">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <rect x="6" y="4" width="4" height="16" />
-              <rect x="14" y="4" width="4" height="16" />
-            </svg>
-            <span>PAUSE ORBIT</span>
-          </button>
-
-          <button type="button" id="attract-toggle" class="globe-ctrl-btn" aria-pressed="false" aria-label="Toggle projector kiosk mode">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <rect x="2" y="3" width="20" height="14" rx="2" />
-              <line x1="8" y1="21" x2="16" y2="21" />
-              <line x1="12" y1="17" x2="12" y2="21" />
-            </svg>
-            <span>KIOSK VIEW</span>
-          </button>
+        <!-- Preserved Contract Hooks (Hidden for Kiosk Mode) -->
+        <div style="display:none;" aria-hidden="true">
+          <button type="button" id="globe-pause-btn" aria-hidden="true"></button>
+          <button type="button" id="attract-toggle" aria-hidden="true"></button>
         </div>
 
         <!-- Simulated Telemetry Legend (Condition 3: Label + Icon + Text, Accessible) -->

@@ -765,9 +765,7 @@
   TacticalGlobe.prototype.start = function () {
     var self = this;
     function loop(now) {
-      if (!self.isPaused) {
-        self.renderFrame(now);
-      }
+      self.renderFrame(now);
       self.rafId = requestAnimationFrame(loop);
     }
     this.rafId = requestAnimationFrame(loop);
@@ -824,46 +822,22 @@
           return;
         }
 
+        // Default Kiosk Mode Layout & Continuous Spin
+        document.body.classList.add('attract-mode');
+        globe.initSize();
+        globe.isPaused = false;
         globe.start();
 
         // Responsive Resize Handling via ResizeObserver
         if (typeof ResizeObserver !== 'undefined' && container) {
           var ro = new ResizeObserver(function () {
             globe.initSize();
-            if (globe.isPaused) {
-              globe.draw(performance.now());
-            }
           });
           ro.observe(container);
         } else {
           window.addEventListener('resize', function () {
             globe.initSize();
           });
-        }
-
-        // IntersectionObserver: Pause when offscreen
-        if (typeof IntersectionObserver !== 'undefined') {
-          var io = new IntersectionObserver(function (entries) {
-            entries.forEach(function (entry) {
-              globe.isPaused = !entry.isIntersecting;
-            });
-          }, { threshold: 0.05 });
-          io.observe(canvas);
-        }
-
-        // Visibility Change: Pause when tab is hidden
-        document.addEventListener('visibilitychange', function () {
-          globe.isPaused = document.hidden;
-        });
-
-        // Attract Mode URL parameter (?attract=1)
-        if (window.location.search.indexOf('attract=1') !== -1) {
-          document.body.classList.add('attract-mode');
-          globe.initSize();
-          if (globe.attractBtn) {
-            globe.attractBtn.setAttribute('aria-pressed', 'true');
-            globe.attractBtn.textContent = 'EXIT KIOSK';
-          }
         }
       })
       .catch(function (err) {
