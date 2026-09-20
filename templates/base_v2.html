@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/utilities.css') }}">
+  {% block head_extra %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
   <!-- Skip Link for Keyboard Accessibility -->

@@ -3,13 +3,22 @@
 
 {% block title %}{{ brand_name() }} — Digital Forensics & Tactical CTF Platform{% endblock %}
 
+{% block head_extra %}
+<link rel="preload" href="{{ url_for('static', filename='fonts/oxanium-700.woff2') }}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{ url_for('static', filename='fonts/jetbrains-mono-400.woff2') }}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{ url_for('static', filename='fonts/plus-jakarta-sans-400.woff2') }}" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/landing.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="landing-shell">
   <div class="landing-container">
-    <!-- Open Nav Strip with Hairline Divider -->
+    <!-- Open Nav Strip with Hairline Divider (Condition 9: Vector Shield Logo + Macros) -->
     <header class="landing-nav" role="banner">
       <a href="{{ url_for('landing') }}" class="landing-brand" aria-label="{{ brand_name() }} Home">
-        <div class="brand-badge">CD</div>
+        <div class="landing-brand-logo">
+          <img src="{{ url_for('static', filename='images/logo.svg') }}" width="28" height="28" alt="{{ brand_name() }} Shield Logo" />
+        </div>
         <span>CYBER<strong>DETECTIVE</strong></span>
       </a>
 
@@ -23,12 +32,11 @@
 
     <!-- Hero Section (Contract Hook id="mission", 2-Column Console Layout) -->
     <section class="landing-hero" id="mission" aria-labelledby="landing-hero-heading">
-      <!-- Left Column: Mission Content & Primary CTAs -->
+      <!-- Left Column: Mission Content & Calibrated CTA Hierarchy (Condition 4) -->
       <div class="landing-hero-content">
         <div class="landing-eyebrow">
           <span class="status-dot active" style="width:6px;height:6px;border-radius:50%;background-color:var(--accent-signal);"></span>
           <span>{{ event_name() }}</span>
-          <span class="attract-banner">KIOSK ATTRACT MODE</span>
         </div>
 
         <h1 id="landing-hero-heading" class="landing-title">
@@ -56,27 +64,20 @@
           </div>
         </div>
 
-        <!-- Primary Operation Action Buttons -->
+        <!-- Primary & Secondary CTA Hierarchy (Condition 4: 1 Primary Team Login, 1 Secondary Rules) -->
         <div class="landing-actions">
-          <a class="landing-btn-r1" href="{{ url_for('start') }}" id="cta-round1">
-            <div class="landing-btn-info">
-              <span class="landing-btn-title">ROUND 01 : RECON &amp; CIPHERS</span>
-              <span class="landing-btn-sub">MIXED FUNDAMENTALS &middot; TEAM LOGIN</span>
-            </div>
-            <span class="landing-btn-arrow" aria-hidden="true">&rarr;</span>
+          <a class="landing-btn-primary" href="{{ url_for('start') }}" id="cta-team-login">
+            <span>TEAM LOGIN</span>
+            <span aria-hidden="true">&rarr;</span>
           </a>
 
-          <a class="landing-btn-r2" href="{{ url_for('r2_login') }}" id="cta-round2">
-            <div class="landing-btn-info">
-              <span class="landing-btn-title">ROUND 02 : FORENSIC LAB</span>
-              <span class="landing-btn-sub">CASE INVESTIGATION &middot; DIRECT ACCESS</span>
-            </div>
-            <span class="landing-btn-arrow" aria-hidden="true">&rarr;</span>
+          <a class="landing-btn-secondary" href="{{ url_for('r1.r1_rules') }}" id="cta-rules">
+            <span>READ THE RULES</span>
           </a>
         </div>
       </div>
 
-      <!-- Right Column: Hairline Framed Orbital Globe Enclosure -->
+      <!-- Right Column: Hairline Framed Orbital Globe Enclosure (Condition 2, 3, 6, 8) -->
       <div class="globe-stage" aria-label="Tactical Globe Visual">
         <div class="globe-viewport" id="globe-viewport">
           <!-- Top Overlay HUD -->
@@ -85,16 +86,21 @@
             <span id="globe-telemetry-nodes" class="font-mono">1,732 NODES</span>
           </div>
 
-          <!-- Pure Canvas 2D Engine -->
+          <!-- Dev-Only Performance HUD Overlay (?perf=1, Condition 2) -->
+          <div id="globe-perf-overlay" class="globe-perf-overlay"></div>
+
+          <!-- Pure Canvas 2D Engine (aria-hidden=true, Condition 8) -->
           <canvas id="tactical-globe-canvas"
                   class="globe-canvas"
                   width="440"
                   height="440"
-                  data-mask-url="{{ url_for('static', filename='data/land_mask.json') }}"
-                  aria-label="Interactive tactical globe displaying local incident nodes">
+                  aria-hidden="true"
+                  data-bin-url="{{ url_for('static', filename='data/land_mask.bin') }}"
+                  data-home-lat="28.6139"
+                  data-home-lon="77.2090">
           </canvas>
 
-          <!-- Fallback Poster SVG (Visible when JS is disabled or reduced motion) -->
+          <!-- Fallback Poster SVG (Condition 10: Themed Vector Poster with land dots) -->
           <img id="globe-poster"
                class="globe-poster"
                src="{{ url_for('static', filename='images/globe-poster.svg') }}"
@@ -107,12 +113,42 @@
             <span id="globe-telemetry-fps" class="font-mono" style="color:var(--state-success);">60 FPS</span>
           </div>
         </div>
+
+        <!-- Interactive Controls Bar: Pause & Kiosk Mode Buttons (>=44px touch target, Condition 6 & 8) -->
+        <div class="globe-controls-bar">
+          <button type="button" id="globe-pause-btn" class="globe-ctrl-btn" aria-pressed="false" aria-label="Pause globe orbit animation">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <rect x="6" y="4" width="4" height="16" />
+              <rect x="14" y="4" width="4" height="16" />
+            </svg>
+            <span>PAUSE ORBIT</span>
+          </button>
+
+          <button type="button" id="attract-toggle" class="globe-ctrl-btn" aria-pressed="false" aria-label="Toggle projector kiosk mode">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <line x1="8" y1="21" x2="16" y2="21" />
+              <line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+            <span>KIOSK VIEW</span>
+          </button>
+        </div>
+
+        <!-- Simulated Telemetry Legend (Condition 3: Label + Icon + Text, Accessible) -->
+        <div class="telemetry-legend-bar" role="region" aria-label="Incident Arc Telemetry Legend">
+          <span class="legend-badge">SIMULATED TELEMETRY:</span>
+          <span class="legend-item" style="color:#00F0FF;"><span aria-hidden="true">▶</span> ENTRY (Recon)</span>
+          <span class="legend-item" style="color:#BFA5FF;"><span aria-hidden="true">⇄</span> PIVOT (Lateral)</span>
+          <span class="legend-item" style="color:#F59E0B;"><span aria-hidden="true">⚡</span> C2 (Beacon)</span>
+          <span class="legend-item" style="color:#F87171;"><span aria-hidden="true">⇪</span> EXFIL (Egress)</span>
+        </div>
       </div>
     </section>
 
-    <!-- Open Hairline Mission Grid (No Card-in-Card) -->
-    <section class="landing-mission-section" aria-label="Investigation Architecture">
+    <!-- Open Hairline Mission Grid (No Card-in-Card, Direct Round Links preserved, Condition 1 & 4) -->
+    <section class="landing-mission-section" aria-label="Investigation Operations Architecture">
       <div class="mission-grid">
+        <!-- Stage 01: Recon & Ciphers (Contains Round 1 link hook #cta-round1) -->
         <div class="mission-col">
           <div class="mission-col-header">
             <span>[STAGE 01]</span>
@@ -122,8 +158,12 @@
           <p class="mission-col-desc">
             Progressive lock challenges covering packet captures, frequency analysis, obfuscated binaries, and stenographic artifacts. Real-time scoring with dynamic penalty mitigation.
           </p>
+          <a href="{{ url_for('start') }}" id="cta-round1" class="mission-round-link">
+            <span>ROUND 1 OPERATIONS &rarr;</span>
+          </a>
         </div>
 
+        <!-- Stage 02: Digital Forensics (Contains Round 2 link hook #cta-round2) -->
         <div class="mission-col">
           <div class="mission-col-header">
             <span>[STAGE 02]</span>
@@ -133,8 +173,12 @@
           <p class="mission-col-desc">
             Deep forensic case analysis. Inspect raw workstation evidence, disk images, network logs, and auth telemetry. Submit findings directly to the incident review board.
           </p>
+          <a href="{{ url_for('r2_login') }}" id="cta-round2" class="mission-round-link">
+            <span>ROUND 2 WORKSTATION &rarr;</span>
+          </a>
         </div>
 
+        <!-- Stage 03: Security & LAN -->
         <div class="mission-col">
           <div class="mission-col-header">
             <span>[SECURITY]</span>
@@ -144,22 +188,31 @@
           <p class="mission-col-desc">
             Self-hosted offline architecture. Zero cloud dependencies, zero external tracker beacons, and synchronized server-authoritative countdown timers across all stations.
           </p>
+          <a href="{{ url_for('scoreboard') }}" class="mission-round-link">
+            <span>LIVE SCOREBOARD &rarr;</span>
+          </a>
         </div>
       </div>
     </section>
 
-    <!-- Open Footer with Hairlines -->
+    <!-- Open Footer with Complete Reachable Navigation Links (Condition 9: Mobile Reachability) -->
     <footer class="landing-footer" role="contentinfo">
       <span>GOOD HACKERS MAKE A SAFER WORLD</span>
+      <div class="landing-footer-links">
+        <a href="#mission">MISSION</a>
+        <a href="{{ url_for('scoreboard') }}">LEADERBOARD</a>
+        <a href="{{ url_for('r1.r1_rules') }}">RULES</a>
+        <a href="{{ url_for('start') }}">TEAM LOGIN</a>
+        <a href="{% if is_admin %}{{ url_for('admin_dashboard') }}{% else %}{{ url_for('r1.r1_admin_login') }}{% endif %}">
+          ADMIN CONSOLE &nearr;
+        </a>
+      </div>
       <span>CYBER INVESTIGATION &middot; 2026</span>
-      <a href="{% if is_admin %}{{ url_for('admin_dashboard') }}{% else %}{{ url_for('r1.r1_admin_login') }}{% endif %}">
-        ADMIN CONSOLE &nearr;
-      </a>
     </footer>
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/landing-globe.js') }}"></script>
+<script src="{{ url_for('static', filename='js/landing-globe.js') }}" defer></script>
 {% endblock %}
