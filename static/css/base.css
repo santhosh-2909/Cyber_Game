@@ -12,6 +12,7 @@
 
 html {
   font-size: 16px;
+  color-scheme: dark;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -31,7 +32,7 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   Typography Elements
+   Typography Elements (text-wrap: balance & pretty)
    -------------------------------------------------------------------------- */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display, system-ui, sans-serif);
@@ -39,6 +40,7 @@ h1, h2, h3, h4, h5, h6 {
   line-height: var(--line-height-tight, 1.2);
   color: var(--text-primary, #F1F5F9);
   letter-spacing: 0.04em;
+  text-wrap: balance;
 }
 
 h1 { font-size: var(--font-size-3xl, 2.375rem); }
@@ -51,6 +53,7 @@ h6 { font-size: var(--font-size-sm, 0.875rem); }
 p {
   margin-bottom: var(--space-3, 12px);
   color: var(--text-secondary, #94A3B8);
+  text-wrap: pretty;
 }
 
 p:last-child {
@@ -80,6 +83,11 @@ small {
 code, kbd, samp, pre {
   font-family: var(--font-mono, monospace);
   font-size: var(--font-size-sm, 0.875rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabular-nums, .font-mono, table, th, td, [id*="timer"], [id*="clock"], .badge-stat {
+  font-variant-numeric: tabular-nums;
 }
 
 code {

@@ -177,12 +177,12 @@
           </span>
         </div>
       </form>
-      <div id="result-area"></div>
-      <button id="hint-btn" class="btn btn-subtle btn-sm fs-hint-btn" {% if state in ('verified','reviewed','flagged') %}style="display:none;"{% endif %}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <div id="result-area" role="status" aria-live="polite"></div>
+      <button type="button" id="hint-btn" class="btn btn-subtle btn-sm fs-hint-btn" {% if state in ('verified','reviewed','flagged') %}style="display:none;"{% endif %}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         USE HINT (-10 PTS)
       </button>
-      <div id="hint-area"></div>
+      <div id="hint-area" role="status" aria-live="polite"></div>
       {% else %}
       <div class="finder" style="opacity:.55;">
         <div class="finder-label">SUBMISSION DISABLED</div>
@@ -196,7 +196,7 @@
       <div class="note">
         <div class="note-head">
           INVESTIGATOR NOTE
-          <span class="note-save" id="note-save">SAVED ✓</span>
+          <span class="note-save" id="note-save" role="status" aria-live="polite">SAVED ✓</span>
         </div>
         <textarea id="note-text" class="note-input" placeholder="Record timestamps, IOCs, suspicious actors and leads…"
                   {% if not unlocked %}disabled{% endif %}>{{ note }}</textarea>

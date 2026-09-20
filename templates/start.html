@@ -62,15 +62,15 @@
     <form method="POST" action="{{ url_for('start') }}">
       <div class="form-group mb-4">
         <label class="form-label" for="team_name">TEAM NAME</label>
-        <input type="text" id="team_name" name="team_name" class="form-input {% if error %}has-error{% endif %}" placeholder="e.g. Cyber Ninjas" required autofocus autocomplete="organization" {% if error %}aria-invalid="true" aria-describedby="auth-error-msg"{% endif %}>
+        <input type="text" id="team_name" name="team_name" class="form-input {% if error %}has-error{% endif %}" placeholder="e.g. Cyber Ninjas" required autofocus autocomplete="organization" spellcheck="false" autocapitalize="words" {% if error %}aria-invalid="true" aria-describedby="auth-error-msg"{% endif %}>
       </div>
       <div class="form-group mb-6">
         <label class="form-label" for="team_id">TEAM ID</label>
-        <input type="text" id="team_id" name="team_id" class="form-input form-input-mono {% if error %}has-error{% endif %}" placeholder="e.g. TEAM-01" required autocomplete="off" {% if error %}aria-invalid="true" aria-describedby="auth-error-msg"{% endif %}>
+        <input type="text" id="team_id" name="team_id" class="form-input form-input-mono {% if error %}has-error{% endif %}" placeholder="e.g. TEAM-01" required autocomplete="off" spellcheck="false" autocapitalize="characters" {% if error %}aria-invalid="true" aria-describedby="auth-error-msg"{% endif %}>
       </div>
       <button type="submit" class="btn btn-primary btn-lg w-full" style="justify-content:center;gap:8px;">
         <span>ENTER THE COMPETITION</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
         </svg>
       </button>

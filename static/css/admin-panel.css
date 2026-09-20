@@ -148,7 +148,7 @@ body::before {
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid transparent;
-  transition: all .15s ease;
+  transition: color .15s ease, background-color .15s ease, border-color .15s ease;
   margin-bottom: 2px;
 }
 
@@ -193,7 +193,7 @@ body::before {
   border-radius: 8px;
   cursor: pointer;
   text-align: left;
-  transition: all .15s ease;
+  transition: color .15s ease, background-color .15s ease, border-color .15s ease;
 }
 
 .ap-nav-group-toggle:hover {
@@ -470,7 +470,7 @@ html {
   text-decoration: none;
   color: var(--ap-text);
   background: linear-gradient(135deg, var(--ap-accent), var(--ap-accent2));
-  transition: all .15s ease;
+  transition: color .15s ease, background-color .15s ease, border-color .15s ease;
   white-space: nowrap;
 }
 
@@ -782,7 +782,7 @@ html {
   color: var(--ap-text);
   background: rgba(108, 43, 255, 0.08);
   cursor: pointer;
-  transition: all .15s ease;
+  transition: color .15s ease, background-color .15s ease, border-color .15s ease;
 }
 .ap-chip:hover { border-color: var(--ap-accent4); }
 .ap-chip.active { background: var(--ap-accent2); border-color: var(--ap-accent4); color: #fff; }
