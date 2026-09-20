@@ -12,6 +12,9 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 <body class="{% block body_class %}{% endblock %}">
+  <!-- Skip Link for Keyboard Accessibility -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
   <!-- Connection Monitor Banner -->
   <div id="connection-banner" class="connection-banner" role="alert" aria-live="assertive">
     [OFFLINE] LAN CONNECTION INTERRUPTED &mdash; BUFFERING SUBMISSIONS LOCALLY
@@ -69,7 +72,7 @@
       </div>
     </aside>
 
-    <div class="admin-main" style="flex:1;display:flex;flex-direction:column;min-width:0;background-color:var(--bg-canvas);">
+    <main id="main-content" class="admin-main" style="flex:1;display:flex;flex-direction:column;min-width:0;background-color:var(--bg-canvas);" role="main">
       <header class="admin-topbar" style="height:56px;background-color:var(--bg-surface-1);border-bottom:1px solid var(--border-default);padding:0 24px;display:flex;align-items:center;justify-content:space-between;">
         <div style="display:flex;align-items:center;gap:12px;">
           <span class="badge badge-success" style="font-size:12px;">ROUND 1 LIVE</span>
@@ -90,7 +93,7 @@
       <div class="admin-content" style="flex:1;padding:24px;overflow-y:auto;">
         {% block content %}{% endblock %}
       </div>
-    </div>
+    </main>
   </div>
 
   <!-- Global Toast Region -->

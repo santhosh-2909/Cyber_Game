@@ -13,6 +13,9 @@
   {% block head %}{% endblock %}
 </head>
 <body>
+  <!-- Skip Link for Keyboard Accessibility -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
   <!-- Connection Monitor Banner -->
   <div id="connection-banner" class="connection-banner" role="alert" aria-live="assertive">
     [OFFLINE] LAN CONNECTION INTERRUPTED &mdash; BUFFERING SUBMISSIONS LOCALLY
@@ -129,7 +132,7 @@
     </aside>
 
     <!-- Main -->
-    <div class="ap-main" style="flex:1;display:flex;flex-direction:column;min-width:0;background-color:var(--bg-canvas);">
+    <main id="main-content" class="ap-main" style="flex:1;display:flex;flex-direction:column;min-width:0;background-color:var(--bg-canvas);" role="main">
       <header class="ap-topbar" style="height:56px;background-color:var(--bg-surface-1);border-bottom:1px solid var(--border-default);padding:0 24px;display:flex;align-items:center;justify-content:space-between;">
         <div class="ap-row" style="display:flex;align-items:center;gap:12px;">
           <button class="btn btn-ghost btn-sm ap-mobile-toggle" id="apMobileToggle" style="display:none;" aria-label="Toggle Navigation">
@@ -151,7 +154,7 @@
       <div class="ap-content" style="flex:1;padding:24px;overflow-y:auto;">
         {% block content %}{% endblock %}
       </div>
-    </div>
+    </main>
   </div>
 
   <!-- Admin Modal Frame -->

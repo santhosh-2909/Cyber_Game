@@ -11,25 +11,35 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/utilities.css') }}">
 </head>
 <body class="{% block body_class %}{% endblock %}">
+  <!-- Skip Link for Keyboard Accessibility -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
   <!-- Connection Monitor Banner -->
   <div id="connection-banner" class="connection-banner" role="alert" aria-live="assertive">
     [OFFLINE] LAN CONNECTION INTERRUPTED &mdash; BUFFERING SUBMISSIONS LOCALLY
   </div>
 
-  <!-- Persistent HUD strip -->
-  <div class="hx-secstrip" role="region" aria-label="Security Status Strip" style="display:flex;align-items:center;justify-content:space-between;padding:4px 16px;background-color:var(--bg-canvas);border-bottom:1px solid var(--border-subtle);font-family:var(--font-mono);font-size:12px;color:var(--text-tertiary);z-index:100;">
-    <div class="hx-sec-left" style="display:flex;align-items:center;gap:8px;">
-      <span class="status-dot active" style="width:8px;height:8px;border-radius:50%;background-color:var(--state-success);display:inline-block;"></span>
-      <span style="font-weight:600;letter-spacing:0.06em;color:var(--text-secondary);">SECURE CHANNEL</span>
-      <span style="opacity:0.4;">|</span>
-      <span>R1 LAB</span>
+  <!-- Persistent 3-Column HUD strip (F4, F10) -->
+  <div class="hx-secstrip" role="region" aria-label="System Status Strip">
+    <div class="hx-sec-left">
+      <span class="status-dot active"></span>
+      <span style="font-weight:600;letter-spacing:0.06em;color:var(--text-secondary);">ROUND 1 LAB</span>
     </div>
-    <div class="hx-sec-center" id="hx-clock" style="letter-spacing:0.08em;font-weight:600;color:var(--accent-signal);">SYNC 00:00:00 UTC</div>
-    <div class="hx-sec-right" style="display:flex;align-items:center;gap:12px;">
-      <span>FIREWALL <span style="color:var(--state-success);font-weight:600;">UP</span></span>
-      <span style="opacity:0.4;">|</span>
-      <button type="button" id="theme-toggle" class="btn btn-ghost btn-sm" aria-label="Toggle light/dark visual theme" style="padding:2px 8px;font-size:12px;border:1px solid var(--border-subtle);border-radius:var(--radius-xs);">
-        <span class="theme-label font-mono" style="font-size:12px;">THEME</span>
+    <div class="hx-sec-center font-mono" id="hx-clock">SYNC 00:00:00 UTC</div>
+    <div class="hx-sec-right">
+      <button type="button" id="theme-toggle" class="btn btn-ghost btn-sm" aria-label="Toggle light/dark visual theme">
+        <svg class="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <span class="theme-label font-mono">THEME</span>
       </button>
     </div>
   </div>
@@ -100,13 +110,13 @@
       </div>
     </aside>
 
-    <main class="hud-main" style="flex:1;padding:24px;background-color:var(--bg-canvas);" role="main">
+    <main id="main-content" class="hud-main" style="flex:1;padding:24px;background-color:var(--bg-canvas);" role="main">
       {% block content %}{% endblock %}
     </main>
   </div>
   {% else %}
   <!-- Unauthenticated Stage (Auth pages) -->
-  <main class="fs-stage" role="main">
+  <main id="main-content" class="fs-stage" role="main">
     {{ self.content() }}
   </main>
   {% endif %}

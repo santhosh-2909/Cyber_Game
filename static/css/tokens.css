@@ -152,6 +152,8 @@
   --accent-amber-hover: #FBBF24;
   --accent-amber-dim: rgba(245, 158, 11, 0.14);
   --accent-amber-border: rgba(245, 158, 11, 0.32);
+  --state-warning: #F59E0B;
+  --state-warning-hover: #FBBF24;
 
   /* Semantic State: RED (Penalties, Flags, Breaches >= 4.5:1) */
   --state-danger: #F87171;    /* 7.12:1 on canvas, 5.33:1 on surface-3 */
@@ -257,6 +259,8 @@
   --accent-amber-hover: #78350F;
   --accent-amber-dim: rgba(146, 64, 14, 0.10);
   --accent-amber-border: rgba(146, 64, 14, 0.24);
+  --state-warning: #92400E;
+  --state-warning-hover: #78350F;
 
   --state-danger: #B91C1C;    /* 6.18:1 on canvas, 5.25:1 on surface-3 */
   --state-danger-hover: #991B1B;
