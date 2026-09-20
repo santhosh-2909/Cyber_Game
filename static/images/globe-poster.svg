@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600" fill="none">
+  <defs>
+    <radialGradient id="globeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="70%" stop-color="#00F0FF" stop-opacity="0" />
+      <stop offset="95%" stop-color="#00F0FF" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#00F0FF" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Canvas Stage Background -->
+  <rect width="600" height="600" fill="#070B12" />
+
+  <!-- Atmosphere Glow -->
+  <circle cx="300" cy="300" r="260" fill="url(#globeGlow)" />
+
+  <!-- Horizon Wireframe Reticle -->
+  <circle cx="300" cy="300" r="240" stroke="#627D9F" stroke-width="1.5" stroke-opacity="0.4" />
+  <ellipse cx="300" cy="300" rx="240" ry="85" stroke="#627D9F" stroke-width="1" stroke-dasharray="3 4" stroke-opacity="0.25" transform="rotate(15 300 300)" />
+  <ellipse cx="300" cy="300" rx="240" ry="170" stroke="#627D9F" stroke-width="1" stroke-dasharray="3 4" stroke-opacity="0.25" transform="rotate(15 300 300)" />
+
+  <!-- Crosshair Guides -->
+  <line x1="300" y1="40" x2="300" y2="560" stroke="#627D9F" stroke-width="0.75" stroke-dasharray="2 6" stroke-opacity="0.3" />
+  <line x1="40" y1="300" x2="560" y2="300" stroke="#627D9F" stroke-width="0.75" stroke-dasharray="2 6" stroke-opacity="0.3" />
+
+  <!-- Corner Tactical Brackets -->
+  <path d="M 60 90 L 60 60 L 90 60" stroke="#00F0FF" stroke-width="2" />
+  <path d="M 540 90 L 540 60 L 510 60" stroke="#00F0FF" stroke-width="2" />
+  <path d="M 60 510 L 60 540 L 90 540" stroke="#00F0FF" stroke-width="2" />
+  <path d="M 540 510 L 540 540 L 510 540" stroke="#00F0FF" stroke-width="2" />
+
+  <!-- Representative Tactical Land Nodes -->
+  <circle cx="280" cy="220" r="3.5" fill="#00F0FF" fill-opacity="0.9" />
+  <circle cx="320" cy="240" r="3" fill="#00F0FF" fill-opacity="0.8" />
+  <circle cx="350" cy="270" r="3" fill="#00F0FF" fill-opacity="0.85" />
+  <circle cx="310" cy="310" r="4" fill="#F59E0B" />
+  <circle cx="310" cy="310" r="9" stroke="#F59E0B" stroke-width="1.5" />
+  <text x="326" y="306" fill="#F59E0B" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="600">NODE 01 [LOCAL]</text>
+
+  <!-- Static Status Footer -->
+  <text x="300" y="565" text-anchor="middle" fill="#9AAEC4" font-family="'JetBrains Mono', monospace" font-size="10" letter-spacing="0.1em">TACTICAL ORBIT POSTER · PREFERS-REDUCED-MOTION ACTIVE</text>
+</svg>

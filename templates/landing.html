@@ -1,115 +1,165 @@
-<!doctype html>
-<html lang="en"><head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Cyber Challenge 2026</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/security-hud.css') }}">
-</head>
-<body class="hx-frame">
-<div class="r1-bg-image" aria-hidden="true"></div>
-<div class="hx-crt" aria-hidden="true"></div>
-<div class="hx-secstrip" aria-hidden="true">
-  <div class="hx-sec-left">
-    <span class="hx-seg"><span class="dot"></span>SECURE CHANNEL</span>
-    <span class="hx-pipe">|</span>
-    <span class="hx-seg">TLS 1.3</span>
-  </div>
-  <div class="hx-sec-center hx-seg"><span class="hx-cursor">ENCRYPTED SESSION</span></div>
-  <div class="hx-sec-right">
-    <span class="hx-seg">FIREWALL <span class="hx-blink">UP</span></span>
-    <span class="hx-pipe">|</span>
-    <span class="hx-seg">NODE <span class="hx-blink">OK</span></span>
-  </div>
-</div>
-<main class="front">
-  <!-- Background scene layer -->
-  <div class="cyber-scene" aria-hidden="true">
-    <div class="cs-glows"></div>
-    <div class="cs-hood"></div>
-    <div class="cs-binary"></div>
-    <div class="cs-overlay"></div>
-  </div>
+{% extends "base_v2.html" %}
+{% from "macros/brand.html" import brand_name, event_name %}
 
-  <!-- Purple wireframe neural globe -->
-  <div class="neural-globe" aria-hidden="true">
-    <span class="ng-orbit o1"></span>
-    <span class="ng-orbit o2"></span>
-    <span class="ng-orbit o3"></span>
-    <span class="ng-core"></span>
-  </div>
+{% block title %}{{ brand_name() }} — Digital Forensics & Tactical CTF Platform{% endblock %}
 
-  <!-- Case file visual -->
-  <div class="case-visual" aria-hidden="true">
-    <div class="case-file">
-      <div class="case-tab">CLASSIFIED</div>
-      <div class="case-title">CASE FILE<br>CYBER 2026</div>
-      <div class="case-lines"></div>
-      <div class="case-stamp">DIGITAL<br>EVIDENCE</div>
-      <div class="case-lock"></div>
-    </div>
-  </div>
+{% block content %}
+<div class="landing-shell">
+  <div class="landing-container">
+    <!-- Open Nav Strip with Hairline Divider -->
+    <header class="landing-nav" role="banner">
+      <a href="{{ url_for('landing') }}" class="landing-brand" aria-label="{{ brand_name() }} Home">
+        <div class="brand-badge">CD</div>
+        <span>CYBER<strong>DETECTIVE</strong></span>
+      </a>
 
-  <!-- Sparse purple binary rain -->
-  <div class="matrix-rain" aria-hidden="true">
-    {% for col in range(8) %}
-    {% set glyph = '01' if col % 2 == 0 else '10' %}
-    {% set head = '0' if col % 3 == 0 else '1' %}
-    <div class="mcol" style="left:{{ col * 12.5 + 3 }}%; --fall:{{ (10 + (col * 37) % 8) }}s; --delay:{{ '%.2f'|format(-(col * 1.5) % 6) }}s;">
-      <span class="mhead">{{ head }}</span>
-      <span class="mbody">{{ glyph * 36 }}</span>
-    </div>
-    {% endfor %}
-  </div>
+      <nav class="landing-nav-links" aria-label="Primary Navigation">
+        <a href="#mission" class="landing-nav-link">MISSION</a>
+        <a href="{{ url_for('scoreboard') }}" class="landing-nav-link">LEADERBOARD</a>
+        <a href="{{ url_for('r1.r1_rules') }}" class="landing-nav-link">RULES</a>
+        <a href="{{ url_for('start') }}" class="btn btn-ghost btn-sm font-mono" style="font-size:12px;">LOGIN</a>
+      </nav>
+    </header>
 
-  <div class="front-inner">
-    <nav class="front-nav">
-      <a class="front-brand" href="{{ url_for('landing') }}">◈ CYBER<b>CHALLENGE</b></a>
-      <div class="front-links">
-        <a href="#mission">MISSION</a>
-        <a href="{{ url_for('scoreboard') }}">LEADERBOARD</a>
-        <a href="{{ url_for('r1.r1_rules') }}">RULES</a>
-        <a class="front-login" href="{{ url_for('start') }}">LOGIN</a>
-      </div>
-    </nav>
-
-    <section class="front-hero" id="mission">
-      <div class="front-copy">
-        <div class="eyebrow">CYBER INVESTIGATION CHALLENGE · 2026</div>
-        <h1>THINK &gt; INVESTIGATE<br><strong>SOLVE</strong> &gt; SECURE</h1>
-        <p>Enter a Kali-inspired command center built for codebreakers, programmers, and digital investigators. Select your operation to authenticate with the credentials issued for that round.</p>
-        <div class="command" style="margin-bottom:22px;"><span>ROUND 01</span><i>→</i><strong>ROUND 02</strong><i>→</i><span>LEADERBOARD</span></div>
-        <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;">
-          <span class="hx-badge neutral">ACCESS PROVISIONED</span>
-          <span class="hx-badge cyan">SESSION SECURE</span>
-          <span class="hx-badge">FLAG VETTED</span>
+    <!-- Hero Section (Contract Hook id="mission", 2-Column Console Layout) -->
+    <section class="landing-hero" id="mission" aria-labelledby="landing-hero-heading">
+      <!-- Left Column: Mission Content & Primary CTAs -->
+      <div class="landing-hero-content">
+        <div class="landing-eyebrow">
+          <span class="status-dot active" style="width:6px;height:6px;border-radius:50%;background-color:var(--accent-signal);"></span>
+          <span>{{ event_name() }}</span>
+          <span class="attract-banner">KIOSK ATTRACT MODE</span>
         </div>
-        <div class="round-buttons">
-          <a class="round-btn" href="{{ url_for('start') }}">
-            <span>ROUND 1<small>MIXED FUNDAMENTALS</small></span><span>→</span>
+
+        <h1 id="landing-hero-heading" class="landing-title">
+          THINK &gt; INVESTIGATE<br>
+          <strong>SOLVE</strong> &gt; SECURE
+        </h1>
+
+        <p class="landing-desc">
+          Enter an authentic digital forensics command center engineered for codebreakers, incident responders, and cyber investigators. Authenticate with credentials provisioned for your operation.
+        </p>
+
+        <!-- Live Telemetry Status Row -->
+        <div class="landing-telemetry-row" role="region" aria-label="System Telemetry Status">
+          <div class="telemetry-item">
+            <span class="status-dot active" style="width:6px;height:6px;border-radius:50%;background-color:var(--state-success);"></span>
+            <span>LAN SESSION ACTIVE</span>
+          </div>
+          <span style="color:var(--border-strong);">&bull;</span>
+          <div class="telemetry-item">
+            <span>ACCESS PROVISIONED</span>
+          </div>
+          <span style="color:var(--border-strong);">&bull;</span>
+          <div class="telemetry-item">
+            <span>FLAG VETTED</span>
+          </div>
+        </div>
+
+        <!-- Primary Operation Action Buttons -->
+        <div class="landing-actions">
+          <a class="landing-btn-r1" href="{{ url_for('start') }}" id="cta-round1">
+            <div class="landing-btn-info">
+              <span class="landing-btn-title">ROUND 01 : RECON &amp; CIPHERS</span>
+              <span class="landing-btn-sub">MIXED FUNDAMENTALS &middot; TEAM LOGIN</span>
+            </div>
+            <span class="landing-btn-arrow" aria-hidden="true">&rarr;</span>
           </a>
-          <a class="round-btn r2" href="{{ url_for('r2_login') }}">
-            <span>ROUND 2<small>DIGITAL FORENSICS</small></span><span>→</span>
+
+          <a class="landing-btn-r2" href="{{ url_for('r2_login') }}" id="cta-round2">
+            <div class="landing-btn-info">
+              <span class="landing-btn-title">ROUND 02 : FORENSIC LAB</span>
+              <span class="landing-btn-sub">CASE INVESTIGATION &middot; DIRECT ACCESS</span>
+            </div>
+            <span class="landing-btn-arrow" aria-hidden="true">&rarr;</span>
           </a>
+        </div>
+      </div>
+
+      <!-- Right Column: Hairline Framed Orbital Globe Enclosure -->
+      <div class="globe-stage" aria-label="Tactical Globe Visual">
+        <div class="globe-viewport" id="globe-viewport">
+          <!-- Top Overlay HUD -->
+          <div class="globe-overlay-header">
+            <span style="letter-spacing:0.08em;font-weight:600;color:var(--accent-signal);">ORBITAL RECON [2D]</span>
+            <span id="globe-telemetry-nodes" class="font-mono">1,732 NODES</span>
+          </div>
+
+          <!-- Pure Canvas 2D Engine -->
+          <canvas id="tactical-globe-canvas"
+                  class="globe-canvas"
+                  width="440"
+                  height="440"
+                  data-mask-url="{{ url_for('static', filename='data/land_mask.json') }}"
+                  aria-label="Interactive tactical globe displaying local incident nodes">
+          </canvas>
+
+          <!-- Fallback Poster SVG (Visible when JS is disabled or reduced motion) -->
+          <img id="globe-poster"
+               class="globe-poster"
+               src="{{ url_for('static', filename='images/globe-poster.svg') }}"
+               alt="Tactical globe projection poster"
+               style="display:none;" />
+
+          <!-- Bottom Overlay HUD -->
+          <div class="globe-overlay-footer">
+            <span id="globe-telemetry-lon" class="font-mono">77.2&deg;E</span>
+            <span id="globe-telemetry-fps" class="font-mono" style="color:var(--state-success);">60 FPS</span>
+          </div>
         </div>
       </div>
     </section>
-  </div>
 
-  <div class="front-inner" style="padding-top:0;">
-    <footer class="front-bottom">
+    <!-- Open Hairline Mission Grid (No Card-in-Card) -->
+    <section class="landing-mission-section" aria-label="Investigation Architecture">
+      <div class="mission-grid">
+        <div class="mission-col">
+          <div class="mission-col-header">
+            <span>[STAGE 01]</span>
+            <span>FUNDAMENTALS</span>
+          </div>
+          <h2 class="mission-col-title">Reconnaissance &amp; Ciphers</h2>
+          <p class="mission-col-desc">
+            Progressive lock challenges covering packet captures, frequency analysis, obfuscated binaries, and stenographic artifacts. Real-time scoring with dynamic penalty mitigation.
+          </p>
+        </div>
+
+        <div class="mission-col">
+          <div class="mission-col-header">
+            <span>[STAGE 02]</span>
+            <span>FORENSIC LAB</span>
+          </div>
+          <h2 class="mission-col-title">Digital Evidence Analysis</h2>
+          <p class="mission-col-desc">
+            Deep forensic case analysis. Inspect raw workstation evidence, disk images, network logs, and auth telemetry. Submit findings directly to the incident review board.
+          </p>
+        </div>
+
+        <div class="mission-col">
+          <div class="mission-col-header">
+            <span>[SECURITY]</span>
+            <span>AIR-GAPPED LAN</span>
+          </div>
+          <h2 class="mission-col-title">Anti-Tamper Integrity</h2>
+          <p class="mission-col-desc">
+            Self-hosted offline architecture. Zero cloud dependencies, zero external tracker beacons, and synchronized server-authoritative countdown timers across all stations.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Open Footer with Hairlines -->
+    <footer class="landing-footer" role="contentinfo">
       <span>GOOD HACKERS MAKE A SAFER WORLD</span>
-      <span>CYBER CHALLENGE 2026</span>
-      <a href="{% if is_admin %}{{ url_for('admin_dashboard') }}{% else %}{{ url_for('r1.r1_admin_login') }}{% endif %}">ADMIN CONSOLE ↗</a>
+      <span>CYBER INVESTIGATION &middot; 2026</span>
+      <a href="{% if is_admin %}{{ url_for('admin_dashboard') }}{% else %}{{ url_for('r1.r1_admin_login') }}{% endif %}">
+        ADMIN CONSOLE &nearr;
+      </a>
     </footer>
   </div>
-</main>
-<style>
-  @media (max-width: 980px) {
-    .case-visual, .neural-globe { display: none; }
-  }
-  @media (max-width: 720px) {
-    .hx-secstrip .hx-sec-center { display: none; }
-  }
-</style>
-</body></html>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/landing-globe.js') }}"></script>
+{% endblock %}
