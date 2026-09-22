@@ -59,10 +59,9 @@
 
         <nav class="topnav-links" style="display:flex;align-items:center;gap:6px;margin-left:16px;">
           <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm {% if request.endpoint in ('dashboard','case_session') %}btn-secondary{% endif %}" style="font-size:13px;">Dashboard</a>
-          <a href="{{ url_for('case_selector') }}" class="btn btn-ghost btn-sm {% if request.endpoint in ('case_selector','case_study','evidence','puzzle_lab','challenge') %}btn-secondary{% endif %}" style="font-size:13px;">Cases</a>
-          <a href="{{ url_for('evidence_board') }}" class="btn btn-ghost btn-sm {% if request.endpoint == 'evidence_board' %}btn-secondary{% endif %}" style="font-size:13px;">Evidence</a>
-          <a href="{{ url_for('report') }}" class="btn btn-ghost btn-sm {% if request.endpoint == 'report' %}btn-secondary{% endif %}" style="font-size:13px;">Report</a>
-          <a href="{{ url_for('scoreboard') }}" class="btn btn-ghost btn-sm {% if request.endpoint in ('scoreboard','score') %}btn-secondary{% endif %}" style="font-size:13px;">Scoreboard</a>
+          <a href="{{ url_for('case_study') }}" class="btn btn-ghost btn-sm {% if request.endpoint in ('case_study','evidence') %}btn-secondary{% endif %}" style="font-size:13px;">Case Brief</a>
+          <a href="{{ url_for('score') }}" class="btn btn-ghost btn-sm {% if request.endpoint in ('score','report') %}btn-secondary{% endif %}" style="font-size:13px;">Score Card</a>
+          <a href="{{ url_for('scoreboard') }}" class="btn btn-ghost btn-sm {% if request.endpoint in ('scoreboard',) %}btn-secondary{% endif %}" style="font-size:13px;">Scoreboard</a>
         </nav>
       </div>
 
@@ -150,6 +149,35 @@
         if (rem <= 0) { finishRound(); return; }
         render(rem);
       }, 1000);
+    })();
+  </script>
+
+  <script>
+    (function () {
+      var btn = document.querySelector('.btn-rotate');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        var original = btn.textContent.trim();
+        btn.disabled = true;
+        btn.textContent = 'ASSIGNING…';
+        var endpoint = {{ url_for('rotate_case')|tojson }};
+        fetch(endpoint, { method: 'POST' })
+          .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
+          .then(function (res) {
+            if (res.ok && res.body.ok && res.body.redirect) {
+              window.location.href = res.body.redirect;
+            } else {
+              alert((res.body && res.body.error) || 'Could not advance to the next case.');
+              btn.disabled = false;
+              btn.textContent = original;
+            }
+          })
+          .catch(function () {
+            alert('Network error — could not advance to the next case.');
+            btn.disabled = false;
+            btn.textContent = original;
+          });
+      });
     })();
   </script>
 

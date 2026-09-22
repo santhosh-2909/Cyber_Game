@@ -14,7 +14,7 @@
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <div>
-        <div class="badge badge-success font-mono" style="font-size:11px;margin-bottom:6px;">INVESTIGATION CONCLUDED</div>
+        <div class="badge badge-success font-mono" style="font-size:11px;margin-bottom:6px;">QUIZ CONCLUDED</div>
         <h1 style="font-family:var(--font-display);font-size:1.75rem;font-weight:700;color:var(--text-primary);margin:0;letter-spacing:0.02em;">
           CASE {{ case.code }} COMPLETED
         </h1>
@@ -25,121 +25,85 @@
     </div>
     <div style="text-align:right;">
       <div class="font-mono font-bold" style="font-size:2.5rem;color:var(--state-success);line-height:1;">
-        {{ total }}<span style="font-size:1.25rem;color:var(--text-tertiary);font-weight:400;"> / {{ grand_max }}</span>
+        {{ card.total }}<span style="font-size:1.25rem;color:var(--text-tertiary);font-weight:400;"> / {{ card.grand_max }}</span>
       </div>
       <div class="font-mono" style="font-size:11px;color:var(--text-tertiary);letter-spacing:0.08em;margin-top:6px;">TOTAL CUMULATIVE SCORE</div>
     </div>
   </div>
 
-  <!-- Score Breakdown Table -->
-  <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-sm);margin-bottom:var(--space-8, 32px);">
-    <div style="padding:18px 24px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;">
-      <h2 style="font-family:var(--font-mono);font-size:13px;font-weight:700;letter-spacing:0.06em;color:var(--text-secondary);margin:0;">
-        SCORE BREAKDOWN &mdash; DETAILED ASSESSMENT
-      </h2>
-      <span class="font-mono" style="font-size:12px;color:var(--text-tertiary);">MAXIMUM: {{ grand_max }} PTS</span>
+  <!-- Station-by-Station MCQ Breakdown -->
+  {% for s in card.stations %}
+  <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-sm);margin-bottom:var(--space-5, 20px);">
+    <div style="padding:16px 24px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="font-mono font-bold" style="width:38px;height:38px;border-radius:var(--radius-xs);background:var(--bg-surface-2);border:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:center;color:var(--text-primary);font-size:13px;">{{ s.station.id }}</div>
+        <div>
+          <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;color:var(--text-tertiary);">{{ s.station.domain }}</div>
+          <div style="font-weight:700;font-size:15px;color:var(--text-primary);">{{ s.station.name }}</div>
+        </div>
+      </div>
+      <span class="font-mono font-bold" style="font-size:15px;color:{% if s.pts == s.max %}var(--state-success){% else %}var(--text-primary){% endif %};">
+        {{ s.pts }}<span style="font-size:12px;color:var(--text-tertiary);"> / {{ s.max }}</span>
+      </span>
     </div>
+    <div style="padding:12px 24px;display:grid;gap:8px;">
+      {% for r in s.rows %}
+      {% if r is none %}
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px dashed var(--border-subtle);border-radius:var(--radius-sm);">
+        <span class="font-mono font-bold" style="width:30px;font-size:11px;color:var(--text-tertiary);">Q{{ loop.index }}</span>
+        <span class="font-mono" style="flex:1;font-size:12px;color:var(--text-tertiary);">NOT ANSWERED — NO POINTS</span>
+        <span class="font-mono font-bold" style="font-size:12px;color:var(--text-tertiary);">0</span>
+      </div>
+      {% else %}
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid {% if r.correct %}rgba(16,185,129,0.35){% else %}rgba(239,68,68,0.35){% endif %};border-radius:var(--radius-sm);background:{% if r.correct %}var(--success-bg){% else %}var(--danger-bg){% endif %};">
+        <span class="font-mono font-bold" style="width:30px;font-size:11px;color:{% if r.correct %}var(--success){% else %}var(--danger){% endif %};">Q{{ loop.index }}</span>
+        <span class="font-mono" style="flex:1;font-size:12px;color:var(--text-secondary);">
+          {% if r.correct and r.bonus %}✓ CORRECT · {{ r.ms }}ms · +{{ r.pts }} <span style="color:var(--success);">(incl. speed bonus)</span>{% elif r.correct %}✓ CORRECT · {{ r.ms }}ms (after bonus window) · +{{ r.pts }}{% else %}✗ INCORRECT · {{ r.ms }}ms · {{ r.pts }}{% endif %}
+        </span>
+        <span class="font-mono font-bold" style="font-size:13px;color:{% if r.correct %}var(--success){% else %}var(--danger){% endif %};">{{ '%+d' % r.pts }}</span>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
 
-    <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;text-align:left;font-size:14px;">
-        <thead>
-          <tr style="border-bottom:1px solid var(--border-default);background-color:var(--bg-surface-2);color:var(--text-tertiary);font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;">
-            <th style="padding:14px 24px;">SCORING CATEGORY</th>
-            <th style="padding:14px 24px;text-align:right;">EARNED POINTS</th>
-            <th style="padding:14px 24px;text-align:right;width:180px;">PROGRESSION</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Evidence Stations -->
-          <tr style="border-bottom:1px solid var(--border-subtle);">
-            <td style="padding:16px 24px;">
-              <div style="display:flex;align-items:center;gap:14px;">
-                <div style="width:36px;height:36px;border-radius:var(--radius-xs);background:rgba(191,165,255,0.12);border:1px solid rgba(191,165,255,0.3);display:flex;align-items:center;justify-content:center;color:var(--accent-purple);">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                </div>
-                <div>
-                  <strong style="color:var(--text-primary);font-size:14px;">Evidence Stations</strong>
-                  <div class="font-mono" style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">{{ case.stations|length }} stations &times; 100 pts</div>
-                </div>
-              </div>
-            </td>
-            <td style="padding:16px 24px;text-align:right;">
-              <span class="font-mono font-bold" style="font-size:15px;color:var(--text-primary);">{{ station_points }} / {{ station_max }}</span>
-            </td>
-            <td style="padding:16px 24px;text-align:right;">
-              <div style="width:140px;height:8px;background:var(--bg-surface-3);border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle;">
-                <div style="height:100%;background:var(--state-success);width:{% if station_max > 0 %}{{ (station_points / station_max * 100)|int }}{% else %}0{% endif %}%;"></div>
-              </div>
-            </td>
-          </tr>
-
-          <!-- Person Identification -->
-          <tr style="border-bottom:1px solid var(--border-subtle);">
-            <td style="padding:16px 24px;">
-              <div style="display:flex;align-items:center;gap:14px;">
-                <div style="width:36px;height:36px;border-radius:var(--radius-xs);background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);display:flex;align-items:center;justify-content:center;color:var(--accent-amber);">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </div>
-                <div>
-                  <strong style="color:var(--text-primary);font-size:14px;">Person Identification</strong>
-                  <div class="font-mono" style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">{{ case.persons|length }} persons &times; 75 pts</div>
-                </div>
-              </div>
-            </td>
-            <td style="padding:16px 24px;text-align:right;">
-              <span class="font-mono font-bold" style="font-size:15px;color:var(--text-primary);">{{ person_points }} / {{ person_max }}</span>
-            </td>
-            <td style="padding:16px 24px;text-align:right;">
-              <div style="width:140px;height:8px;background:var(--bg-surface-3);border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle;">
-                <div style="height:100%;background:var(--accent-amber);width:{% if person_max > 0 %}{{ (person_points / person_max * 100)|int }}{% else %}0{% endif %}%;"></div>
-              </div>
-            </td>
-          </tr>
-
-          <!-- Investigation Report -->
-          <tr style="border-bottom:1px solid var(--border-subtle);">
-            <td style="padding:16px 24px;">
-              <div style="display:flex;align-items:center;gap:14px;">
-                <div style="width:36px;height:36px;border-radius:var(--radius-xs);background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);display:flex;align-items:center;justify-content:center;color:var(--accent-cyan);">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </div>
-                <div>
-                  <strong style="color:var(--text-primary);font-size:14px;">Investigation Report</strong>
-                  <div class="font-mono" style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">Entry Vector + Attack Timeline + Conclusion</div>
-                </div>
-              </div>
-            </td>
-            <td style="padding:16px 24px;text-align:right;">
-              <span class="font-mono font-bold" style="font-size:15px;color:var(--text-primary);">{{ report_points }} / 100</span>
-            </td>
-            <td style="padding:16px 24px;text-align:right;">
-              <div style="width:140px;height:8px;background:var(--bg-surface-3);border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle;">
-                <div style="height:100%;background:var(--accent-cyan);width:{{ report_points }}%;"></div>
-              </div>
-            </td>
-          </tr>
-
-          <!-- Total Cumulative -->
-          <tr style="background-color:var(--bg-surface-2);">
-            <td style="padding:18px 24px;">
-              <strong style="color:var(--text-primary);font-size:15px;font-family:var(--font-display);">TOTAL COMBINED SCORE</strong>
-            </td>
-            <td style="padding:18px 24px;text-align:right;">
-              <span class="font-mono font-bold" style="font-size:18px;color:var(--state-success);">{{ total }} / {{ grand_max }}</span>
-            </td>
-            <td style="padding:18px 24px;text-align:right;">
-              <div style="width:140px;height:8px;background:var(--bg-surface-3);border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle;">
-                <div style="height:100%;background:var(--state-success);width:{% if grand_max > 0 %}{{ (total / grand_max * 100)|int }}{% else %}0{% endif %}%;"></div>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+  <!-- Cumulative Summary -->
+  <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-sm);margin-bottom:var(--space-8, 32px);">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:16px;padding:20px 24px;">
+      <div>
+        <div class="font-mono" style="font-size:11px;color:var(--text-tertiary);letter-spacing:0.06em;">QUESTIONS ANSWERED</div>
+        <div class="font-mono font-bold" style="font-size:1.5rem;color:var(--text-primary);margin-top:4px;">{{ card.answered_total }}<span style="font-size:13px;color:var(--text-tertiary);">/{{ card.total_questions }}</span></div>
+      </div>
+      <div>
+        <div class="font-mono" style="font-size:11px;color:var(--text-tertiary);letter-spacing:0.06em;">CORRECT (WITH BONUS)</div>
+        <div class="font-mono font-bold" style="font-size:1.5rem;color:var(--state-success);margin-top:4px;">{{ card.correct }}</div>
+      </div>
+      <div>
+        <div class="font-mono" style="font-size:11px;color:var(--text-tertiary);letter-spacing:0.06em;">STATIONS RESOLVED</div>
+        <div class="font-mono font-bold" style="font-size:1.5rem;color:var(--text-primary);margin-top:4px;">{{ case.stations|length }}<span style="font-size:13px;color:var(--text-tertiary);">/{{ case.stations|length }}</span></div>
+      </div>
+      <div>
+        <div class="font-mono" style="font-size:11px;color:var(--text-tertiary);letter-spacing:0.06em;">TOTAL</div>
+        <div class="font-mono font-bold" style="font-size:1.5rem;color:var(--state-success);margin-top:4px;">{{ card.total }}<span style="font-size:13px;color:var(--text-tertiary);">/{{ card.grand_max }}</span></div>
+      </div>
+      <div style="min-width:200px;display:flex;align-items:center;gap:12px;">
+        <div style="flex:1;height:10px;background:var(--bg-surface-3);border-radius:5px;overflow:hidden;">
+          <div style="height:100%;background:var(--state-success);width:{% if card.grand_max > 0 %}{{ (card.total / card.grand_max * 100)|round|int }}{% else %}0{% endif %}%;"></div>
+        </div>
+        <span class="font-mono font-bold" style="font-size:13px;color:var(--text-secondary);">{% if card.grand_max > 0 %}{{ (card.total / card.grand_max * 100)|round|int }}{% else %}0{% endif %}%</span>
+      </div>
     </div>
   </div>
 
   <!-- Actions -->
   <div style="text-align:center;display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:var(--space-8, 32px);">
+    {% if next_case %}
+    <button type="button" class="btn btn-primary btn-lg btn-rotate" style="padding:14px 32px;font-size:15px;">
+      NEXT CASE
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:8px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </button>
+    {% endif %}
     <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg" style="padding:14px 32px;font-size:15px;">
       RETURN TO DASHBOARD
     </a>

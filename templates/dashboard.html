@@ -28,11 +28,11 @@
         </div>
       </div>
 
-      <!-- Verified Findings Metric -->
+      <!-- Questions Answered Metric -->
       <div class="card" style="background-color:var(--bg-surface-2);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:12px 20px;text-align:right;">
-        <div class="font-mono" style="font-size:11px;color:var(--text-tertiary);letter-spacing:0.06em;">FINDINGS VERIFIED</div>
+        <div class="font-mono" style="font-size:11px;color:var(--text-tertiary);letter-spacing:0.06em;">QUESTIONS ANSWERED</div>
         <div class="font-mono font-bold" style="font-size:1.75rem;color:var(--accent-signal);line-height:1.1;">
-          {{ verified }}<span style="font-size:14px;color:var(--text-tertiary);">/{{ case.stations|length }}</span>
+          {{ answered }}<span style="font-size:14px;color:var(--text-tertiary);">/{{ case.stations|length * MCQ_PER_STATION }}</span>
         </div>
         <div class="font-mono" style="font-size:11px;color:{% if report_done %}var(--state-success){% else %}var(--text-tertiary){% endif %};margin-top:2px;">
           REPORT: {{ 'SUBMITTED' if report_done else 'PENDING' }}
@@ -131,8 +131,9 @@
         </div>
 
         <div style="display:flex;align-items:center;gap:14px;">
-          <span class="badge {% if item.state == 'verified' %}badge-success{% elif item.state == 'active' %}badge-secondary{% else %}badge-outline{% endif %} font-mono" style="font-size:11px;min-width:90px;text-align:center;">
-            {{ item.state|upper }}
+          {% set is_done = item.state == 'verified' %}
+          <span class="badge {% if is_done %}badge-success{% elif item.state in ('analyzing','opened') %}badge-secondary{% else %}badge-outline{% endif %} font-mono" style="font-size:11px;min-width:90px;text-align:center;">
+            {{ '' ~ item.cnt ~ '/' ~ MCQ_PER_STATION if not is_done else 'DONE' }}
           </span>
           {% if item.state != 'locked' %}
           <span style="color:var(--accent-signal);font-size:14px;">&rarr;</span>
@@ -146,18 +147,28 @@
   </div>
 
   <!-- Quick Forensic Modules -->
+  {% if next_case and stage == 'complete' %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:var(--space-5, 20px);margin-bottom:var(--space-5, 20px);">
+    <button type="button" class="card card-interactive btn-rotate" style="background:linear-gradient(135deg, rgba(16,185,129,0.12), rgba(56,189,248,0.08));border:1px solid var(--state-success);border-radius:var(--radius-md);padding:20px;text-align:left;cursor:pointer;color:inherit;font:inherit;">
+      <div class="badge badge-success font-mono" style="margin-bottom:8px;">CASE CLOSED</div>
+      <h3 style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;color:var(--text-primary);margin:0 0 6px 0;">Proceed to the next case</h3>
+      <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin:0;">This case is fully resolved. Advance to the next assignment — your round timer keeps running.</p>
+    </button>
+  </div>
+  {% endif %}
+
   <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:var(--space-5, 20px);">
-    <a href="{{ url_for('evidence_board') }}" class="card card-interactive" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:20px;text-decoration:none;">
-      <div class="badge badge-outline font-mono" style="color:var(--accent-signal);margin-bottom:8px;">ANALYSIS GRAPH</div>
-      <h3 style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;color:var(--text-primary);margin:0 0 6px 0;">Attack Evidence Board</h3>
-      <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin:0;">Inspect the multi-hop attack chain and correlation telemetry.</p>
+    <a href="{{ url_for('score') }}" class="card card-interactive" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:20px;text-decoration:none;">
+      <div class="badge badge-outline font-mono" style="color:var(--accent-signal);margin-bottom:8px;">GRADING</div>
+      <h3 style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;color:var(--text-primary);margin:0 0 6px 0;">Score Card</h3>
+      <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin:0;">Per-station fallout — every question and bonus, graded automatically.</p>
     </a>
 
-    <a href="{{ url_for('report') }}" class="card card-interactive" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:20px;text-decoration:none;">
-      <div class="badge badge-outline font-mono" style="color:var(--accent-amber);margin-bottom:8px;">DELIVERABLE</div>
-      <h3 style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;color:var(--text-primary);margin:0 0 6px 0;">Forensic Incident Report</h3>
-      <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin:0;">Compile investigative conclusions and submit for final grading.</p>
-    </a>
+    <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:20px;">
+      <div class="badge badge-outline font-mono" style="color:var(--accent-amber);margin-bottom:8px;">QUIZ PROTOCOL</div>
+      <h3 style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;color:var(--text-primary);margin:0 0 6px 0;">Scoring Rules</h3>
+      <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin:0;">+20 correct, &minus;5 wrong, +5 speed bonus for a correct answer inside 30s; max {{ case.stations|length * MCQ_PER_STATION * 25 }} pts. Questions stay open until answered — no timeout penalty.</p>
+    </div>
 
     <a href="{{ url_for('scoreboard') }}" class="card card-interactive" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:20px;text-decoration:none;">
       <div class="badge badge-outline font-mono" style="color:var(--state-success);margin-bottom:8px;">COMPETITION</div>

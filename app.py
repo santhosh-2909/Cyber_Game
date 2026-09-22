@@ -537,6 +537,32 @@ def pick_case():
 
 MAX_ATTEMPTS = 5   # wrong submissions before a station is flagged/locked
 
+# ---------------------------------------------------------------
+# Round 2 QUIZ MODE — per-question multiple choice scoring
+# +20 correct · −5 wrong · +5 speed bonus for ANY correct answer
+# inside the bonus grace window (30s). After the window the question
+# STAYS OPEN until answered: no timeout penalty and no auto-advance,
+# but a correct answer then scores +20 with no +5 bonus.
+# Per station: 3 questions × max 25 = 75 pts → case max = 15 × 25 = 375.
+# ---------------------------------------------------------------
+MCQ_PER_STATION = 3
+MCQ_CORRECT = 20
+MCQ_BONUS = 5
+MCQ_WRONG = -5
+MCQ_TIME_MS = 30000
+MCQ_STATION_MAX = MCQ_PER_STATION * (MCQ_CORRECT + MCQ_BONUS)  # 75
+
+# Per-station accent (drives the option-card colour per vault level).
+STATION_ACCENTS = ("cyan", "amber", "purple", "green", "magenta")
+
+
+def format_case_code(raw):
+    """Display label for a case code: 'case3' -> 'CASE-03'."""
+    m = re.search(r"(\d+)\s*$", str(raw or ""))
+    if m:
+        return "CASE-" + m.group(1).zfill(2)
+    return str(raw or "").upper()
+
 
 def load_case(case_code):
     """Load a Round 2 case from the admin-managed content DB.
@@ -544,7 +570,9 @@ def load_case(case_code):
     Returns a dict structurally identical to the legacy in-memory CASES
     entries (stations + persons) so the participant flow, scoring and
     templates keep working unchanged. Draft/archived content is excluded from
-    the participant view.
+    the participant view. Stations carrying an ``mcq_json`` bank expose it as
+    ``station['mcqs']`` — q + options only, answers are never sent to the
+    participant browser, and are re-read from the DB at submit time.
     """
     case = admin_ops.get_round2_case_by_code(case_code)
     if case is None:
@@ -556,6 +584,8 @@ def load_case(case_code):
         stations = published
     view = []
     for s in stations:
+        mcq_bank = admin_ops.parse_mcq_json(s.get("mcq_json"))
+        mcqs = [{"q": m["q"], "options": list(m["options"])} for m in mcq_bank["mcqs"]]
         view.append({
             "id": s.get("station_id", ""),
             "name": s.get("name", ""),
@@ -569,6 +599,7 @@ def load_case(case_code):
             "points": s.get("points", 100),
             "max_attempts": s.get("max_attempts", 5),
             "validation_mode": s.get("validation_mode", "NORMALIZED"),
+            "mcqs": mcqs,
             "db_id": s.get("id"),
         })
     view_persons = []
@@ -582,7 +613,8 @@ def load_case(case_code):
         })
     return {
         "id": case_code,
-        "code": case.get("case_code", case_code),
+        "code": format_case_code(case.get("case_code", case_code)),
+        "case_code_raw": case.get("case_code", case_code),
         "title": case.get("title", case_code),
         "file": "",
         "company": case.get("company", ""),
@@ -594,6 +626,24 @@ def load_case(case_code):
     }
 
 
+def _mcq_answers():
+    """Session dict {station_id: [answer records]} for the current participant."""
+    return dict(session.get("mcq") or {})
+
+
+def _station_answered(answers, station):
+    """Number of MCQs answered for a station (0 = untouched)."""
+    return len(answers.get(station["id"], []) or [])
+
+
+def station_answers(station):
+    """Authoritative MCQ list for a station from the content DB (answers intact)."""
+    row = admin_ops.get_r2_station(station.get("db_id")) or {}
+    if not row.get("mcq_json"):
+        return []
+    return admin_ops.parse_mcq_json(row.get("mcq_json"))["mcqs"]
+
+
 def current_case():
     """The participant's assigned Round 2 case (DB-backed with legacy fallback)."""
     code = session.get("team", {}).get("case")
@@ -603,60 +653,87 @@ def current_case():
     return CASES.get(code) or (list(CASES.values())[0] if CASES else None)
 
 
+def next_case_code(current_code):
+    """The next PUBLISHED case a team advances to after completing the current one.
+
+    Follows display_order and wraps around. Returns None when the pool has no
+    next case (empty or a single-case round), so callers hide the CTA.
+    """
+    cases = [c["case_code"] for c in admin_ops.list_r2_cases(include_archived=False)]
+    if len(cases) < 2:
+        return None
+    if current_code in cases:
+        idx = cases.index(current_code)
+    else:
+        return cases[0]
+    if len(cases) > 1:
+        return cases[(idx + 1) % len(cases)]
+    return None
+
+
 # Seed the admin-managed Round 2 content library from the legacy multi-case
-# definitions (idempotent, never overwrites admin edits).
-admin_ops.seed_r2_cases(CASES)
+# definitions (idempotent, never overwrites admin edits). Only used when the
+# R2 library is completely empty — once the admin/seeder populates it (e.g. the
+# 10-case MCQ quiz bank) the legacy text cases are never re-introduced.
+if admin_ops.count_r2_cases() == 0:
+    admin_ops.seed_r2_cases(CASES)
 
 
-def station_states(case, findings, attempts):
+def station_states(case, answers, attempts=None):
     """Sequential vault states for each station of a case.
 
-    State machine: opened -> analyzing -> verified -> reviewed, with
-    'flagged' (too many attempts) and 'locked' (story not reached yet).
+    Each station is a 3-question quiz module. A station is 'verified' once all
+    three MCQs are answered; the first station still in progress is the active
+    frontier ('opened' / 'analyzing'), everything after stays locked, and
+    previously verified levels read as 'reviewed'.
     """
     states = []
-    frontier_open = True  # the first un-verified station is the live one
+    frontier_open = True
     for i, s in enumerate(case["stations"]):
-        f = findings.get(s["id"])
-        if f and f["status"] == "verified":
+        done = _station_answered(answers, s)
+        if done >= MCQ_PER_STATION:
             states.append("verified")
             continue
         if frontier_open:
-            used = int(attempts.get(s["id"], 0) or 0)
-            if used >= MAX_ATTEMPTS:
-                states.append("flagged")
-            elif used > 0:
-                states.append("analyzing")
-            else:
-                states.append("opened")
+            states.append("analyzing" if done > 0 else "opened")
             frontier_open = False
         else:
             states.append("locked")
-    # Move earlier verified artifacts to "reviewed" once the team pushed on
     for i, st in enumerate(states):
         if st == "verified" and any(
-                later in ("verified", "analyzing", "flagged", "opened")
+                later in ("verified", "analyzing", "opened")
                 for later in states[i + 1:]):
             states[i] = "reviewed"
     return states
 
 
-def case_stage(findings, persons):
+def case_stage(findings=None, persons=None):
     """Investigation workflow stage: opened|brief|evidence|report|complete."""
     if session.get("report"):
         return "complete"
+    answers = _mcq_answers()
+    case = current_case()
+    if case and all(_station_answered(answers, s) >= MCQ_PER_STATION
+                    for s in case["stations"]):
+        return "complete"
     if persons:
         return "report"
-    if any(f and f.get("status") == "verified" for f in findings.values()):
+    if answers and any(v for v in answers.values()):
         return "evidence"
     if session.get("brief_viewed"):
         return "brief"
     return "opened"
 
 
-def verified_count(case, findings):
+def verified_count(case, answers):
+    """Stations whose full 3-question quiz has been answered."""
     return sum(1 for s in case["stations"]
-               if findings.get(s["id"], {}).get("status") == "verified")
+               if _station_answered(answers, s) >= MCQ_PER_STATION)
+
+
+def quiz_count(case, answers):
+    """Total MCQs answered across every station (max = stations × 3)."""
+    return sum(_station_answered(answers, s) for s in case["stations"])
 
 
 # ---------------------------------------------------------------------------
@@ -796,17 +873,19 @@ def r2_dashboard_alias():
 @login_required
 def dashboard():
     case = current_case()
-    findings = session.get("findings", {})
-    persons = session.get("persons", {})
-    states = station_states(case, findings, session.get("attempts", {}))
+    answers = _mcq_answers()
+    states = station_states(case, answers)
     report_done = bool(session.get("report"))
     return render_template("dashboard.html", team=session["team"], case=case,
-                           findings=findings,
-                           vault=[{"station": s, "state": st}
+                           answers=answers,
+                           MCQ_PER_STATION=MCQ_PER_STATION,
+                           vault=[{"station": s, "state": st, "cnt": _station_answered(answers, s)}
                                   for s, st in zip(case["stations"], states)],
-                           verified=verified_count(case, findings),
-                           stage=case_stage(findings, persons),
-                           report_done=report_done)
+                           verified=verified_count(case, answers),
+                           answered=quiz_count(case, answers),
+                           stage=case_stage(),
+                           report_done=report_done,
+                           next_case=next_case_code(case.get("case_code_raw")))
 
 
 @app.route("/case")
@@ -814,12 +893,12 @@ def dashboard():
 def case_study():
     case = current_case()
     session["brief_viewed"] = True
-    findings = session.get("findings", {})
-    persons = session.get("persons", {})
+    answers = _mcq_answers()
     return render_template("case.html", team=session["team"], case=case,
-                           findings=findings,
-                           verified=verified_count(case, findings),
-                           stage=case_stage(findings, persons))
+                           answers=answers,
+                           MCQ_PER_STATION=MCQ_PER_STATION,
+                           verified=verified_count(case, answers),
+                           stage=case_stage())
 
 
 @app.route("/evidence/<station_id>")
@@ -829,31 +908,176 @@ def evidence(station_id):
     station = next((s for s in case["stations"] if s["id"] == station_id), None)
     if not station:
         abort(404)
-    findings = session.get("findings", {})
-    attempts = session.get("attempts", {})
-    states = station_states(case, findings, attempts)
+    answers = _mcq_answers()
+    states = station_states(case, answers)
     idx = next(i for i, s in enumerate(case["stations"]) if s["id"] == station_id)
     state = states[idx]
     unlocked = state != "locked"
+    station_done = _station_answered(answers, station)
+    accent = STATION_ACCENTS[idx % len(STATION_ACCENTS)]
     return render_template(
         "station.html", team=session["team"], case=case,
         station=station if unlocked else None,
         unlocked=unlocked, state=state,
-        verified=verified_count(case, findings),
+        accent=accent,
+        station_done=station_done,
+        station_answers=answers.get(station_id, []) or [],
+        mcq_answers=answers,
+        mcq_total=MCQ_PER_STATION,
+        mcq_time_ms=MCQ_TIME_MS,
+        mcq_correct=MCQ_CORRECT, mcq_wrong=MCQ_WRONG, mcq_bonus=MCQ_BONUS,
+        verified=verified_count(case, answers),
+        answered=quiz_count(case, answers),
         report_done=bool(session.get("report")),
-        attempts_used=int(attempts.get(station_id, 0) or 0) if unlocked else 0,
-        max_attempts=MAX_ATTEMPTS,
         note=session.get("notes", {}).get(station_id, ""),
         vault=[{"station": s, "state": st, "active": s["id"] == station_id}
                for s, st in zip(case["stations"], states)])
+
+
+@app.route("/api/mcq/start", methods=["POST"])
+@login_required
+def mcq_start():
+    """Mark the participant's question start time (server-authoritative).
+
+    The 30s bonus-grace clock is judged server-side against this timestamp,
+    so refreshing the page or replaying the request can never extend it.
+    """
+    if r2_expired():
+        return jsonify({"ok": False, "error": "Round 2 time is up.",
+                        "completed": True}), 403
+    data = request.get_json(silent=True) or {}
+    station_id = data.get("station_id")
+    try:
+        q_index = int(data.get("q_index") or 0)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "Invalid question index."}), 400
+    case = current_case()
+    station = next((s for s in case["stations"] if s["id"] == station_id), None)
+    if not station:
+        return jsonify({"ok": False, "error": "Invalid station."}), 400
+    answers = _mcq_answers()
+    states = station_states(case, answers)
+    idx = case["stations"].index(station)
+    if states[idx] == "locked":
+        return jsonify({"ok": False,
+                        "error": "Station locked — complete earlier stations first."}), 403
+    if q_index < 0 or q_index >= max(1, len(station["mcqs"])):
+        return jsonify({"ok": False, "error": "Invalid question index."}), 400
+    if q_index < len(answers.get(station_id, []) or []):
+        return jsonify({"ok": True, "already": True, "q_index": q_index})
+    session["mcq_start"] = {"station_id": station_id, "q": q_index,
+                            "at": db_now_ms()}
+    return jsonify({"ok": True, "q_index": q_index})
+
+
+@app.route("/api/mcq/submit", methods=["POST"])
+@login_required
+def mcq_submit():
+    """Grade a single MCQ answer against the DB-stored key.
+
+    Scoring per question (max +25):
+      • correct answered within 30s  → +20 +5 bonus
+      • correct answered after 30s   → +20 (question stays open, no penalty)
+      • wrong answer                 → −5
+    A question is never auto-advanced: submitting with no option is ignored
+    and the question remains open until the participant answers it.
+    Answers are recorded exactly once (idempotent on repeat submits).
+    """
+    if r2_expired():
+        return jsonify({"ok": False, "error": "Round 2 time is up.",
+                        "completed": True}), 403
+    data = request.get_json(silent=True) or {}
+    station_id = data.get("station_id")
+    try:
+        q_index = int(data.get("q_index") or 0)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "Invalid question index."}), 400
+    option_raw = data.get("option")
+    if option_raw is None or option_raw == "":
+        chosen = None
+    else:
+        try:
+            chosen = int(option_raw)
+        except (TypeError, ValueError):
+            return jsonify({"ok": False, "error": "Invalid option."}), 400
+
+    case = current_case()
+    station = next((s for s in case["stations"] if s["id"] == station_id), None)
+    if not station:
+        return jsonify({"ok": False, "error": "Invalid station."}), 400
+    answers = _mcq_answers()
+    states = station_states(case, answers)
+    idx = case["stations"].index(station)
+    if states[idx] == "locked":
+        return jsonify({"ok": False,
+                        "error": "Station locked — complete earlier stations first."}), 403
+    key = station_answers(station)
+    if q_index < 0 or q_index >= len(key):
+        return jsonify({"ok": False, "error": "No such question."}), 400
+    mcq = key[q_index]
+
+    recorded = list(answers.get(station_id, []) or [])
+    if q_index < len(recorded):
+        prior = recorded[q_index]
+        return jsonify({
+            "ok": True, "already": True, "q_index": q_index,
+            "correct": prior["correct"], "pts": prior["pts"],
+            "bonus": prior.get("bonus", False),
+            "station_done": (len(recorded) >= MCQ_PER_STATION),
+            "case_done": all(len((answers or {}).get(s["id"], []) or []) >= MCQ_PER_STATION
+                             for s in case["stations"])})
+
+    # No option selected: question stays open until answered. Never record
+    # or advance, so a blank submit can never cost points.
+    if chosen is None:
+        start = session.get("mcq_start") or {}
+        elapsed_raw = db_now_ms() - (start.get("at") or 0)
+        if not (start.get("station_id") == station_id and start.get("q") == q_index):
+            elapsed_raw = int(data.get("elapsed_ms") or MCQ_TIME_MS)
+        return jsonify({
+            "ok": True, "not_answered": True, "q_index": q_index,
+            "bonus_ms_remaining": max(0, MCQ_TIME_MS - elapsed_raw)})
+
+    start = session.get("mcq_start") or {}
+    elapsed = db_now_ms() - (start.get("at") or 0)
+    if not (start.get("station_id") == station_id and start.get("q") == q_index):
+        elapsed = int(data.get("elapsed_ms") or MCQ_TIME_MS)
+    within_bonus = elapsed <= MCQ_TIME_MS
+    correct = chosen == mcq["answer"]
+    if correct:
+        pts = MCQ_CORRECT + (MCQ_BONUS if within_bonus else 0)
+    else:
+        pts = MCQ_WRONG
+    recorded.append({
+        "chosen": chosen,
+        "correct": bool(correct),
+        "pts": pts,
+        "ms": max(0, int(elapsed)),
+        "bonus": bool(correct and within_bonus),
+        "at": db_now_ms(),
+    })
+    answers[station_id] = recorded
+    session["mcq"] = answers
+    session["mcq_start"] = {}
+    station_done = len(recorded) >= MCQ_PER_STATION
+    case_done = all(len((answers.get(s["id"], []) or [])) >= MCQ_PER_STATION
+                    for s in case["stations"])
+    return jsonify({
+        "ok": True, "q_index": q_index, "correct": bool(correct),
+        "bonus": bool(correct and within_bonus), "pts": recorded[-1]["pts"],
+        "answer_index": mcq["answer"],
+        "steps": recorded[-1]["pts"],
+        "station_done": station_done, "case_done": case_done,
+        "answer_count": len(recorded),
+    })
 
 
 @app.route("/evidence/download/<path:filename>")
 @login_required
 def download_evidence(filename):
     case = current_case()
-    findings = session.get("findings", {})
-    states = station_states(case, findings, session.get("attempts", {}))
+    answers = _mcq_answers()
+    states = station_states(case, answers)
     for i, s in enumerate(case["stations"]):
         if s["evidence"] == filename and states[i] == "locked":
             abort(403)
@@ -921,15 +1145,17 @@ def evidence_board():
     case_id = session["team"]["case"]
     case = current_case()
     board = BOARDS.get(case_id, [])
-    findings = session.get("findings", {})
-    persons = session.get("persons", {})
-    states = station_states(case, findings, session.get("attempts", {}))
+    # Quiz-mode cases (admin-managed) have no pre-canned attack-chain board.
+    if not board:
+        return redirect(url_for("dashboard"))
+    answers = _mcq_answers()
+    states = station_states(case, answers)
     return render_template("evidence_board.html", team=session["team"],
-                           case=case, board=board, findings=findings,
+                           case=case, board=board, answers=answers,
                            vault=[{"station": s, "state": st}
                                   for s, st in zip(case["stations"], states)],
-                           verified=verified_count(case, findings),
-                           stage=case_stage(findings, persons),
+                           verified=verified_count(case, answers),
+                           stage=case_stage(),
                            report_done=bool(session.get("report")))
 
 
@@ -937,6 +1163,10 @@ def evidence_board():
 @login_required
 def report():
     case = current_case()
+    # Quiz-mode cases have no person-identification sheet; the deliverable is
+    # the MCQ score card.
+    if not case["persons"]:
+        return redirect(url_for("score"))
     if request.method == "POST":
         if r2_expired():
             return redirect(url_for("score"))
@@ -973,59 +1203,96 @@ def report():
                            verified=verified_count(case, session.get("findings", {})))
 
 
+def mcq_score_card(case, answers):
+    """Per-station MCQ breakdown: points, per-question rows, cumulative stats."""
+    stations = []
+    station_points = 0
+    correct = 0
+    answered_total = 0
+    for s in case["stations"]:
+        recs = list(answers.get(s["id"], []) or [])
+        rows = []
+        pts = 0
+        for qi in range(MCQ_PER_STATION):
+            r = recs[qi] if qi < len(recs) else None
+            rows.append(r)
+            if r:
+                pts += int(r.get("pts") or 0)
+                answered_total += 1
+                if r["correct"]:
+                    correct += 1
+        stations.append({"station": s, "rows": rows, "pts": pts,
+                         "max": MCQ_STATION_MAX})
+        station_points += pts
+    station_max = len(case["stations"]) * MCQ_STATION_MAX
+    total_questions = len(case["stations"]) * MCQ_PER_STATION
+    return {
+        "stations": stations, "station_points": station_points,
+        "station_max": station_max, "correct": correct,
+        "answered_total": answered_total, "total_questions": total_questions,
+        "total": station_points, "grand_max": station_max,
+    }
+
+
 @app.route("/score")
 @login_required
 def score():
     case = current_case()
-    findings = session.get("findings", {})
-    persons = session.get("persons", {})
-
-    station_points = 0
-    station_max = 0
-    for s in case["stations"]:
-        station_max += 100
-        f = findings.get(s["id"])
-        if f and f["status"] == "verified":
-            station_points += 100
-
-    person_points = 0
-    person_max = len(case["persons"]) * 75
-    for p in case["persons"]:
-        rec = persons.get(p["key"])
-        if rec and rec["status"] == "verified":
-            person_points += 75
-
-    report = session.get("report", {})
-    report_points = 0
-    if report.get("conclusion"):
-        report_points += 50
-    if report.get("timeline"):
-        report_points += 25
-    if report.get("entry_point"):
-        report_points += 25
-
-    total = station_points + person_points + report_points
-    grand_max = station_max + person_max + 100
+    answers = _mcq_answers()
+    card = mcq_score_card(case, answers)
 
     try:
         team_db_id = session.get("r1_team")
         if team_db_id:
             admin_ops.save_r2_progress(
-                team_db_id, case.get("code") or "",
-                {"station_points": station_points, "person_points": person_points,
-                 "report_points": report_points, "total": total,
-                 "verified_stations": station_points // 100,
-                 "verified_persons": person_points // 75,
-                 "report_done": bool(report.get("conclusion")),
+                team_db_id, case.get("case_code_raw") or case.get("id") or "",
+                {"station_points": card["station_points"],
+                 "person_points": 0, "report_points": 0,
+                 "total": card["total"],
+                 "verified_stations": verified_count(case, answers),
+                 "verified_persons": 0,
+                 "report_done": bool(session.get("report")),
                  "completed_at": db.now_ms()})
     except Exception as exc:
         __import__("sys").stderr.write("score-persist-error: %r\n" % (exc,))
 
     return render_template("score.html", team=session["team"], case=case,
-                           station_points=station_points, station_max=station_max,
-                           person_points=person_points, person_max=person_max,
-                           report_points=report_points, total=total,
-                           grand_max=grand_max, findings=findings)
+                           card=card, answers=answers,
+                           next_case=next_case_code(case.get("case_code_raw")))
+
+
+@app.route("/api/rotate", methods=["POST"])
+@login_required
+def rotate_case():
+    """Advance the participant to the next PUBLISHED case after completing one.
+
+    Server-authoritative: refuses to rotate until every station of the current
+    case is answered. Only the per-case state is reset — the 45-minute round
+    clock keeps running.
+    """
+    case = current_case()
+    if not case:
+        return jsonify({"ok": False, "error": "No case is currently assigned."}), 400
+    answers = _mcq_answers()
+    complete = all(_station_answered(answers, s) >= MCQ_PER_STATION
+                   for s in case["stations"])
+    if not complete:
+        return jsonify({"ok": False,
+                        "error": "Complete the current case before advancing."}), 403
+    nxt = next_case_code(case.get("case_code_raw") or case.get("id"))
+    if not nxt:
+        return jsonify({"ok": False,
+                        "error": "No further cases to assign."}), 400
+    session["team"]["case"] = nxt
+    session["mcq"] = {}
+    session["mcq_start"] = {}
+    session["findings"] = {}
+    session["persons"] = {}
+    session["notes"] = {}
+    session["attempts"] = {}
+    session.pop("report", None)
+    return jsonify({"ok": True, "case": nxt,
+                    "redirect": url_for("case_study")})
 
 
 @app.route("/reset")
@@ -1036,6 +1303,8 @@ def reset():
     session.pop("report", None)
     session["notes"] = {}
     session["attempts"] = {}
+    session["mcq"] = {}
+    session["mcq_start"] = {}
     session.pop("brief_viewed", None)
     # Fresh investigation restarts the 45-minute countdown.
     now = db_now_ms()
@@ -1112,9 +1381,11 @@ def case_selector():
             item = dict(c)
             item["id"] = c["case_code"]
             item["narrative"] = c.get("case_brief") or ""
-            item["stations"] = [{"id": s["station_id"], "name": s["name"]}
-                                for s in admin_ops.list_r2_stations(c["id"])
-                                if s.get("status") == "PUBLISHED"]
+            stations_view = [{"id": s["station_id"], "name": s["name"]}
+                             for s in admin_ops.list_r2_stations(c["id"])
+                             if s.get("status") == "PUBLISHED"]
+            item["stations"] = stations_view
+            item["questions"] = len(stations_view) * MCQ_PER_STATION
             item["persons"] = list(range(admin_ops.r2_person_count(c["id"])))
             cases_for_view.append(item)
     else:
@@ -1691,6 +1962,9 @@ def admin_r2_tasks():
     cases = admin_ops.list_r2_cases()
     selected = request.args.get("case")
     stations = admin_ops.list_r2_stations(int(selected)) if selected else []
+    for s in stations:
+        bank = admin_ops.parse_mcq_json(s.get("mcq_json"))
+        s["mcq_count"] = len(bank["mcqs"])
     return render_template("admin/round2/tasks.html",
                            cases=cases, selected=selected, stations=stations)
 
@@ -1946,6 +2220,10 @@ def admin_r2_case_preview(cid):
     stations = admin_ops.list_r2_stations(cid)
     for s in stations:
         s["answer"] = ""
+        bank = admin_ops.parse_mcq_json(s.get("mcq_json"))
+        for m in bank["mcqs"]:
+            m.pop("answer", None)
+        s["mcqs"] = bank["mcqs"]
     persons = admin_ops.list_r2_persons(cid)
     return render_template("admin/round2/preview.html",
                            case=case, stations=stations, persons=persons)
@@ -2076,10 +2354,10 @@ def admin_login_clear_selected():
 def admin_login_clear_all():
     data = request.get_json(silent=True) or request.form
     round_name = data.get("round_name")
-    cleared = admin_ops.clear_all_round_logins(round_name)
+    cleared = admin_ops.delete_all_teams()
     admin_ops.audit("admin", "Cleared %s logins" % (round_name or "all"),
-                    detail="%d session(s)" % cleared)
-    return jsonify({"ok": True})
+                    detail="deleted %d team(s) entirely" % cleared)
+    return jsonify({"ok": True, "deleted": cleared})
 
 
 @app.route("/admin/teams/import", methods=["POST"])
@@ -2185,9 +2463,14 @@ def admin_content_round2():
 from round1.main import r1
 app.register_blueprint(r1)
 
+# Register MYSTERY TRACE R1 (Round 1 rebuild) blueprint
+from round1.mt import mt as mt1
+app.register_blueprint(mt1)
+
+
 if __name__ == "__main__":
     print("==============================================")
     print(" CYBER INVESTIGATION - FORENSIC INVESTIGATION APP")
     print(" Running at: http://127.0.0.1:5000")
     print("==============================================")
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)

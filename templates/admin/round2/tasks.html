@@ -23,7 +23,7 @@
   {% if stations %}
   <div class="ap-table-wrap">
     <table class="ap-table">
-      <tr><th></th><th>Task</th><th>Domain</th><th>Question</th><th>Answer</th><th>Status</th></tr>
+      <tr><th></th><th>Task</th><th>Domain</th><th>Questions</th><th>MCQs</th><th>Status</th></tr>
       {% for s in stations %}
       <tr>
         <td>
@@ -35,7 +35,7 @@
         <td class="cell-strong">{{ s.name }}<div class="ap-mono ap-muted" style="font-size:10px;">{{ s.station_id }}</div></td>
         <td><span class="ap-badge neutral">{{ s.domain or '—' }}</span></td>
         <td style="max-width:340px;">{{ s.question }}</td>
-        <td class="ap-mono" style="max-width:200px;">{{ s.answer }}</td>
+        <td class="ap-mono">{{ s.mcq_count }}</td>
         <td>
           <span class="ap-badge {{ 'success' if s.status == 'PUBLISHED' else ('warning' if s.status == 'DRAFT' else 'muted') }}">{{ s.status }}</span>
         </td>

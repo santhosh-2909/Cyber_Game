@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS teams (
     round1_access_id TEXT,
     round2_access_id TEXT,
     round1_enabled INTEGER NOT NULL DEFAULT 1,
-    round2_enabled INTEGER NOT NULL DEFAULT 1
+    round2_enabled INTEGER NOT NULL DEFAULT 1,
+    is_dev_seed INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS challenge_categories (
@@ -62,6 +63,11 @@ CREATE TABLE IF NOT EXISTS challenge_variants (
     hint TEXT DEFAULT '',
     explanation TEXT DEFAULT '',
     estimated_solve_time TEXT DEFAULT '',
+    -- MYSTERY TRACE fields (Round 1 rebuild): engine + server-side evidence
+    -- config + engine tuning config (JSON).
+    game_type TEXT DEFAULT '',
+    evidence_config TEXT DEFAULT '',
+    game_config TEXT DEFAULT '',
     -- Mini-CTF lab fields
     lab_type TEXT DEFAULT '',
     story TEXT DEFAULT '',
@@ -83,6 +89,9 @@ CREATE TABLE IF NOT EXISTS round_sessions (
     status TEXT NOT NULL DEFAULT 'ACTIVE',
     score INTEGER NOT NULL DEFAULT 0,
     challenges_solved INTEGER NOT NULL DEFAULT 0,
+    challenges_per_team INTEGER NOT NULL DEFAULT 0,
+    challenges_total INTEGER NOT NULL DEFAULT 0,
+    points_per_challenge INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (team_id) REFERENCES teams(id)
 );
 
@@ -91,6 +100,11 @@ CREATE TABLE IF NOT EXISTS team_challenge_assignments (
     session_id INTEGER NOT NULL,
     challenge_category_id INTEGER NOT NULL,
     variant_id INTEGER NOT NULL,
+    -- Second question for the same challenge (same domain, never repeated):
+    -- NULL on legacy rows (backfilled by migrate()); always set for MT rounds.
+    variant2_id INTEGER,
+    -- Sequential staging: question 2 stays hidden until question 1 is solved.
+    q1_solved INTEGER NOT NULL DEFAULT 0,
     display_order INTEGER NOT NULL,
     status TEXT NOT NULL DEFAULT 'IN_PROGRESS',
     started_at INTEGER,
@@ -115,6 +129,9 @@ CREATE TABLE IF NOT EXISTS submissions (
     session_id INTEGER NOT NULL,
     assignment_id INTEGER NOT NULL,
     submitted_answer TEXT NOT NULL,
+    submitted_answer2 TEXT DEFAULT '',
+    -- Question stage this attempt belongs to: 1 = first, 2 = second.
+    stage INTEGER NOT NULL DEFAULT 1,
     is_correct INTEGER NOT NULL DEFAULT 0,
     submitted_at INTEGER NOT NULL,
     attempt_number INTEGER NOT NULL,
@@ -157,6 +174,8 @@ CREATE TABLE IF NOT EXISTS participant_sessions (
     login_time INTEGER NOT NULL,
     last_seen INTEGER NOT NULL,
     status TEXT NOT NULL DEFAULT 'ACTIVE',
+    round_name TEXT NOT NULL DEFAULT 'round1',
+    case_code TEXT,
     FOREIGN KEY (team_id) REFERENCES teams(id)
 );
 
@@ -178,6 +197,8 @@ CREATE TABLE IF NOT EXISTS round_settings (
     max_attempts INTEGER NOT NULL DEFAULT 3,
     scoring_mode TEXT NOT NULL DEFAULT 'AUTO',
     access_enabled INTEGER NOT NULL DEFAULT 1,
+    challenges_per_team INTEGER NOT NULL DEFAULT 6,
+    points_per_challenge INTEGER NOT NULL DEFAULT 25,
     updated_at INTEGER
 );
 
@@ -211,8 +232,9 @@ CREATE TABLE IF NOT EXISTS r2_cases (
     updated_at INTEGER
 );
 
--- Round 2 investigation tasks (a.k.a stations / vault levels). Each task owns
--- a single question, expected answer, points and validation settings.
+-- Round 2 investigation tasks (a.k.a stations / vault levels). In quiz mode
+-- each task owns 3 multiple-choice questions stored as JSON in mcq_json:
+-- {"mcqs": [{"q": "...", "options": ["A","B","C","D"], "answer": <index>}]}.
 CREATE TABLE IF NOT EXISTS r2_stations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     case_id INTEGER NOT NULL,
@@ -227,6 +249,7 @@ CREATE TABLE IF NOT EXISTS r2_stations (
     points INTEGER NOT NULL DEFAULT 100,
     max_attempts INTEGER NOT NULL DEFAULT 5,
     validation_mode TEXT NOT NULL DEFAULT 'NORMALIZED',
+    mcq_json TEXT DEFAULT '[]',
     display_order INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'DRAFT',
     created_at INTEGER,
@@ -363,6 +386,49 @@ def migrate():
             conn.execute(
                 "ALTER TABLE team_challenge_assignments "
                 "ADD COLUMN lab_submitted INTEGER NOT NULL DEFAULT 0")
+        if "variant2_id" not in cols:
+            conn.execute(
+                "ALTER TABLE team_challenge_assignments "
+                "ADD COLUMN variant2_id INTEGER")
+        if "q1_solved" not in cols:
+            conn.execute(
+                "ALTER TABLE team_challenge_assignments "
+                "ADD COLUMN q1_solved INTEGER NOT NULL DEFAULT 0")
+
+        # Two questions per challenge: existing assignment rows get a second
+        # variant from the same category (smallest variant_code != the already
+        # assigned one), so pre-existing sessions honour "2 questions per
+        # challenge, same domain, no repeats" too.
+        backfill = conn.execute(
+            "SELECT id, challenge_category_id, variant_id FROM "
+            "team_challenge_assignments WHERE variant2_id IS NULL").fetchall()
+        for row in backfill:
+            v2 = conn.execute(
+                "SELECT id FROM challenge_variants WHERE challenge_category_id=? "
+                "AND game_type != '' AND id != ? ORDER BY variant_code LIMIT 1",
+                (row["challenge_category_id"], row["variant_id"])).fetchone()
+            if v2:
+                conn.execute(
+                    "UPDATE team_challenge_assignments SET variant2_id=? "
+                    "WHERE id=?", (v2["id"], row["id"]))
+
+        # Second answer per submission (2 questions per challenge): both
+        # submitted answers are logged so admin never loses the audit trail.
+        sub_cols = {r["name"] for r in conn.execute("PRAGMA table_info(submissions)")}
+        if "submitted_answer2" not in sub_cols:
+            conn.execute(
+                "ALTER TABLE submissions ADD COLUMN submitted_answer2 TEXT DEFAULT ''")
+        if "stage" not in sub_cols:
+            conn.execute(
+                "ALTER TABLE submissions ADD COLUMN stage INTEGER NOT NULL DEFAULT 1")
+            # Backfill from the short-lived "answer pair" rows (they stored the
+            # second answer inline; treat them as stage 2 attempts).
+            conn.execute(
+                "UPDATE submissions SET stage=2 WHERE submitted_answer2 != ''")
+        # Completed challenges already had both questions solved.
+        conn.execute(
+            "UPDATE team_challenge_assignments SET q1_solved=1 "
+            "WHERE status='COMPLETED' AND q1_solved=0")
 
         # Access-control: teams enable/disable flag + update timestamp.
         team_cols = {r["name"] for r in conn.execute("PRAGMA table_info(teams)")}
@@ -471,12 +537,18 @@ def migrate():
             " points INTEGER NOT NULL DEFAULT 100,"
             " max_attempts INTEGER NOT NULL DEFAULT 5,"
             " validation_mode TEXT NOT NULL DEFAULT 'NORMALIZED',"
+            " mcq_json TEXT DEFAULT '[]',"
             " display_order INTEGER NOT NULL DEFAULT 0,"
             " status TEXT NOT NULL DEFAULT 'DRAFT',"
             " created_at INTEGER,"
             " updated_at INTEGER,"
             " UNIQUE(case_id, station_id),"
             " FOREIGN KEY (case_id) REFERENCES r2_cases(id))")
+
+        # Round 2 quiz: multiple-choice question bank per station (additive).
+        st_cols = {r["name"] for r in conn.execute("PRAGMA table_info(r2_stations)")}
+        if "mcq_json" not in st_cols:
+            conn.execute("ALTER TABLE r2_stations ADD COLUMN mcq_json TEXT DEFAULT '[]'")
         conn.execute(
             "CREATE TABLE IF NOT EXISTS r2_persons ("
             " id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -546,6 +618,66 @@ def migrate():
             "UPDATE round_settings SET timer_minutes=45, updated_at=? "
             "WHERE round_name='round2' AND timer_minutes != 45",
             (now_ms(),))
+
+        # =====================================================================
+        # MYSTERY TRACE (Round 1 rebuild): additive MT columns.
+        # Round 1 runs the spec's 48 mini-game challenges. The existing
+        # challenge_variants rows are re-purposed as the MT mission catalog:
+        # each variant gets a game_type (drives the front-end engine) plus a
+        # server-side evidence config (generator + parameters, JSON) and a
+        # game config JSON (engine tuning, e.g. multi-step cipher steps). The
+        # category stays the domain (12 domains == 12 categories).
+        # =====================================================================
+        var_cols = {r["name"] for r in conn.execute("PRAGMA table_info(challenge_variants)")}
+        if "game_type" not in var_cols:
+            conn.execute(
+                "ALTER TABLE challenge_variants "
+                "ADD COLUMN game_type TEXT DEFAULT ''")
+        if "evidence_config" not in var_cols:
+            conn.execute(
+                "ALTER TABLE challenge_variants "
+                "ADD COLUMN evidence_config TEXT DEFAULT ''")
+        if "game_config" not in var_cols:
+            conn.execute(
+                "ALTER TABLE challenge_variants "
+                "ADD COLUMN game_config TEXT DEFAULT ''")
+
+        # Dev/test teams created by seed_mt --with-test-teams are flagged so
+        # the admin monitor can hide them by default.
+        team_cols = {r["name"] for r in conn.execute("PRAGMA table_info(teams)")}
+        if "is_dev_seed" not in team_cols:
+            conn.execute(
+                "ALTER TABLE teams "
+                "ADD COLUMN is_dev_seed INTEGER NOT NULL DEFAULT 0")
+
+        # Round-config knobs consumed by MT assignment (how many challenges per
+        # team) and scoring (points per solved challenge).
+        rs_cols = {r["name"] for r in conn.execute("PRAGMA table_info(round_settings)")}
+        if "challenges_per_team" not in rs_cols:
+            conn.execute(
+                "ALTER TABLE round_settings "
+                "ADD COLUMN challenges_per_team INTEGER NOT NULL DEFAULT 6")
+        if "points_per_challenge" not in rs_cols:
+            conn.execute(
+                "ALTER TABLE round_settings "
+                "ADD COLUMN points_per_challenge INTEGER NOT NULL DEFAULT 25")
+
+        # MYSTERY TRACE session snapshot of round-config knobs (so mid-round
+        # admin changes never mutate scoring for a live round).
+        sess_cols = {r["name"] for r in conn.execute("PRAGMA table_info(round_sessions)")}
+        if "challenges_per_team" not in sess_cols:
+            conn.execute(
+                "ALTER TABLE round_sessions "
+                "ADD COLUMN challenges_per_team INTEGER NOT NULL DEFAULT 0")
+        if "challenges_total" not in sess_cols:
+            conn.execute(
+                "ALTER TABLE round_sessions "
+                "ADD COLUMN challenges_total INTEGER NOT NULL DEFAULT 0")
+        if "points_per_challenge" not in sess_cols:
+            conn.execute(
+                "ALTER TABLE round_sessions "
+                "ADD COLUMN points_per_challenge INTEGER NOT NULL DEFAULT 0")
+
         conn.commit()
     finally:
         conn.close()

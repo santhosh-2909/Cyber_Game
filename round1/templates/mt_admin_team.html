@@ -1,0 +1,126 @@
+{% extends "r1_admin_base_v2.html" %}
+{% block title %}MYSTERY TRACE — Team{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between" style="flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+  <div>
+    <div class="font-overline text-muted">MYSTERY TRACE // ROUND 1</div>
+    <h1 class="h2" style="margin:2px 0 0;">{{ data.team.team_name }} <span class="font-mono text-muted text-sm">{{ data.team.team_id }}</span></h1>
+    {% if data.team.is_dev_seed %}<span class="badge badge-neutral">DEV TEAM</span>{% endif %}
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{{ url_for('mt.admin_monitor') }}" class="btn btn-sm btn-ghost">Back to Monitor</a>
+    <a href="{{ url_for('mt.admin_answer_key') }}" class="btn btn-sm btn-ghost">Answer Key</a>
+  </div>
+</div>
+
+{% if data.session %}
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px;">
+  <div class="card" style="padding:14px;">
+    <div class="font-overline text-muted">STATUS</div>
+    <div class="font-mono" style="font-weight:700;color:var(--text-secondary);">{{ data.session.status }}</div>
+  </div>
+  <div class="card" style="padding:14px;">
+    <div class="font-overline text-muted">REMAINING</div>
+    <div class="font-mono" style="font-weight:700;" data-countdown="{{ data.session.remaining_ms }}">--:--</div>
+  </div>
+  <div class="card" style="padding:14px;">
+    <div class="font-overline text-muted">SOLVED</div>
+    <div class="font-mono" style="font-weight:700;">{{ data.session.challenges_solved }}/{{ data.session.challenges_per_team }}</div>
+  </div>
+  <div class="card" style="padding:14px;">
+    <div class="font-overline text-muted">SCORE</div>
+    <div class="font-mono" style="font-weight:700;color:var(--text-success);">{{ data.session.score }}</div>
+  </div>
+</div>
+
+<div class="table-wrapper card" style="overflow:hidden;margin-bottom:22px;">
+  <table class="table" style="min-width:900px;">
+    <thead>
+      <tr>
+        <th>#</th><th>Code</th><th>Title</th><th>Engine</th><th>Status</th>
+        <th>Points</th><th>Answer</th><th>Flag</th><th>Accept</th>
+        <th>Attempts</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in data.assignments %}
+      <tr>
+        <td class="font-mono">{{ a.display_order }}</td>
+        <td class="font-mono">{{ a.variant_code }}</td>
+        <td>{{ a.variant_title }}</td>
+        <td class="font-mono">{{ a.game_type }}</td>
+        <td>
+          {% if a.status == 'COMPLETED' %}
+            <span class="status-dot active"></span><span class="text-success font-mono" style="margin-left:6px;">SOLVED</span>
+          {% else %}
+            <span class="font-mono text-muted">OPEN</span>
+          {% endif %}
+        </td>
+        <td class="font-mono">{{ a.points_awarded }}</td>
+        <td class="font-mono">{{ a.expected_answer }}</td>
+        <td class="font-mono">{{ a.flag }}</td>
+        <td class="font-mono text-muted">{{ a.accept | join(', ') }}</td>
+        <td class="font-mono">{{ a.submissions | length }}</td>
+      </tr>
+      <tr class="no-hover">
+        <td></td>
+        <td colspan="9" style="background:rgba(255,255,255,0.015);">
+          {% if a.submissions %}
+          <div class="font-mono" style="font-size:0.72rem;color:var(--text-tertiary);">
+            {% for s in a.submissions %}[{{ s.attempt_number }}] {{ s.submitted_answer }} → {{ 'OK' if s.is_correct else 'NO' }} · {{ (s.submitted_at)|int }}ms&nbsp;&nbsp;{% endfor %}
+          </div>
+          {% else %}
+          <span class="font-mono" style="font-size:0.72rem;color:var(--text-tertiary);">no attempts</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="padding:22px;">
+  <p class="font-mono" style="font-size:0.85rem;">No active MT session.</p>
+</div>
+{% endif %}
+
+{% if data.sessions %}
+<div class="font-overline text-muted" style="margin-bottom:8px;">SESSION HISTORY</div>
+<div class="table-wrapper card" style="overflow:hidden;">
+  <table class="table">
+    <thead><tr><th>ID</th><th>Round</th><th>Status</th><th>Score</th><th>Solved</th><th>Started</th><th>Ends</th><th>Completed</th></tr></thead>
+    <tbody>
+      {% for s in data.sessions %}
+      <tr>
+        <td class="font-mono">{{ s.id }}</td><td>{{ s.round_name }}</td>
+        <td class="font-mono">{{ s.status }}</td><td class="font-mono">{{ s.score }}</td>
+        <td class="font-mono">{{ s.challenges_solved }}/{{ s.challenges_per_team }}</td>
+        <td class="font-mono">{{ (s.started_at/1000)|round|int }}</td>
+        <td class="font-mono">{{ (s.ends_at/1000)|round|int }}</td>
+        <td class="font-mono">{{ (s.completed_at/1000)|round|int if s.completed_at else '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+  (function(){
+    var el = document.querySelector('[data-countdown]');
+    if (!el) return;
+    var base = parseInt(el.getAttribute('data-countdown')||'0',10);
+    var start = Date.now();
+    function pad(n){ return String(n).padStart(2,'0'); }
+    function tick(){
+      var rem = base - (Date.now()-start);
+      rem = Math.max(0, rem);
+      el.textContent = pad(Math.floor(rem/60000))+':'+pad(Math.floor((rem%60000)/1000));
+    }
+    tick(); setInterval(tick, 1000);
+  })();
+</script>
+{% endblock %}

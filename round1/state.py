@@ -91,6 +91,16 @@ def _db_session(team_id):
         conn.close()
 
 
+def has_active_db_session(team_id):
+    """True when the DB truly holds an in-progress round session for the team.
+
+    Unlike ``get_session`` this never consults the cookie mirror, so callers
+    can tell a genuine live session apart from stale mirror state that
+    survives an admin round reset.
+    """
+    return _db_session(team_id) is not None
+
+
 def mirror_session(session_row):
     """Persist the current active session row to the cookie mirror."""
     if session_row is None:

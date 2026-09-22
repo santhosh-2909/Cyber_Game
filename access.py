@@ -53,6 +53,8 @@ PARTICIPANT_SESSION_KEYS = (
     "persons",
     "notes",
     "attempts",
+    "mcq",
+    "mcq_start",
     "report",
     "brief_viewed",
     "challenges_solved",

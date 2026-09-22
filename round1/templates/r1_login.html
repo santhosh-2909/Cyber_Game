@@ -79,6 +79,28 @@
     <div class="auth-footer">
       <span>Challenge node authenticated via server-side session token.</span>
     </div>
+
+    {% if teams %}
+    <div class="auth-team-gate" style="margin-top:22px;border-top:1px solid var(--border, rgba(255,255,255,0.08));padding-top:18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="font-overline text-muted">ROUND 1 TEAM GATE</div>
+        <span class="badge badge-outline font-mono" style="font-size:11px;">{{ teams|length }} PROVISIONED</span>
+      </div>
+      <ul style="list-style:none;margin:0;padding:0;max-height:220px;overflow-y:auto;">
+        {% for t in teams %}
+        <li style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;{% if not t.is_active %}opacity:.55;{% endif %}">
+          <span style="font-size:13px;font-weight:600;">{{ t.team_name }}</span>
+          {% if t.is_active %}
+            <span class="badge badge-success font-mono" style="font-size:11px;">ENABLED</span>
+          {% else %}
+            <span class="badge badge-danger font-mono" style="font-size:11px;">DISABLED</span>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="text-muted" style="font-size:11px;margin:10px 0 0;">The gate list is live — updates made by the event administrator reflect here immediately.</p>
+    </div>
+    {% endif %}
   </div>
 </div>
 {% if error %}

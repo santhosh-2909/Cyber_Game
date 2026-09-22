@@ -29,6 +29,20 @@
       <span class="cell-strong accent">{{ s.points }} pts</span>
     </div>
     <p class="ap-muted" style="font-size:12px;margin:8px 0 4px;">{{ s.description or '' }}</p>
+    {% if s.mcqs %}
+    <div style="margin-top:8px;border-left:2px solid rgba(108,43,255,.3);padding-left:12px;">
+      {% for m in s.mcqs %}
+      <div style="font-size:12px;color:var(--ap-text);margin-bottom:6px;">
+        <span class="ap-badge neutral">{{ loop.index }}</span>
+        <strong>{{ m.q }}</strong>
+        {% for o in m.options %}
+        <div class="ap-mono ap-muted" style="font-size:11px;margin-left:26px;">{{ 'ABCD'[loop.index0] }}. {{ o }}</div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+      <div class="ap-mono ap-muted" style="font-size:10px;margin-top:4px;">answers hidden from preview</div>
+    </div>
+    {% endif %}
     {% if s.hint %}<p class="ap-warning" style="font-size:12px;margin:0;">HINT: {{ s.hint }}</p>{% endif %}
     <p class="ap-mono ap-muted" style="font-size:10px;margin:6px 0 0;">evidence: {{ s.evidence or '—' }}</p>
   </div>

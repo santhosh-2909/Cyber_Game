@@ -1,0 +1,41 @@
+{% extends "r1_admin_base_v2.html" %}
+{% block title %}MYSTERY TRACE — Answer Key{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between" style="flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+  <div>
+    <div class="font-overline text-muted">MYSTERY TRACE // ROUND 1</div>
+    <h1 class="h2" style="margin:2px 0 0;">Answer Key <span class="font-mono text-muted text-sm">{{ data.challenges | length }} challenges</span></h1>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{{ url_for('mt.admin_monitor') }}" class="btn btn-sm btn-ghost">Monitor</a>
+    <a href="{{ url_for('mt.admin_answer_key') }}" class="btn btn-sm btn-secondary">Answer Key</a>
+  </div>
+</div>
+
+<div class="table-wrapper card" style="overflow:hidden;">
+  <table class="table" style="min-width:1100px;">
+    <thead>
+      <tr>
+        <th>Category</th><th>Code</th><th>Title</th><th>Engine</th>
+        <th>Answer</th><th>Flag</th><th>Also Accept</th><th>Hint</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in data.challenges %}
+      <tr>
+        <td><span class="font-overline text-muted">{{ c.category_title }}</span><br><span class="font-mono text-muted" style="font-size:0.72rem;">{{ c.category_code }}</span></td>
+        <td class="font-mono" style="font-weight:700;">{{ c.variant_code }}</td>
+        <td>{{ c.title }}</td>
+        <td class="font-mono">{{ c.game_type }}</td>
+        <td class="font-mono">{{ c.expected_answer }}</td>
+        <td class="font-mono" style="color:var(--text-success);">{{ c.flag }}</td>
+        <td class="font-mono text-muted">{{ c.accept | join(', ') }}</td>
+        <td class="font-mono text-muted" style="font-size:0.78rem;">{{ c.hint }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

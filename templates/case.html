@@ -101,12 +101,12 @@
       <div class="fs-overline font-mono font-bold" style="font-size:11px;color:var(--text-secondary);letter-spacing:0.06em;">RULES &amp; PROTOCOLS</div>
     </div>
     <div class="font-mono" style="font-size:12px;line-height:1.8;color:var(--text-secondary);display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;">
-      <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">01</span><span>Investigate the <strong style="color:var(--text-primary);">5 evidence stations</strong> in sequence via the Evidence Vault.</span></div>
-      <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">02</span><span>Each station requires a <strong style="color:var(--text-primary);">verified finding</strong> submitted through the workstation.</span></div>
-      <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">03</span><span>Up to <strong style="color:var(--text-primary);">5 attempts</strong> per station &mdash; flag station after max attempts.</span></div>
-      <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">04</span><span>Use the toolbox panels to analyze artifacts: text, hex, strings, email, log, timeline, network.</span></div>
+      <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">01</span><span>Work through <strong style="color:var(--text-primary);">5 quiz stations</strong> in sequence via the Evidence Vault.</span></div>
+      <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">02</span><span>Each station has <strong style="color:var(--text-primary);">3 multiple-choice questions</strong> — 15 total per case.</span></div>
+      <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">03</span><span><strong style="color:var(--text-primary);">+20 correct</strong> &middot; <strong style="color:var(--state-danger);">−5 wrong</strong> &middot; <strong style="color:var(--accent-amber);">+5 bonus</strong> for any correct answer inside 30 seconds. The question stays open until answered — no timeout penalty.</span></div>
+      <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">04</span><span>A <strong style="color:var(--text-primary);">15-second timer</strong> runs per question; no answer counts as wrong (−5) and auto-advances.</span></div>
       <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">05</span><span>Record investigator notes &mdash; they persist across workstation refreshes.</span></div>
-      <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">06</span><span>Complete the <strong style="color:var(--text-primary);">Final Incident Report</strong> and identify the persons involved.</span></div>
+      <div style="display:flex;gap:10px;"><span style="color:var(--accent-signal);font-weight:700;">06</span><span>Final score is graded automatically on the <strong style="color:var(--text-primary);">score card</strong> — max {{ case.stations|length * 3 * 25 }} pts.</span></div>
     </div>
   </div>
 
@@ -120,15 +120,16 @@
     </div>
     <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;">
       {% for s in case.stations %}
-      {% set f = findings.get(s.id, {}) %}
-      {% set st = 'verified' if (f and f.get('status') == 'verified') else ('locked' if loop.index0 > 0 and not (findings.get(case.stations[loop.index0-1].id, {}).get('status') == 'verified') else 'opened') %}
+      {% set al = (answers.get(s.id) or [])|length %}
+      {% set prev = (answers.get(case.stations[loop.index0-1].id) or [])|length if loop.index0 > 0 else MCQ_PER_STATION %}
+      {% set st = 'verified' if al >= MCQ_PER_STATION else ('locked' if prev < MCQ_PER_STATION else 'opened') %}
       <div class="vault-item vault-{{ st }}" style="padding:14px 16px;background-color:var(--bg-surface-2);border:1px solid {% if st == 'verified' %}rgba(16,185,129,0.35){% elif st == 'opened' %}rgba(191,165,255,0.35){% else %}var(--border-subtle){% endif %};border-radius:var(--radius-sm);display:flex;align-items:center;gap:12px;cursor:default;">
         <span class="vault-idx font-mono font-bold" style="width:28px;height:28px;border-radius:var(--radius-xs);background:var(--bg-surface-3);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text-primary);">{{ s.id }}</span>
         <span class="vault-body" style="flex:1;min-width:0;">
           <span class="vault-name" style="display:block;font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.name }}</span>
           <span class="vault-meta font-mono" style="display:block;font-size:11px;color:var(--text-tertiary);">{{ s.domain }}</span>
         </span>
-        <span class="vault-state badge {% if st == 'verified' %}badge-success{% elif st == 'opened' %}badge-secondary{% else %}badge-outline{% endif %} font-mono" style="font-size:10px;">{{ st|upper }}</span>
+        <span class="vault-state badge {% if st == 'verified' %}badge-success{% elif st == 'opened' %}badge-secondary{% else %}badge-outline{% endif %} font-mono" style="font-size:10px;">{{ al }}/{{ MCQ_PER_STATION }}</span>
       </div>
       {% endfor %}
     </div>

@@ -81,7 +81,7 @@
         </thead>
         <tbody>
           {% for s in case.stations %}
-          {% set f = findings.get(s.id) %}
+          {% set f = findings.get(s.id) if findings is defined else {} %}
           <tr style="border-bottom:1px solid var(--border-subtle);">
             <td style="padding:14px 16px;">
               <div style="display:flex;align-items:center;gap:10px;">

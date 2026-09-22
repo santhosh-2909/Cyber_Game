@@ -52,12 +52,12 @@
             <div class="font-mono font-bold" style="font-size:16px;color:var(--text-primary);margin-top:2px;">{{ c.stations|length }}</div>
           </div>
           <div>
-            <div class="font-mono" style="font-size:10px;color:var(--text-tertiary);letter-spacing:0.06em;">PERSONS</div>
-            <div class="font-mono font-bold" style="font-size:16px;color:var(--text-primary);margin-top:2px;">{{ c.persons|length }}</div>
+            <div class="font-mono" style="font-size:10px;color:var(--text-tertiary);letter-spacing:0.06em;">QUESTIONS</div>
+            <div class="font-mono font-bold" style="font-size:16px;color:var(--text-primary);margin-top:2px;">{{ c.questions if c.questions is defined else c.stations|length * 3 }}</div>
           </div>
           <div>
-            <div class="font-mono" style="font-size:10px;color:var(--text-tertiary);letter-spacing:0.06em;">SECURITY</div>
-            <div class="font-mono font-bold" style="font-size:11px;color:var(--accent-amber);margin-top:4px;">RESTRICTED</div>
+            <div class="font-mono" style="font-size:10px;color:var(--text-tertiary);letter-spacing:0.06em;">MAX PTS</div>
+            <div class="font-mono font-bold" style="font-size:12px;color:var(--accent-amber);margin-top:3px;">{{ c.stations|length * 75 }}</div>
           </div>
         </div>
 

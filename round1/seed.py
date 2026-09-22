@@ -52,35 +52,57 @@ CATEGORIES = [
 VARIANTS = {
     "SQLI": [
         {
-            "v": "V1", "difficulty": "Easy", "eta": "3-5 min",
+            "v": "V1",
+            "difficulty": "Easy",
+            "eta": "3-5 min",
             "story": "You have been given access to a simulated employee portal. The login form builds its SQL query from your input directly - a classic injection point.",
-            "objective": "Discover an input payload for the username field that makes the login succeed and grants access to the protected area.",
+            "objective": "The login page is vulnerable to SQL injection. Identify a suitable test input that makes the login condition evaluate as true and bypasses the simulated authentication.",
             "lab_type": "login_bypass",
             "lab_data": {
-                "app": "MegaCorp Employee Portal",
-                "fields": [{"name": "username", "label": "Username"},
-                           {"name": "password", "label": "Password"}],
+                "app": "Simulated Employee Login",
+                "fields": [
+                    {
+                        "name": "username",
+                        "label": "Username"
+                    },
+                    {
+                        "name": "password",
+                        "label": "Password"
+                    }
+                ],
                 "submit_label": "LOGIN",
                 "on_fail": "Invalid credentials. Access denied.",
                 "on_success": "ACCESS GRANTED",
                 "protected": "Protected Area - Incident ID: INC-1001",
                 "query_hint": "query = SELECT * FROM users WHERE username = '<in>' AND password = '<in>'"
             },
-            "expected_answer": "' OR '1'='1",
+            "expected_answer": "' OR '1'='1' --",
             "flag": "FLAG{CPR1-SQL1-AP04}",
-            "hints": ["The username field is concatenated straight into the query.", "Try closing the quote and adding an always-true OR."],
+            "hints": [
+                "Try modifying the SQL condition so that it always evaluates to TRUE. Think about SQL comment syntax."
+            ],
             "explanation": "Entering ' OR '1'='1 makes the WHERE clause always true, bypassing the password check and letting you in.",
-            "title": "SQL Injection Basics",
+            "title": "SQL Injection Basics"
         },
         {
-            "v": "V2", "difficulty": "Easy", "eta": "3-5 min",
+            "v": "V2",
+            "difficulty": "Easy",
+            "eta": "3-5 min",
             "story": "The HR self-service portal has a login bug. There is an administrator account you need to reach.",
-            "objective": "Craft a username that logs you in as the admin user, ignoring the password, using a SQL comment.",
+            "objective": "The application checks both username and password. Identify an input that terminates the username condition and comments out the remaining password condition.",
             "lab_type": "login_bypass",
             "lab_data": {
-                "app": "HR Self-Service Portal",
-                "fields": [{"name": "username", "label": "Username"},
-                           {"name": "password", "label": "Password"}],
+                "app": "Simulated Admin Login",
+                "fields": [
+                    {
+                        "name": "username",
+                        "label": "Username"
+                    },
+                    {
+                        "name": "password",
+                        "label": "Password"
+                    }
+                ],
                 "submit_label": "SIGN IN",
                 "on_fail": "Invalid credentials. Access denied.",
                 "on_success": "ADMIN ACCESS GRANTED",
@@ -89,315 +111,615 @@ VARIANTS = {
             },
             "expected_answer": "admin' --",
             "flag": "FLAG{CPR1-SQL2-HR54}",
-            "hints": ["The account 'admin' exists.", "SQL comments (--) stop the rest of the query from running."],
+            "hints": [
+                "Close the username string first, then use an SQL comment to ignore the password condition."
+            ],
             "explanation": "admin' -- sets username to admin and comments out the password check, logging you in as admin.",
-            "title": "SQL Injection Basics",
+            "title": "SQL Injection Basics"
         },
         {
-            "v": "V3", "difficulty": "Medium", "eta": "4-6 min",
+            "v": "V3",
+            "difficulty": "Medium",
+            "eta": "4-6 min",
             "story": "The incident ticketing tool has a vulnerable password reset endpoint exposed in a local sandbox.",
-            "objective": "Provide a payload that passes the username validation and grants access to the ticketing console.",
+            "objective": "The displayed query contains a user-controlled username field. Construct a Boolean-based SQL injection test that changes the condition to always true.",
             "lab_type": "login_bypass",
             "lab_data": {
-                "app": "Ticketing Console",
-                "fields": [{"name": "ticket_id", "label": "Ticket ID"},
-                           {"name": "operator_code", "label": "Operator Code"}],
+                "app": "Vulnerable Login Query Viewer",
+                "fields": [
+                    {
+                        "name": "ticket_id",
+                        "label": "Ticket ID"
+                    },
+                    {
+                        "name": "operator_code",
+                        "label": "Operator Code"
+                    }
+                ],
                 "submit_label": "AUTHENTICATE",
                 "on_fail": "Invalid ticket. Access denied.",
                 "on_success": "TICKET ACCESS GRANTED",
                 "protected": "Console - Queue: SEC-LEVEL-4",
                 "query_hint": "query = SELECT * FROM tickets WHERE ticket_id = '<in>' AND operator = '<in>'"
             },
-            "expected_answer": "' OR 1=1",
+            "expected_answer": "' OR 1=1 --",
             "flag": "FLAG{CPR1-SQL3-TIC8}",
-            "hints": ["Work in the ticket_id field.", "A numeric OR condition like 1=1 is always true."],
+            "hints": [
+                "Use a Boolean comparison such as 1=1 to create a condition that is always true."
+            ],
             "explanation": "' OR 1=1 makes the condition true and grants access to the console.",
-            "title": "SQL Injection Basics",
+            "title": "SQL Injection Basics"
         },
         {
-            "v": "V4", "difficulty": "Medium-Hard", "eta": "5-7 min",
+            "v": "V4",
+            "difficulty": "Medium-Hard",
+            "eta": "5-7 min",
             "story": "A customer lookup tool uses single quotes on both fields. You found the source in the sandbox.",
-            "objective": "Combine a quote-break and comment to bypass authentication in the first field.",
+            "objective": "A quote can be inserted into the username field. Use the supplied query structure to create a valid authentication-bypass test input.",
             "lab_type": "login_bypass",
             "lab_data": {
-                "app": "Customer Lookup Tool",
-                "fields": [{"name": "email", "label": "Email"},
-                           {"name": "pin", "label": "PIN"}],
+                "app": "Authentication Testing Console",
+                "fields": [
+                    {
+                        "name": "email",
+                        "label": "Email"
+                    },
+                    {
+                        "name": "pin",
+                        "label": "PIN"
+                    }
+                ],
                 "submit_label": "LOOKUP",
                 "on_fail": "No matching customer. Access denied.",
                 "on_success": "CUSTOMER ACCESS GRANTED",
                 "protected": "Customer Vault - Role: ROOT",
                 "query_hint": "query = SELECT * FROM customers WHERE email = '<in>' AND pin = '<in>'"
             },
-            "expected_answer": "a' OR 'a'='a",
+            "expected_answer": "' OR '1'='1' --",
             "flag": "FLAG{CPR1-SQL4-VLT3}",
-            "hints": ["Close the quote in the email field.", "Add an always-true OR, then close the final quote."],
+            "hints": [
+                "Terminate the existing string, add a true condition, and comment out the remaining query."
+            ],
             "explanation": "a' OR 'a'='a closes the first quote, adds an always-true OR, and closes cleanly - the query returns the first row.",
-            "title": "SQL Injection Basics",
-        },
+            "title": "SQL Injection Basics"
+        }
     ],
     "PWDA": [
         {
-            "v": "V1", "difficulty": "Easy", "eta": "3-4 min",
+            "v": "V1",
+            "difficulty": "Easy",
+            "eta": "3-4 min",
             "story": "You're auditing a fictional company's profile database for weak credentials.",
-            "objective": "Identify which user has the WEAKEST password (the one most likely to be cracked first).",
+            "objective": "Which password represents the highest security risk? Identify the password and explain the weakness.",
             "lab_type": "password_audit",
             "lab_data": {
                 "prompt": "Which user has the weakest (most guessable) password?",
                 "answer_hint": "Submit the user id (e.g. user03)",
                 "records": [
-                    {"id": "user01", "password": "Tr0ub4dor&3"},
-                    {"id": "user02", "password": "123456"},
-                    {"id": "user03", "password": "Giraffe#2024!"},
-                    {"id": "user04", "password": "M4rketing@Blue"},
-                    {"id": "user05", "password": "9Gz!kL2#mQ8"},
+                    {
+                        "id": "user01",
+                        "password": "Tr0ub4dor&3"
+                    },
+                    {
+                        "id": "user02",
+                        "password": "123456"
+                    },
+                    {
+                        "id": "user03",
+                        "password": "Giraffe#2024!"
+                    },
+                    {
+                        "id": "user04",
+                        "password": "M4rketing@Blue"
+                    },
+                    {
+                        "id": "user05",
+                        "password": "9Gz!kL2#mQ8"
+                    }
                 ],
                 "answer_field": "id",
-                "columns": [{"key": "id", "label": "User"}, {"key": "password", "label": "Password"}],
+                "columns": [
+                    {
+                        "key": "id",
+                        "label": "User"
+                    },
+                    {
+                        "key": "password",
+                        "label": "Password"
+                    }
+                ]
             },
-            "expected_answer": "user02",
+            "expected_answer": "password \u2014 common and easily guessable.",
             "flag": "FLAG{CPR1-PW1-WEA0}",
-            "hints": ["Look for the shortest, most common-style password.", "123456 is famously weak."],
+            "hints": [
+                "Think about passwords that are commonly found in password dictionaries."
+            ],
             "explanation": "123456 (user02) is a top-common weak password - the most guessable of the set.",
-            "title": "Password Strength Audit",
+            "title": "Password Strength Audit"
         },
         {
-            "v": "V2", "difficulty": "Medium", "eta": "4-6 min",
+            "v": "V2",
+            "difficulty": "Medium",
+            "eta": "4-6 min",
             "story": "Cross-account password reuse is a serious risk. You're reviewing a fictional account list.",
-            "objective": "Find the password that is REUSED across two different accounts.",
+            "objective": "Which password is reused across multiple accounts?",
             "lab_type": "password_audit",
             "lab_data": {
                 "prompt": "Submit the user id of the account sharing a reused password.",
                 "answer_hint": "Submit a user id (e.g. user01). The reused password belongs to two users.",
                 "records": [
-                    {"id": "user01", "password": "W1nter@2024"},
-                    {"id": "user02", "password": "Green!Forest4"},
-                    {"id": "user03", "password": "W1nter@2024"},
-                    {"id": "user04", "password": "P@ssw0rd!X"},
-                    {"id": "user05", "password": "MoNdAy2024!"},
+                    {
+                        "id": "user01",
+                        "password": "W1nter@2024"
+                    },
+                    {
+                        "id": "user02",
+                        "password": "Green!Forest4"
+                    },
+                    {
+                        "id": "user03",
+                        "password": "W1nter@2024"
+                    },
+                    {
+                        "id": "user04",
+                        "password": "P@ssw0rd!X"
+                    },
+                    {
+                        "id": "user05",
+                        "password": "MoNdAy2024!"
+                    }
                 ],
                 "answer_field": "id",
-                "columns": [{"key": "id", "label": "User"}, {"key": "password", "label": "Password"}],
+                "columns": [
+                    {
+                        "key": "id",
+                        "label": "User"
+                    },
+                    {
+                        "key": "password",
+                        "label": "Password"
+                    }
+                ]
             },
-            "expected_answer": "user01",
+            "expected_answer": "BlueSky#77",
             "flag": "FLAG{CPR1-PW2-RU00}",
-            "hints": ["The same password appears more than once.", "W1nter@2024 is used by two users."],
+            "hints": [
+                "Compare every password and look for an exact duplicate."
+            ],
             "explanation": "W1nter@2024 is used by both user01 and user03, showing reuse (submit user01 or user03).",
-            "title": "Password Strength Audit",
+            "title": "Password Strength Audit"
         },
         {
-            "v": "V3", "difficulty": "Medium", "eta": "4-6 min",
+            "v": "V3",
+            "difficulty": "Medium",
+            "eta": "4-6 min",
             "story": "A predictable 'pattern' password is a cracked one. Review this fictional list.",
-            "objective": "Identify the user whose password follows a predictable keyboard/word pattern.",
+            "objective": "Which password follows a predictable username/year-style pattern and should be flagged?",
             "lab_type": "password_audit",
             "lab_data": {
                 "prompt": "Submit the user id whose password is a predictable pattern (keyboard row + common suffix).",
                 "answer_hint": "Submit a user id.",
                 "records": [
-                    {"id": "user01", "password": "Qwerty123!"},
-                    {"id": "user02", "password": "9Gz!kL2#mQ8"},
-                    {"id": "user03", "password": "tjgJ7#xR3wE"},
-                    {"id": "user04", "password": "MoNdAy2024!"},
-                    {"id": "user05", "password": "x7$!pWq2@Lz"},
+                    {
+                        "id": "user01",
+                        "password": "Qwerty123!"
+                    },
+                    {
+                        "id": "user02",
+                        "password": "9Gz!kL2#mQ8"
+                    },
+                    {
+                        "id": "user03",
+                        "password": "tjgJ7#xR3wE"
+                    },
+                    {
+                        "id": "user04",
+                        "password": "MoNdAy2024!"
+                    },
+                    {
+                        "id": "user05",
+                        "password": "x7$!pWq2@Lz"
+                    }
                 ],
                 "answer_field": "id",
-                "columns": [{"key": "id", "label": "User"}, {"key": "password", "label": "Password"}],
+                "columns": [
+                    {
+                        "key": "id",
+                        "label": "User"
+                    },
+                    {
+                        "key": "password",
+                        "label": "Password"
+                    }
+                ]
             },
-            "expected_answer": "user01",
+            "expected_answer": "Admin2026",
             "flag": "FLAG{CPR1-PW3-PAT0}",
-            "hints": ["Qwerty is the top keyboard row.", "A common suffix makes it guessable."],
+            "hints": [
+                "Look for a recognizable role or username combined with a predictable year."
+            ],
             "explanation": "Qwerty123! starts with the predictable 'qwerty' row plus a common suffix - a weak pattern.",
-            "title": "Password Strength Audit",
+            "title": "Password Strength Audit"
         },
         {
-            "v": "V4", "difficulty": "Medium-Hard", "eta": "5-7 min",
+            "v": "V4",
+            "difficulty": "Medium-Hard",
+            "eta": "5-7 min",
             "story": "The org policy requires 12+ chars, an uppercase, a number, and a symbol. Audit the records.",
-            "objective": "Find the user whose password violates the MOST policy requirements.",
+            "objective": "Which password fails the greatest number of the stated password-policy requirements?",
             "lab_type": "password_audit",
             "lab_data": {
                 "prompt": "Submit the user id whose password violates the most policy rules (length<12, no uppercase, no number, no symbol).",
                 "answer_hint": "Submit a user id.",
                 "records": [
-                    {"id": "user01", "password": "sunflower"},
-                    {"id": "user02", "password": "MyDog#2024"},
-                    {"id": "user03", "password": "aS9!kMm2#"},
-                    {"id": "user04", "password": "RiverFlow"},
-                    {"id": "user05", "password": "C0mpl3x!Pass980"},
+                    {
+                        "id": "user01",
+                        "password": "sunflower"
+                    },
+                    {
+                        "id": "user02",
+                        "password": "MyDog#2024"
+                    },
+                    {
+                        "id": "user03",
+                        "password": "aS9!kMm2#"
+                    },
+                    {
+                        "id": "user04",
+                        "password": "RiverFlow"
+                    },
+                    {
+                        "id": "user05",
+                        "password": "C0mpl3x!Pass980"
+                    }
                 ],
                 "answer_field": "id",
-                "columns": [{"key": "id", "label": "User"}, {"key": "password", "label": "Password"}],
+                "columns": [
+                    {
+                        "key": "id",
+                        "label": "User"
+                    },
+                    {
+                        "key": "password",
+                        "label": "Password"
+                    }
+                ]
             },
-            "expected_answer": "user01",
+            "expected_answer": "password",
             "flag": "FLAG{CPR1-PW4-POL0}",
-            "hints": ["'sunflower' is all lowercase, short, no number, no symbol.", "Count how many rules each breaks."],
+            "hints": [
+                "Check each password against every requirement."
+            ],
             "explanation": "user01 (sunflower) is lowercase only, short, with no number or symbol - it violates all four rules.",
-            "title": "Password Strength Audit",
-        },
+            "title": "Password Strength Audit"
+        }
     ],
     "BIND": [
         {
-            "v": "V1", "difficulty": "Easy", "eta": "3-4 min",
+            "v": "V1",
+            "difficulty": "Easy",
+            "eta": "3-4 min",
             "story": "You intercepted a binary-encoded value in a log. Decode it to a word.",
-            "objective": "Convert the 8-bit binary groups to ASCII and submit the decoded word.",
+            "objective": "The evidence contains groups of 8 binary digits. Convert each group to ASCII and identify the hidden investigation clue.",
             "lab_type": "decoder",
             "lab_data": {
                 "encoded": "01000010 01101001 01110100",
                 "encoding": "binary (8-bit) -> ASCII",
-                "notes": "Split the binary into 8-bit groups and convert each to its character.",
+                "notes": "Split the binary into 8-bit groups and convert each to its character."
             },
-            "expected_answer": "Bit",
+            "expected_answer": "FLAG",
             "flag": "FLAG{CPR1-BN1-BIT01}",
-            "hints": ["01000010 = 66 = 'B'", "Each 8-bit group is one letter."],
+            "hints": [
+                "Decode each 8-bit group as an ASCII character."
+            ],
             "explanation": "01000010->B, 01101001->i, 01110100->t = 'Bit'.",
-            "title": "Binary Decoding",
+            "title": "Binary Decoding"
         },
         {
-            "v": "V2", "difficulty": "Easy", "eta": "3-4 min",
+            "v": "V2",
+            "difficulty": "Easy",
+            "eta": "3-4 min",
             "story": "A config dump holds a value encoded in binary. Decode it.",
-            "objective": "Decode the binary to ASCII and submit the word.",
+            "objective": "The recovered evidence is represented using octal values. Convert the values to ASCII and identify the resulting clue.",
             "lab_type": "decoder",
             "lab_data": {
                 "encoded": "01110011 01100001 01100110 01100101",
                 "encoding": "binary (8-bit) -> ASCII",
-                "notes": "Convert each 8-bit group to its ASCII character.",
+                "notes": "Convert each 8-bit group to its ASCII character."
             },
-            "expected_answer": "safe",
+            "expected_answer": "case",
             "flag": "FLAG{CPR1-BN2-SAF2}",
-            "hints": ["01110011 = 115 = 's'", "Convert each group."],
+            "hints": [
+                "Treat each group as an octal ASCII value."
+            ],
             "explanation": "01110011->s, 01100001->a, 01100110->f, 01100101->e = 'safe'.",
-            "title": "Binary Decoding",
+            "title": "Binary Decoding"
         },
         {
-            "v": "V3", "difficulty": "Medium", "eta": "4-6 min",
+            "v": "V3",
+            "difficulty": "Medium",
+            "eta": "4-6 min",
             "story": "An attacker left memory values in octal. Decode them.",
-            "objective": "Convert the octal triplets to ASCII characters and submit the word.",
+            "objective": "Separate the supplied binary sequence into 8-bit groups and decode it into readable text.",
             "lab_type": "decoder",
             "lab_data": {
                 "encoded": "150 141 162 144",
                 "encoding": "octal -> ASCII",
-                "notes": "octal 150 = decimal 104 = character 'h'.",
+                "notes": "octal 150 = decimal 104 = character 'h'."
             },
-            "expected_answer": "hard",
+            "expected_answer": "CASE",
             "flag": "FLAG{CPR1-BN3-HRD3}",
-            "hints": ["150(oct) = 104(dec) = 'h'", "Convert each octal group."],
+            "hints": [
+                "Each 8-bit group represents one ASCII character."
+            ],
             "explanation": "150->h, 141->a, 162->r, 144->d = 'hard'.",
-            "title": "Binary Decoding",
+            "title": "Binary Decoding"
         },
         {
-            "v": "V4", "difficulty": "Medium", "eta": "4-6 min",
+            "v": "V4",
+            "difficulty": "Medium",
+            "eta": "4-6 min",
             "story": "A file left a continuous binary string. Recover the word.",
-            "objective": "Split the continuous binary string into 8-bit groups, then decode to ASCII.",
+            "objective": "Decode the supplied binary evidence and submit the meaningful investigation word revealed by the data.",
             "lab_type": "decoder",
             "lab_data": {
                 "encoded": "01101100011011110111001101110101",
                 "encoding": "continuous binary -> ASCII",
-                "notes": "This string has no spaces - split it yourself into 8-bit groups from the left.",
+                "notes": "This string has no spaces - split it yourself into 8-bit groups from the left."
             },
-            "expected_answer": "loss",
+            "expected_answer": "TRACE",
             "flag": "FLAG{CPR1-BN4-L0S4}",
-            "hints": ["Split into groups of 8.", "01101100 = 108 = 'l'"],
+            "hints": [
+                "Convert each 8-bit binary group into its ASCII equivalent."
+            ],
             "explanation": "01101100->l, 01101111->o, 01110011->s, 01110101->u = 'loss'.",
-            "title": "Binary Decoding",
-        },
+            "title": "Binary Decoding"
+        }
     ],
     "NETP": [
         {
-            "v": "V1", "difficulty": "Medium", "eta": "3-5 min",
+            "v": "V1",
+            "difficulty": "Medium",
+            "eta": "3-5 min",
             "story": "A scan of a corporate web host shows several open ports.",
-            "objective": "Identify which open service is UNUSUAL for a web server (likely unauthorized).",
+            "objective": "The target is identified as a web server. Which open service appears unusual for its expected role?",
             "lab_type": "port_map",
             "lab_data": {
                 "prompt": "Which PORT is unusual for a web server?",
                 "answer_hint": "Submit the port number.",
-                "columns": [{"key": "port", "label": "PORT"}, {"key": "service", "label": "SERVICE"}, {"key": "state", "label": "STATE"}],
-                "records": [
-                    {"port": "22", "service": "ssh", "state": "open"},
-                    {"port": "80", "service": "http", "state": "open"},
-                    {"port": "443", "service": "https", "state": "open"},
-                    {"port": "5900", "service": "vnc", "state": "open"},
+                "columns": [
+                    {
+                        "key": "port",
+                        "label": "PORT"
+                    },
+                    {
+                        "key": "service",
+                        "label": "SERVICE"
+                    },
+                    {
+                        "key": "state",
+                        "label": "STATE"
+                    }
                 ],
+                "records": [
+                    {
+                        "port": "22",
+                        "service": "ssh",
+                        "state": "open"
+                    },
+                    {
+                        "port": "80",
+                        "service": "http",
+                        "state": "open"
+                    },
+                    {
+                        "port": "443",
+                        "service": "https",
+                        "state": "open"
+                    },
+                    {
+                        "port": "5900",
+                        "service": "vnc",
+                        "state": "open"
+                    }
+                ]
             },
-            "expected_answer": "5900",
+            "expected_answer": "21 / FTP",
             "flag": "FLAG{CPR1-NP1-UNU1}",
-            "hints": ["Web servers usually only expose 80 and 443.", "VNC/remote desktop is odd on a public web host."],
+            "hints": [
+                "HTTP and HTTPS are expected on a web server. Look at the remaining service."
+            ],
             "explanation": "Port 5900 (VNC remote desktop) is unusual for a public web server and often signals an unauthorized service.",
-            "title": "Network Port Mapping",
+            "title": "Network Port Mapping"
         },
         {
-            "v": "V2", "difficulty": "Medium", "eta": "3-5 min",
+            "v": "V2",
+            "difficulty": "Medium",
+            "eta": "3-5 min",
             "story": "A host exposes a database port that should not be on the internet.",
-            "objective": "Identify the database port in the scan.",
+            "objective": "Which exposed service indicates that a database service is directly accessible from the scanned host?",
             "lab_type": "port_map",
             "lab_data": {
                 "prompt": "Which PORT is the exposed database?",
                 "answer_hint": "Submit the port number.",
-                "columns": [{"key": "port", "label": "PORT"}, {"key": "service", "label": "SERVICE"}, {"key": "state", "label": "STATE"}],
-                "records": [
-                    {"port": "80", "service": "http", "state": "open"},
-                    {"port": "443", "service": "https", "state": "open"},
-                    {"port": "3306", "service": "mysql", "state": "open"},
-                    {"port": "22", "service": "ssh", "state": "open"},
+                "columns": [
+                    {
+                        "key": "port",
+                        "label": "PORT"
+                    },
+                    {
+                        "key": "service",
+                        "label": "SERVICE"
+                    },
+                    {
+                        "key": "state",
+                        "label": "STATE"
+                    }
                 ],
+                "records": [
+                    {
+                        "port": "80",
+                        "service": "http",
+                        "state": "open"
+                    },
+                    {
+                        "port": "443",
+                        "service": "https",
+                        "state": "open"
+                    },
+                    {
+                        "port": "3306",
+                        "service": "mysql",
+                        "state": "open"
+                    },
+                    {
+                        "port": "22",
+                        "service": "ssh",
+                        "state": "open"
+                    }
+                ]
             },
-            "expected_answer": "3306",
+            "expected_answer": "3306 / MySQL",
             "flag": "FLAG{CPR1-NP2-DB02}",
-            "hints": ["MySQL listens on port 3306.", "Databases should not be internet-facing."],
+            "hints": [
+                "Identify the port normally associated with MySQL."
+            ],
             "explanation": "Port 3306 is MySQL - exposing it to the internet is a security concern.",
-            "title": "Network Port Mapping",
+            "title": "Network Port Mapping"
         },
         {
-            "v": "V3", "difficulty": "Medium", "eta": "4-6 min",
+            "v": "V3",
+            "difficulty": "Medium",
+            "eta": "4-6 min",
             "story": "Two servers scanned. One has an extra, suspicious service.",
-            "objective": "Identify the indicative service code present only on the anomalous host.",
+            "objective": "Compare the two hosts. Which additional service is present only on SERVER-B?",
             "lab_type": "port_map",
             "lab_data": {
                 "prompt": "Which SERVICE code appears on host B but NOT host A?",
                 "answer_hint": "Submit the service name.",
-                "columns": [{"key": "host", "label": "HOST"}, {"key": "port", "label": "PORT"}, {"key": "service", "label": "SERVICE"}],
-                "records": [
-                    {"host": "A", "port": "22", "service": "ssh"},
-                    {"host": "A", "port": "80", "service": "http"},
-                    {"host": "A", "port": "443", "service": "https"},
-                    {"host": "B", "port": "22", "service": "ssh"},
-                    {"host": "B", "port": "80", "service": "http"},
-                    {"host": "B", "port": "443", "service": "https"},
-                    {"host": "B", "port": "137", "service": "netbios-ssn"},
+                "columns": [
+                    {
+                        "key": "host",
+                        "label": "HOST"
+                    },
+                    {
+                        "key": "port",
+                        "label": "PORT"
+                    },
+                    {
+                        "key": "service",
+                        "label": "SERVICE"
+                    }
                 ],
+                "records": [
+                    {
+                        "host": "A",
+                        "port": "22",
+                        "service": "ssh"
+                    },
+                    {
+                        "host": "A",
+                        "port": "80",
+                        "service": "http"
+                    },
+                    {
+                        "host": "A",
+                        "port": "443",
+                        "service": "https"
+                    },
+                    {
+                        "host": "B",
+                        "port": "22",
+                        "service": "ssh"
+                    },
+                    {
+                        "host": "B",
+                        "port": "80",
+                        "service": "http"
+                    },
+                    {
+                        "host": "B",
+                        "port": "443",
+                        "service": "https"
+                    },
+                    {
+                        "host": "B",
+                        "port": "137",
+                        "service": "netbios-ssn"
+                    }
+                ]
             },
-            "expected_answer": "netbios-ssn",
+            "expected_answer": "445 / SMB",
             "flag": "FLAG{CPR1-NP3-SVC3}",
-            "hints": ["Compare host A and host B service lists.", "Port 137 = NetBIOS file sharing."],
+            "hints": [
+                "Look for the port/service that does not appear on SERVER-A."
+            ],
             "explanation": "netbios-ssn (port 137) is present on Host B but not Host A - an unusual file-sharing exposure.",
-            "title": "Network Port Mapping",
+            "title": "Network Port Mapping"
         },
         {
-            "v": "V4", "difficulty": "Medium-Hard", "eta": "5-7 min",
+            "v": "V4",
+            "difficulty": "Medium-Hard",
+            "eta": "5-7 min",
             "story": "You are mapping the services on a fictional lab server.",
-            "objective": "Which service does NOT belong in this environment (a production web tier)?",
+            "objective": "Which open service provides remote desktop functionality and requires further investigation?",
             "lab_type": "port_map",
             "lab_data": {
                 "prompt": "Which SERVICE does not belong in a production web environment?",
                 "answer_hint": "Submit the service name.",
-                "columns": [{"key": "port", "label": "PORT"}, {"key": "service", "label": "SERVICE"}, {"key": "state", "label": "STATE"}],
-                "records": [
-                    {"port": "443", "service": "https", "state": "open"},
-                    {"port": "3306", "service": "mysql", "state": "open"},
-                    {"port": "80", "service": "http", "state": "open"},
-                    {"port": "1433", "service": "mssql", "state": "open"},
+                "columns": [
+                    {
+                        "key": "port",
+                        "label": "PORT"
+                    },
+                    {
+                        "key": "service",
+                        "label": "SERVICE"
+                    },
+                    {
+                        "key": "state",
+                        "label": "STATE"
+                    }
                 ],
+                "records": [
+                    {
+                        "port": "443",
+                        "service": "https",
+                        "state": "open"
+                    },
+                    {
+                        "port": "3306",
+                        "service": "mysql",
+                        "state": "open"
+                    },
+                    {
+                        "port": "80",
+                        "service": "http",
+                        "state": "open"
+                    },
+                    {
+                        "port": "1433",
+                        "service": "mssql",
+                        "state": "open"
+                    }
+                ]
             },
-            "expected_answer": "mssql",
+            "expected_answer": "3389 / RDP",
             "flag": "FLAG{CPR1-NP4-MSS4}",
-            "hints": ["Two database engines on one web tier is wrong.", "MSSQL listens on 1433."],
+            "hints": [
+                "Identify the standard port used by Remote Desktop Protocol."
+            ],
             "explanation": "Having both mysql (3306) and mssql (1433) databases on a web tier is anomalous; mssql is the outlier requested.",
-            "title": "Network Port Mapping",
-        },
+            "title": "Network Port Mapping"
+        }
     ],
     "PHIS": [
         {
-            "v": "V1", "difficulty": "Medium", "eta": "3-5 min",
+            "v": "V1",
+            "difficulty": "Medium",
+            "eta": "3-5 min",
             "story": "You received an urgent-looking email. Analyze it for manipulation.",
-            "objective": "Identify the social-engineering TECHNIQUE being used to pressure you.",
+            "objective": "Which social-engineering technique is being used to pressure the recipient?",
             "lab_type": "phishing",
             "lab_data": {
                 "prompt": "Which social-engineering technique does this email use?",
@@ -408,18 +730,22 @@ VARIANTS = {
                 "body": "Click this link immediately and enter your password RIGHT NOW to avoid suspension.",
                 "link_text": "Verify my account",
                 "link_href": "https://secure-login.example/verify",
-                "headers": "Return-Path: reset@secure-login.example",
+                "headers": "Return-Path: reset@secure-login.example"
             },
-            "expected_answer": "urgency",
+            "expected_answer": "Urgency / fear-based social engineering",
             "flag": "FLAG{CPR1-PH1-URG1}",
-            "hints": ["Words like URGENT, immediately, 24 HOURS, RIGHT NOW.", "It pressures you to act fast."],
+            "hints": [
+                "Look at the time limit and urgent language."
+            ],
             "explanation": "The email creates false urgency and time pressure to force a hasty, insecure action - the 'urgency' technique.",
-            "title": "Phishing Spotter",
+            "title": "Phishing Spotter"
         },
         {
-            "v": "V2", "difficulty": "Medium", "eta": "3-5 min",
+            "v": "V2",
+            "difficulty": "Medium",
+            "eta": "3-5 min",
             "story": "A bank-ish email landed in your simulated inbox. Check the addresses.",
-            "objective": "Identify the SUSPICIOUS SENDER domain (where replies actually go).",
+            "objective": "What suspicious characteristic should investigators identify from the sender and Reply-To information?",
             "lab_type": "phishing",
             "lab_data": {
                 "prompt": "Which suspicious domain does the Reply-To use?",
@@ -430,18 +756,22 @@ VARIANTS = {
                 "body": "Dear customer, confirm your identity to keep your account active.",
                 "link_text": "Verify now",
                 "link_href": "https://login.safebank.example/confirm",
-                "headers": "Reply-To: reset@phish-site.example",
+                "headers": "Reply-To: reset@phish-site.example"
             },
-            "expected_answer": "phish-site.example",
+            "expected_answer": "Suspicious/mismatched Reply-To address",
             "flag": "FLAG{CPR1-PH2-SND2}",
-            "hints": ["The Reply-To differs from the sender domain.", "phish-site.example is not the bank's domain."],
+            "hints": [
+                "Check whether the Reply-To destination matches the expected organization."
+            ],
             "explanation": "The Reply-To points to phish-site.example, not the bank's domain - the attacker's address.",
-            "title": "Phishing Spotter",
+            "title": "Phishing Spotter"
         },
         {
-            "v": "V3", "difficulty": "Medium-Hard", "eta": "5-7 min",
+            "v": "V3",
+            "difficulty": "Medium-Hard",
+            "eta": "5-7 min",
             "story": "A link in an email LOOKS legitimate. Check where it actually goes.",
-            "objective": "Identify the ACTUAL destination domain in the link's href (not the display text).",
+            "objective": "What phishing indicator is revealed by comparing the displayed URL with its actual destination?",
             "lab_type": "phishing",
             "lab_data": {
                 "prompt": "What is the REAL destination domain of the link (the href)?",
@@ -452,18 +782,22 @@ VARIANTS = {
                 "body": "Click to verify your identity.\nDisplay text: https://login-safebank.example/verify",
                 "link_text": "https://login-safebank.example/verify",
                 "link_href": "https://fake-login-abc.example/verify",
-                "headers": "Return-Path: bounce@safebank.example",
+                "headers": "Return-Path: bounce@safebank.example"
             },
-            "expected_answer": "fake-login-abc.example",
+            "expected_answer": "Displayed URL and actual destination mismatch",
             "flag": "FLAG{CPR1-PH3-LNK3}",
-            "hints": ["The display text and the href can differ.", "Look at the actual link destination."],
+            "hints": [
+                "The link shown to the user is different from where the browser actually goes."
+            ],
             "explanation": "The visible text says safebank but the href points to fake-login-abc.example - the attack destination.",
-            "title": "Phishing Spotter",
+            "title": "Phishing Spotter"
         },
         {
-            "v": "V4", "difficulty": "Medium-Hard", "eta": "5-7 min",
+            "v": "V4",
+            "difficulty": "Medium-Hard",
+            "eta": "5-7 min",
             "story": "An email claims to be from your company's CEO. Verify the sender.",
-            "objective": "Identify the giveaway: the CEO uses a NON-CORPORATE email domain.",
+            "objective": "What type of phishing activity is the attacker attempting?",
             "lab_type": "phishing",
             "lab_data": {
                 "prompt": "Which non-corporate domain shows this isn't really the CEO?",
@@ -474,459 +808,671 @@ VARIANTS = {
                 "body": "Sarah, our CEO, needs you to approve the payment immediately.",
                 "link_text": "Approve",
                 "link_href": "https://payments.finance.example/approve",
-                "headers": "Sender: sarah.ceo@gmail.example",
+                "headers": "Sender: sarah.ceo@gmail.example"
             },
-            "expected_answer": "gmail.example",
+            "expected_answer": "Credential phishing / credential harvesting",
             "flag": "FLAG{CPR1-PH4-CEO4}",
-            "hints": ["A CEO uses the company domain.", "A public mail domain is the giveaway."],
+            "hints": [
+                "The attacker is trying to obtain authentication information from the victim."
+            ],
             "explanation": "The CEO impersonator used a public mail domain (gmail.example) instead of the corporate domain - the deception.",
-            "title": "Phishing Spotter",
-        },
+            "title": "Phishing Spotter"
+        }
     ],
     "META": [
         {
-            "v": "V1", "difficulty": "Medium", "eta": "3-4 min",
+            "v": "V1",
+            "difficulty": "Medium",
+            "eta": "3-4 min",
             "story": "You received a 'final' report doc. Its metadata may reveal who wrote it.",
-            "objective": "Identify the AUTHOR stored in the document metadata.",
+            "objective": "Identify the author recorded in the document metadata.",
             "lab_type": "metadata",
             "lab_data": {
                 "prompt": "Who is the author stored in the metadata?",
                 "answer_hint": "Submit the author value.",
                 "file": "report_final.docx",
-                "columns": [{"key": "field", "label": "FIELD"}, {"key": "value", "label": "VALUE"}],
-                "records": [
-                    {"field": "Author", "value": "j.morales"},
-                    {"field": "Last Modified By", "value": "j.morales"},
-                    {"field": "Created", "value": "2025-11-12"},
-                    {"field": "Software", "value": "LibreOffice 7.4"},
+                "columns": [
+                    {
+                        "key": "field",
+                        "label": "FIELD"
+                    },
+                    {
+                        "key": "value",
+                        "label": "VALUE"
+                    }
                 ],
+                "records": [
+                    {
+                        "field": "Author",
+                        "value": "j.morales"
+                    },
+                    {
+                        "field": "Last Modified By",
+                        "value": "j.morales"
+                    },
+                    {
+                        "field": "Created",
+                        "value": "2025-11-12"
+                    },
+                    {
+                        "field": "Software",
+                        "value": "LibreOffice 7.4"
+                    }
+                ]
             },
-            "expected_answer": "j.morales",
+            "expected_answer": "A.Raman",
             "flag": "FLAG{CPR1-MD1-AUT1}",
-            "hints": ["The Author field holds the answer.", "Look at the first metadata row."],
+            "hints": [
+                "Look specifically at the Author field."
+            ],
             "explanation": "The Author metadata field shows j.morales.",
-            "title": "Metadata Detective",
+            "title": "Metadata Detective"
         },
         {
-            "v": "V2", "difficulty": "Medium", "eta": "3-4 min",
+            "v": "V2",
+            "difficulty": "Medium",
+            "eta": "3-4 min",
             "story": "An invoice PDF's metadata reveals when it was last changed.",
-            "objective": "Identify the MODIFICATION timestamp in the metadata.",
+            "objective": "What is the last modified timestamp recorded for the evidence file?",
             "lab_type": "metadata",
             "lab_data": {
                 "prompt": "What is the Last Modified timestamp?",
                 "answer_hint": "Submit the value exactly as shown.",
                 "file": "invoice.pdf",
-                "columns": [{"key": "field", "label": "FIELD"}, {"key": "value", "label": "VALUE"}],
-                "records": [
-                    {"field": "Author", "value": "finance-svc"},
-                    {"field": "Creation", "value": "2025-09-01 09:00"},
-                    {"field": "Modified", "value": "2025-09-01 11:32"},
-                    {"field": "Producer", "value": "PDFKit"},
+                "columns": [
+                    {
+                        "key": "field",
+                        "label": "FIELD"
+                    },
+                    {
+                        "key": "value",
+                        "label": "VALUE"
+                    }
                 ],
+                "records": [
+                    {
+                        "field": "Author",
+                        "value": "finance-svc"
+                    },
+                    {
+                        "field": "Creation",
+                        "value": "2025-09-01 09:00"
+                    },
+                    {
+                        "field": "Modified",
+                        "value": "2025-09-01 11:32"
+                    },
+                    {
+                        "field": "Producer",
+                        "value": "PDFKit"
+                    }
+                ]
             },
-            "expected_answer": "2025-09-01 11:32",
+            "expected_answer": "2026-08-21 18:42",
             "flag": "FLAG{CPR1-MD2-MOD2}",
-            "hints": ["Look at the Modified / last-saved field."],
+            "hints": [
+                "Do not use the creation timestamp. Look at Modified."
+            ],
             "explanation": "The Modified field records 2025-09-01 11:32.",
-            "title": "Metadata Detective",
+            "title": "Metadata Detective"
         },
         {
-            "v": "V3", "difficulty": "Medium", "eta": "4-5 min",
+            "v": "V3",
+            "difficulty": "Medium",
+            "eta": "4-5 min",
             "story": "An image's EXIF metadata reveals which editor was used on it.",
-            "objective": "Identify the SOFTWARE that produced / edited this image.",
+            "objective": "Which device is recorded in the image metadata?",
             "lab_type": "metadata",
             "lab_data": {
                 "prompt": "Which software was used on this image (from EXIF)?",
                 "answer_hint": "Submit the software name.",
                 "file": "photo_001.jpg",
-                "columns": [{"key": "field", "label": "FIELD"}, {"key": "value", "label": "VALUE"}],
-                "records": [
-                    {"field": "Make", "value": "SampleCam"},
-                    {"field": "Model", "value": "SN-500"},
-                    {"field": "Software", "value": "GIMP 2.10"},
-                    {"field": "DateTime", "value": "2025-06-15 14:22"},
+                "columns": [
+                    {
+                        "key": "field",
+                        "label": "FIELD"
+                    },
+                    {
+                        "key": "value",
+                        "label": "VALUE"
+                    }
                 ],
+                "records": [
+                    {
+                        "field": "Make",
+                        "value": "SampleCam"
+                    },
+                    {
+                        "field": "Model",
+                        "value": "SN-500"
+                    },
+                    {
+                        "field": "Software",
+                        "value": "GIMP 2.10"
+                    },
+                    {
+                        "field": "DateTime",
+                        "value": "2025-06-15 14:22"
+                    }
+                ]
             },
-            "expected_answer": "GIMP 2.10",
+            "expected_answer": "Canon EOS",
             "flag": "FLAG{CPR1-MD3-SFT3}",
-            "hints": ["Look at the Software field."],
+            "hints": [
+                "Look at the Device field."
+            ],
             "explanation": "The EXIF Software field shows GIMP 2.10, indicating the image was edited with GIMP.",
-            "title": "Metadata Detective",
+            "title": "Metadata Detective"
         },
         {
-            "v": "V4", "difficulty": "Medium-Hard", "eta": "5-6 min",
+            "v": "V4",
+            "difficulty": "Medium-Hard",
+            "eta": "5-6 min",
             "story": "A contract claims it was prepared on one date, but the metadata disagrees.",
-            "objective": "Spot the inconsistency - find the ACTUAL metadata modification date.",
+            "objective": "What location is recorded in the supplied fictional metadata?",
             "lab_type": "metadata",
             "lab_data": {
                 "prompt": "The document text says 'Prepared on 2025-08-20', but what does the METADATA say?",
                 "answer_hint": "Submit the metadata modification date.",
                 "file": "contract.pdf",
-                "columns": [{"key": "field", "label": "FIELD"}, {"key": "value", "label": "VALUE"}],
-                "records": [
-                    {"field": "Document text", "value": "Prepared on 2025-08-20"},
-                    {"field": "Author", "value": "legal-dept"},
-                    {"field": "Modified", "value": "2025-08-27"},
-                    {"field": "Created", "value": "2025-08-19"},
+                "columns": [
+                    {
+                        "key": "field",
+                        "label": "FIELD"
+                    },
+                    {
+                        "key": "value",
+                        "label": "VALUE"
+                    }
                 ],
+                "records": [
+                    {
+                        "field": "Document text",
+                        "value": "Prepared on 2025-08-20"
+                    },
+                    {
+                        "field": "Author",
+                        "value": "legal-dept"
+                    },
+                    {
+                        "field": "Modified",
+                        "value": "2025-08-27"
+                    },
+                    {
+                        "field": "Created",
+                        "value": "2025-08-19"
+                    }
+                ]
             },
-            "expected_answer": "2025-08-27",
+            "expected_answer": "Chennai",
             "flag": "FLAG{CPR1-MD4-DTA4}",
-            "hints": ["The stored metadata is the reliable timestamp.", "Compare the text date to the Modified field."],
+            "hints": [
+                "Use the location associated with the supplied GPS metadata."
+            ],
             "explanation": "The metadata Modified field shows 2025-08-27, a week after the claimed date - revealing tampering.",
-            "title": "Metadata Detective",
-        },
+            "title": "Metadata Detective"
+        }
     ],
     "CIPH": [
         {
-            "v": "V1", "difficulty": "Easy", "eta": "5-7 min",
+            "v": "V1",
+            "difficulty": "Easy",
+            "eta": "5-7 min",
             "story": "A value was first Caesar-shifted by +1, then Base64-encoded.",
-            "objective": "Reverse the chain: Caesar-shift each letter back 1, then Base64-decode. Submit the plaintext.",
+            "objective": "Reverse the supplied encoding sequence using the provided tools and recover the hidden investigation message.",
             "lab_type": "cipher_chain",
             "lab_data": {
                 "encoded": "QnV1YmRs",
-                "chain": ["1) Caesar shift each letter back by 1", "2) Base64-decode"],
-                "notes": "The encoding was: plaintext -> Caesar(+1) -> Base64.",
+                "chain": [
+                    "1) Caesar shift each letter back by 1",
+                    "2) Base64-decode"
+                ],
+                "notes": "The encoding was: plaintext -> Caesar(+1) -> Base64."
             },
-            "expected_answer": "Attack",
+            "expected_answer": "Decoded investigation message from the supplied evidence.",
             "flag": "FLAG{CPR1-CP1-ATT1}",
-            "hints": ["ROT-1 each letter first (B->A, n->m, ...).", "Then Base64-decode the result."],
+            "hints": [
+                "When decoding a chain, work from the last encoding layer backward."
+            ],
             "explanation": "ROT-1 of 'QnV1YmRs' then Base64-decode yields 'Attack'.",
-            "title": "Cipher Chain",
+            "title": "Cipher Chain"
         },
         {
-            "v": "V2", "difficulty": "Medium", "eta": "6-8 min",
+            "v": "V2",
+            "difficulty": "Medium",
+            "eta": "6-8 min",
             "story": "A plaintext was hex-encoded, then that hex text was Base64-encoded.",
-            "objective": "Decode Base64 (you get hex), then convert the hex to ASCII.",
+            "objective": "Decode the Base64 layer, convert the resulting hexadecimal value to ASCII, and identify the final clue.",
             "lab_type": "cipher_chain",
             "lab_data": {
                 "encoded": "NGU2OTc0NjU=",
-                "chain": ["1) Base64-decode (you get hex characters)", "2) Convert hex to ASCII"],
-                "notes": "Encoding: plaintext -> hex (as text) -> Base64.",
+                "chain": [
+                    "1) Base64-decode (you get hex characters)",
+                    "2) Convert hex to ASCII"
+                ],
+                "notes": "Encoding: plaintext -> hex (as text) -> Base64."
             },
-            "expected_answer": "Nite",
+            "expected_answer": "Final ASCII clue from the decoded evidence.",
             "flag": "FLAG{CPR1-CP2-NIT2}",
-            "hints": ["Base64-decode first to reveal hex like 4e697465.", "Then convert hex pairs to letters."],
+            "hints": [
+                "Start with Base64, then interpret the resulting hexadecimal characters."
+            ],
             "explanation": "Base64-decode gives hex 4e697465 which spells 'Nite'.",
-            "title": "Cipher Chain",
+            "title": "Cipher Chain"
         },
         {
-            "v": "V3", "difficulty": "Medium", "eta": "6-8 min",
+            "v": "V3",
+            "difficulty": "Medium",
+            "eta": "6-8 min",
             "story": "A string was hex-encoded after a Caesar shift of +3.",
-            "objective": "Hex-decode to ASCII (letters), then Caesar-shift each letter back 3.",
+            "objective": "Convert the hexadecimal evidence to text and apply the supplied Caesar shift to reveal the plaintext.",
             "lab_type": "cipher_chain",
             "lab_data": {
                 "encoded": "4e6868736875",
-                "chain": ["1) Hex-decode to ASCII letters", "2) Caesar shift each letter back 3"],
-                "notes": "Encoding: plaintext -> Caesar(+3) -> hex.",
+                "chain": [
+                    "1) Hex-decode to ASCII letters",
+                    "2) Caesar shift each letter back 3"
+                ],
+                "notes": "Encoding: plaintext -> Caesar(+3) -> hex."
             },
-            "expected_answer": "Keeper",
+            "expected_answer": "Decoded plaintext after reversing the shift.",
             "flag": "FLAG{CPR1-CP3-KEE3}",
-            "hints": ["4e6868736875 hex => 'Nhhshu'.", "Then shift Nhhshu back 3."],
+            "hints": [
+                "Decode Hex first, then reverse the Caesar shift by 3."
+            ],
             "explanation": "Hex gives 'Nhhshu'; Caesar back 3 gives 'Keeper'.",
-            "title": "Cipher Chain",
+            "title": "Cipher Chain"
         },
         {
-            "v": "V4", "difficulty": "Medium-Hard", "eta": "8-10 min",
+            "v": "V4",
+            "difficulty": "Medium-Hard",
+            "eta": "8-10 min",
             "story": "Three layers: Caesar(+1) -> Base64 -> Hex.",
-            "objective": "Reverse the whole chain: hex-decode, Base64-decode, then Caesar back 1.",
+            "objective": "Reverse all the supplied encoding layers in the correct order and reveal the final investigation clue.",
             "lab_type": "cipher_chain",
             "lab_data": {
                 "encoded": "556e5a716257303d",
-                "chain": ["1) Hex-decode (you get a Base64 string)", "2) Base64-decode", "3) Caesar shift each letter back 1"],
-                "notes": "Encoding: plaintext -> Caesar(+1) -> Base64 -> hex.",
+                "chain": [
+                    "1) Hex-decode (you get a Base64 string)",
+                    "2) Base64-decode",
+                    "3) Caesar shift each letter back 1"
+                ],
+                "notes": "Encoding: plaintext -> Caesar(+1) -> Base64 -> hex."
             },
-            "expected_answer": "Quill",
+            "expected_answer": "Final decoded investigation clue.",
             "flag": "FLAG{CPR1-CP4-QUI4}",
-            "hints": ["Hex gives a Base64 string.", "Decode Base64, then ROT-1."],
+            "hints": [
+                "Always decode the outermost layer first and work backward through the chain."
+            ],
             "explanation": "Following the chain in reverse yields the word 'Quill'.",
-            "title": "Cipher Chain",
-        },
+            "title": "Cipher Chain"
+        }
     ],
     "HASH": [
         {
-            "v": "V1", "difficulty": "Medium", "eta": "3-5 min",
+            "v": "V1",
+            "difficulty": "Medium",
+            "eta": "3-5 min",
             "story": "An account stores a 32-char hash. Identify the algorithm.",
-            "objective": "Identify the hash ALGORITHM that produced this value.",
+            "objective": "Based on the supplied hash format, identify the most likely hashing algorithm.",
             "lab_type": "hash_analysis",
             "lab_data": {
                 "prompt": "What hash algorithm produced this 32-character hexadecimal value?",
                 "encoded": "e10adc3949ba59abbe56e057f20f883e",
-                "notes": "32 hex chars = 128 bits.",
+                "notes": "32 hex chars = 128 bits."
             },
             "expected_answer": "MD5",
             "flag": "FLAG{CPR1-HS1-MD51}",
-            "hints": ["32 hex characters => 128 bits.", "MD5 output is 128 bits."],
+            "hints": [
+                "Count the hexadecimal characters. MD5, SHA-1, and SHA-256 have different digest lengths."
+            ],
             "explanation": "A 32-character hexadecimal hash of 128 bits is MD5.",
-            "title": "Hash Analysis",
+            "title": "Hash Analysis"
         },
         {
-            "v": "V2", "difficulty": "Medium", "eta": "5-7 min",
+            "v": "V2",
+            "difficulty": "Medium",
+            "eta": "5-7 min",
             "story": "You found a hash and a short wordlist. Match the password.",
-            "objective": "Find which word, when MD5-hashed, equals the given hash.",
+            "objective": "Match the recovered hash against the supplied offline candidate list and identify the corresponding password.",
             "lab_type": "hash_analysis",
             "lab_data": {
                 "prompt": "Which wordlist password matches this MD5 hash?",
                 "encoded": "5f4dcc3b5aa765d61d8327deb882cf99",
                 "notes": "Try MD5 of each word below.",
-                "wordlist": ["admin", "password", "temp123", "secret"],
+                "wordlist": [
+                    "admin",
+                    "password",
+                    "temp123",
+                    "secret"
+                ]
             },
-            "expected_answer": "password",
+            "expected_answer": "secret",
             "flag": "FLAG{CPR1-HS2-MTH2}",
-            "hints": ["MD5('password') = 5f4dcc3b...882cf99.", "Hash each word and compare."],
+            "hints": [
+                "Generate the MD5 hash of each candidate and compare it with the recovered hash."
+            ],
             "explanation": "The MD5 5f4dcc3b5aa765d61d8327deb882cf99 is the hash of 'password'.",
-            "title": "Hash Analysis",
+            "title": "Hash Analysis"
         },
         {
-            "v": "V3", "difficulty": "Medium-Hard", "eta": "5-7 min",
+            "v": "V3",
+            "difficulty": "Medium-Hard",
+            "eta": "5-7 min",
             "story": "A record stores this SHA256 hash. Find the matching wordlist entry.",
-            "objective": "Find the word whose SHA256 equals the given hash.",
+            "objective": "Which candidate matches the recovered SHA-1 evidence?",
             "lab_type": "hash_analysis",
             "lab_data": {
                 "prompt": "Which wordlist password (SHA256) matches this hash?",
                 "encoded": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
                 "notes": "Try SHA256 of each candidate.",
-                "wordlist": ["hello", "qwerty", "letmein", "pass123"],
+                "wordlist": [
+                    "hello",
+                    "qwerty",
+                    "letmein",
+                    "pass123"
+                ]
             },
-            "expected_answer": "qwerty",
+            "expected_answer": "admin123",
             "flag": "FLAG{CPR1-HS3-SH53}",
-            "hints": ["SHA256('qwerty') matches.", "Hash each word with SHA256."],
+            "hints": [
+                "Generate the SHA-1 hash of each candidate and compare."
+            ],
             "explanation": "The SHA256 digest corresponds to the word 'qwerty'.",
-            "title": "Hash Analysis",
+            "title": "Hash Analysis"
         },
         {
-            "v": "V4", "difficulty": "Medium-Hard", "eta": "5-7 min",
+            "v": "V4",
+            "difficulty": "Medium-Hard",
+            "eta": "5-7 min",
             "story": "An account uses an MD5 hash. Which stored word is the weakest match?",
-            "objective": "Identify the weakest / most-common password that matches the hash.",
+            "objective": "Which candidate matches the supplied SHA-256 evidence?",
             "lab_type": "hash_analysis",
             "lab_data": {
                 "prompt": "Which word mirrors this weak account hash?",
                 "encoded": "5f4dcc3b5aa765d61d8327deb882cf99",
                 "notes": "The hash matches one of these words.",
-                "wordlist": ["admin", "password", "cookie", "winter"],
+                "wordlist": [
+                    "admin",
+                    "password",
+                    "cookie",
+                    "winter"
+                ]
             },
             "expected_answer": "password",
             "flag": "FLAG{CPR1-HS4-WK01}",
-            "hints": ["Find the word that hashes to this value.", "It is also the most common weak choice."],
+            "hints": [
+                "Calculate the SHA-256 hash of each candidate and compare the results."
+            ],
             "explanation": "The hash is MD5('password'); 'password' is the weak and most-guessable entry.",
-            "title": "Hash Analysis",
-        },
+            "title": "Hash Analysis"
+        }
     ],
     "WEBH": [
         {
-            "v": "V1", "difficulty": "Medium-Hard", "eta": "3-5 min",
+            "v": "V1",
+            "difficulty": "Medium-Hard",
+            "eta": "3-5 min",
             "story": "A simulated site's HTML contains a clue in a comment.",
-            "objective": "View the page source and submit the clue found inside a comment.",
+            "objective": "Inspect the page source and identify the hidden investigation path.",
             "lab_type": "source_view",
             "lab_data": {
                 "prompt": "What clue is in the HTML comment?",
                 "answer_hint": "Submit the exact value.",
                 "url": "https://dev.local/",
-                "html_source": "<!-- hint: the admin panel is at /console -->\n<html>\n<body>\n  <h1>Welcome to the site</h1>\n</body>\n</html>",
+                "html_source": "<!-- hint: the admin panel is at /console -->\n<html>\n<body>\n  <h1>Welcome to the site</h1>\n</body>\n</html>"
             },
-            "expected_answer": "/console",
+            "expected_answer": "/archive",
             "flag": "FLAG{CPR1-WB1-CMT1}",
-            "hints": ["HTML comments are between <!-- and -->."],
+            "hints": [
+                "Look for HTML comments that are not visible on the rendered page."
+            ],
             "explanation": "The comment reveals the hidden admin route /console.",
-            "title": "Web Source Hunt",
+            "title": "Web Source Hunt"
         },
         {
-            "v": "V2", "difficulty": "Medium-Hard", "eta": "3-5 min",
+            "v": "V2",
+            "difficulty": "Medium-Hard",
+            "eta": "3-5 min",
             "story": "A page element carries a hidden data attribute.",
-            "objective": "Submit the value of the data-secret attribute.",
+            "objective": "Inspect the supplied HTML and identify the value stored in the data-key attribute.",
             "lab_type": "source_view",
             "lab_data": {
                 "prompt": "What is the value of data-secret?",
                 "answer_hint": "Submit the attribute value.",
                 "url": "https://app.local/",
-                "html_source": "<div id=\"app\" data-version=\"2.3\" data-secret=\"blueprint\">App</div>\n<html><body>Spare content...</body></html>",
+                "html_source": "<div id=\"app\" data-version=\"2.3\" data-secret=\"blueprint\">App</div>\n<html><body>Spare content...</body></html>"
             },
-            "expected_answer": "blueprint",
+            "expected_answer": "blue-door",
             "flag": "FLAG{CPR1-WB2-DAT2}",
-            "hints": ["Look for data-secret=\"...\" in the tag."],
+            "hints": [
+                "Read the value between data-key=\"...\"."
+            ],
             "explanation": "The data-secret attribute holds the value 'blueprint'.",
-            "title": "Web Source Hunt",
+            "title": "Web Source Hunt"
         },
         {
-            "v": "V3", "difficulty": "Medium-Hard", "eta": "4-6 min",
+            "v": "V3",
+            "difficulty": "Medium-Hard",
+            "eta": "4-6 min",
             "story": "A robots.txt file hints at a hidden path.",
-            "objective": "Submit the path that robots.txt says is DISALLOWED.",
+            "objective": "Which path is restricted according to the supplied robots.txt file?",
             "lab_type": "source_view",
             "lab_data": {
                 "prompt": "Which path is disallowed in robots.txt?",
                 "answer_hint": "Submit the exact path.",
                 "url": "https://site.local/robots.txt",
-                "html_source": "User-agent: *\nDisallow: /private/\nDisallow: /admin",
+                "html_source": "User-agent: *\nDisallow: /private/\nDisallow: /admin"
             },
-            "expected_answer": "/private/",
+            "expected_answer": "/backup/",
             "flag": "FLAG{CPR1-WB3-RBT3}",
-            "hints": ["Read the first Disallow line."],
+            "hints": [
+                "Look at the value following the Disallow directive."
+            ],
             "explanation": "robots.txt disallows /private/, which may hide unlinked content.",
-            "title": "Web Source Hunt",
+            "title": "Web Source Hunt"
         },
         {
-            "v": "V4", "difficulty": "Medium-Hard", "eta": "4-6 min",
+            "v": "V4",
+            "difficulty": "Medium-Hard",
+            "eta": "4-6 min",
             "story": "A page's meta tag reveals the author.",
-            "objective": "Submit the meta author content.",
+            "objective": "Inspect the HTML metadata and identify the value stored in the author field.",
             "lab_type": "source_view",
             "lab_data": {
                 "prompt": "What is the meta author content?",
                 "answer_hint": "Submit the exact value.",
                 "url": "https://blog.local/",
-                "html_source": "<meta name=\"author\" content=\"t.owens\">\n<html><body>Welcome to the dev blog.</body></html>",
+                "html_source": "<meta name=\"author\" content=\"t.owens\">\n<html><body>Welcome to the dev blog.</body></html>"
             },
-            "expected_answer": "t.owens",
+            "expected_answer": "trace_admin",
             "flag": "FLAG{CPR1-WB4-MET4}",
-            "hints": ["Look in the <meta> tag's content attribute."],
+            "hints": [
+                "Find name=\"author\" and read its content value."
+            ],
             "explanation": "The meta author tag reveals t.owens as the hidden detail.",
-            "title": "Web Source Hunt",
-        },
+            "title": "Web Source Hunt"
+        }
     ],
     "FILE": [
         {
-            "v": "V1", "difficulty": "Medium-Hard", "eta": "3-5 min",
+            "v": "V1",
+            "difficulty": "Medium-Hard",
+            "eta": "3-5 min",
             "story": "A file is named report.png, but its magic bytes look like a PDF.",
-            "objective": "Submit the REAL file type, despite the extension.",
+            "objective": "The extension is `.dat`. Based on the magic bytes, what is the actual file type?",
             "lab_type": "file_magic",
             "lab_data": {
                 "prompt": "What is the real file type?",
                 "answer_hint": "Submit the type name (e.g. PDF).",
                 "filename": "report.png",
                 "magic": "25 50 44 46 2D",
-                "notes": "25 50 44 46 2D is the hex for '%PDF-'.",
+                "notes": "25 50 44 46 2D is the hex for '%PDF-'."
             },
             "expected_answer": "PDF",
             "flag": "FLAG{CPR1-FM1-PDF1}",
-            "hints": ["25 50 44 46 spells 0x%PDF.", "Magic bytes beat the extension."],
+            "hints": [
+                "Do not trust the extension. Identify the file using its signature."
+            ],
             "explanation": "The magic bytes '%PDF-1.' identify it as a PDF despite the .png extension.",
-            "title": "File Magic",
+            "title": "File Magic"
         },
         {
-            "v": "V2", "difficulty": "Medium-Hard", "eta": "3-4 min",
+            "v": "V2",
+            "difficulty": "Medium-Hard",
+            "eta": "3-4 min",
             "story": "Identify a file type from its signature bytes.",
-            "objective": "Submit the file type matching these magic bytes.",
+            "objective": "Identify the actual file format from the supplied file signature.",
             "lab_type": "file_magic",
             "lab_data": {
                 "prompt": "What file type has these magic bytes?",
                 "answer_hint": "Submit the type name.",
                 "filename": "image.bin",
                 "magic": "89 50 4E 47 0D 0A 1A 0A",
-                "notes": "89 50 4E 47 spells 'PNG'.",
+                "notes": "89 50 4E 47 spells 'PNG'."
             },
             "expected_answer": "PNG",
             "flag": "FLAG{CPR1-FM2-PNG2}",
-            "hints": ["0x89 'PNG' is the PNG signature."],
+            "hints": [
+                "The first four bytes are a well-known image signature."
+            ],
             "explanation": "The signature 0x89 'PNG' identifies a PNG image.",
-            "title": "File Magic",
+            "title": "File Magic"
         },
         {
-            "v": "V3", "difficulty": "Medium-Hard", "eta": "4-5 min",
+            "v": "V3",
+            "difficulty": "Medium-Hard",
+            "eta": "4-5 min",
             "story": "A file called notes.txt actually has ZIP magic bytes.",
-            "objective": "Submit the real file type.",
+            "objective": "Determine the actual file format represented by these magic bytes.",
             "lab_type": "file_magic",
             "lab_data": {
                 "prompt": "What is the real type of this file?",
                 "answer_hint": "Submit the type name.",
                 "filename": "notes.txt",
                 "magic": "50 4B 03 04",
-                "notes": "50 4B is 'PK', the ZIP signature.",
+                "notes": "50 4B is 'PK', the ZIP signature."
             },
             "expected_answer": "ZIP",
             "flag": "FLAG{CPR1-FM3-ZIP3}",
-            "hints": ["PK (50 4B) starts ZIP archives."],
+            "hints": [
+                "This signature is commonly associated with compressed archive files."
+            ],
             "explanation": "The PK signature indicates a ZIP archive disguised with a .txt extension.",
-            "title": "File Magic",
+            "title": "File Magic"
         },
         {
-            "v": "V4", "difficulty": "Medium-Hard", "eta": "3-4 min",
+            "v": "V4",
+            "difficulty": "Medium-Hard",
+            "eta": "3-4 min",
             "story": "Match a file format from its leading bytes.",
-            "objective": "Submit the file type for these magic bytes.",
+            "objective": "The extension is misleading. Identify the actual image format from the signature.",
             "lab_type": "file_magic",
             "lab_data": {
                 "prompt": "What file type begins with these bytes?",
                 "answer_hint": "Submit the type name.",
                 "filename": "anim.bin",
                 "magic": "47 49 46 38 37 61",
-                "notes": "This spells 'GIF87a'.",
+                "notes": "This spells 'GIF87a'."
             },
-            "expected_answer": "GIF",
+            "expected_answer": "JPEG / JPG",
             "flag": "FLAG{CPR1-FM4-GIF4}",
-            "hints": ["GIF87a literally spells 'GIF87a'."],
+            "hints": [
+                "Look up the common JPEG file signature beginning with FF D8."
+            ],
             "explanation": "The bytes spell 'GIF87a', the signature for GIF images.",
-            "title": "File Magic",
-        },
+            "title": "File Magic"
+        }
     ],
     "CSAR": [
         {
-            "v": "V1", "difficulty": "Easy", "eta": "2-3 min",
+            "v": "V1",
+            "difficulty": "Easy",
+            "eta": "2-3 min",
             "story": "A message was rotated with ROT13.",
-            "objective": "Decode the ROT13 string and submit the plaintext word.",
+            "objective": "Decode the message using ROT13 and identify the plaintext investigation clue.",
             "lab_type": "caesar",
             "lab_data": {
                 "encoded": "pbqr",
                 "shift_label": "ROT13",
-                "notes": "ROT13 shifts letters by 13.",
+                "notes": "ROT13 shifts letters by 13."
             },
-            "expected_answer": "code",
+            "expected_answer": "THE CASE IS CLOSED",
             "flag": "FLAG{CPR1-CR1-COD1}",
-            "hints": ["p->c, b->o, q->d, r->e."],
+            "hints": [
+                "Move every alphabetic character 13 positions in the alphabet."
+            ],
             "explanation": "ROT13 of 'pbqr' is 'code'.",
-            "title": "Caesar / ROT Decode",
+            "title": "Caesar / ROT Decode"
         },
         {
-            "v": "V2", "difficulty": "Medium", "eta": "5-6 min",
+            "v": "V2",
+            "difficulty": "Medium",
+            "eta": "5-6 min",
             "story": "A word was Caesar-shifted by +3 (A->D).",
-            "objective": "Decode by shifting each letter back 3 and submit the plaintext.",
+            "objective": "Apply the supplied Caesar shift and recover the plaintext.",
             "lab_type": "caesar",
             "lab_data": {
                 "encoded": "Vshdulxqlqj",
                 "shift_label": "Caesar shift +3",
-                "notes": "Shift each letter back 3.",
+                "notes": "Shift each letter back 3."
             },
-            "expected_answer": "Securing",
+            "expected_answer": "CASE",
             "flag": "FLAG{CPR1-CR2-SEC2}",
-            "hints": ["V->S, s->p, h->e, d->a, u->r, l->i, x->u, q->n, l->i, q->n, j->g."],
+            "hints": [
+                "For decryption, move each character 3 positions backward."
+            ],
             "explanation": "Caesar -3 of 'Vshdulxqlqj' yields 'Securing'.",
-            "title": "Caesar / ROT Decode",
+            "title": "Caesar / ROT Decode"
         },
         {
-            "v": "V3", "difficulty": "Medium-Hard", "eta": "6-8 min",
+            "v": "V3",
+            "difficulty": "Medium-Hard",
+            "eta": "6-8 min",
             "story": "A message was reversed, then Caesar-shifted by +3.",
-            "objective": "First reverse the string, then Caesar-shift back 3.",
+            "objective": "Decode the ciphertext using the supplied shift and identify the hidden clue.",
             "lab_type": "caesar",
             "lab_data": {
                 "encoded": "Grohq dsdg",
                 "shift_label": "Reverse then Caesar +3",
-                "notes": "Reverse 'Grohq dsdg', then unshift each letter by 3.",
+                "notes": "Reverse 'Grohq dsdg', then unshift each letter by 3."
             },
-            "expected_answer": "alert",
+            "expected_answer": "TRACE",
             "flag": "FLAG{CPR1-CR3-ALE3}",
-            "hints": ["Reverse to a Caesar string, then shift back 3."],
+            "hints": [
+                "Move each character 5 positions backward."
+            ],
             "explanation": "Reversing and Caesar -3 yields 'alert'.",
-            "title": "Caesar / ROT Decode",
+            "title": "Caesar / ROT Decode"
         },
         {
-            "v": "V4", "difficulty": "Medium-Hard", "eta": "6-8 min",
+            "v": "V4",
+            "difficulty": "Medium-Hard",
+            "eta": "6-8 min",
             "story": "The shift amount is unknown. Brute-force all 25 shifts to find English.",
-            "objective": "Find the readable English word among all Caesar shifts.",
+            "objective": "Determine the Caesar shift and decode the message to reveal the meaningful investigation-related word.",
             "lab_type": "caesar",
             "lab_data": {
                 "encoded": "Lzdfq",
                 "shift_label": "Unknown Caesar shift",
-                "notes": "Try every shift (ROT1..ROT25); one gives a real word.",
+                "notes": "Try every shift (ROT1..ROT25); one gives a real word."
             },
-            "expected_answer": "Cipher",
+            "expected_answer": "CASE \u2014 shift 3.",
             "flag": "FLAG{CPR1-CR4-CIP4}",
-            "hints": ["A shift of +9 yields an English word.", "The word starts with 'C'."],
+            "hints": [
+                "Try different shifts until the result becomes a meaningful investigation word."
+            ],
             "explanation": "Among all shifts, the readable result is 'Cipher'.",
-            "title": "Caesar / ROT Decode",
-        },
+            "title": "Caesar / ROT Decode"
+        }
     ],
     "OSNT": [
         {
-            "v": "V1", "difficulty": "Medium-Hard", "eta": "3-5 min",
+            "v": "V1",
+            "difficulty": "Medium-Hard",
+            "eta": "3-5 min",
             "story": "A fictional employee's public profile is the clue.",
-            "objective": "Correlate the fictional profile info to find the username.",
+            "objective": "Correlate the supplied fictional profile and project page. Identify the developer's username.",
             "lab_type": "osint",
             "lab_data": {
                 "prompt": "What is Alice's public profile username?",
@@ -936,19 +1482,23 @@ VARIANTS = {
                     "Name: Alice",
                     "Company: Acme",
                     "Profile handle: alice_dev",
-                    "Location: Bengaluru",
-                ],
+                    "Location: Bengaluru"
+                ]
             },
-            "expected_answer": "alice_dev",
+            "expected_answer": "dev_trace",
             "flag": "FLAG{CPR1-OS1-ALC1}",
-            "hints": ["The 'Profile handle' clue is the answer."],
+            "hints": [
+                "Look for the identifier that appears in both the profile and project information."
+            ],
             "explanation": "The public profile clearly lists the handle alice_dev.",
-            "title": "OSINT Link Puzzle",
+            "title": "OSINT Link Puzzle"
         },
         {
-            "v": "V2", "difficulty": "Medium-Hard", "eta": "3-5 min",
+            "v": "V2",
+            "difficulty": "Medium-Hard",
+            "eta": "3-5 min",
             "story": "A fictional company blog reveals the author of a project.",
-            "objective": "Correlate the blog post to the person who built the project.",
+            "objective": "Connect the project information with the profile and identify the person associated with the project.",
             "lab_type": "osint",
             "lab_data": {
                 "prompt": "Which first name signed the blog post?",
@@ -957,38 +1507,46 @@ VARIANTS = {
                 "clues": [
                     "Post: 'Project Nova v2 launched today!'",
                     "Signed: '-- Rajesh'",
-                    "Role: project author",
-                ],
+                    "Role: project author"
+                ]
             },
-            "expected_answer": "Rajesh",
+            "expected_answer": "Arun \u2014 username: arun_builds",
             "flag": "FLAG{CPR1-OS2-RJ2}",
-            "hints": ["The signature directly names the author."],
+            "hints": [
+                "Use the common project name to connect the two pieces of evidence."
+            ],
             "explanation": "The post is signed by Rajesh.",
-            "title": "OSINT Link Puzzle",
+            "title": "OSINT Link Puzzle"
         },
         {
-            "v": "V3", "difficulty": "Medium-Hard", "eta": "4-6 min",
+            "v": "V3",
+            "difficulty": "Medium-Hard",
+            "eta": "4-6 min",
             "story": "A fictional project README lists a maintainer email.",
-            "objective": "Extract the email domain from the README.",
+            "objective": "Identify the organization/project domain from the supplied fictional evidence.",
             "lab_type": "osint",
             "lab_data": {
                 "prompt": "What is the maintainer email domain (after the @)?",
                 "answer_hint": "Submit the domain only.",
                 "scenario": "The README lists a maintainer contact email.",
                 "clues": [
-                    "README: 'Maintainer: dev-team@openforge.example'",
-                ],
+                    "README: 'Maintainer: dev-team@openforge.example'"
+                ]
             },
-            "expected_answer": "openforge.example",
+            "expected_answer": "mysterylab.example",
             "flag": "FLAG{CPR1-OS3-D3V3}",
-            "hints": ["The domain is everything after the @."],
+            "hints": [
+                "The same domain appears in both the email address and website."
+            ],
             "explanation": "The domain after @ is openforge.example.",
-            "title": "OSINT Link Puzzle",
+            "title": "OSINT Link Puzzle"
         },
         {
-            "v": "V4", "difficulty": "Medium-Hard", "eta": "4-6 min",
+            "v": "V4",
+            "difficulty": "Medium-Hard",
+            "eta": "4-6 min",
             "story": "Two fictional public clues point to the announcement author.",
-            "objective": "Correlate the clues to find the announcement poster's handle.",
+            "objective": "Correlate all three evidence sources and identify the account responsible for the final project announcement.",
             "lab_type": "osint",
             "lab_data": {
                 "prompt": "Who posted the announcement?",
@@ -996,22 +1554,20 @@ VARIANTS = {
                 "scenario": "An announcement post and a docs repo share a maintainer.",
                 "clues": [
                     "Announcement posted by: docs_mgr",
-                    "Docs repo managed by: km_team",
-                ],
+                    "Docs repo managed by: km_team"
+                ]
             },
-            "expected_answer": "docs_mgr",
+            "expected_answer": "case_admin",
             "flag": "FLAG{CPR1-OS4-DOC4}",
-            "hints": ["The announcement post states its author."],
+            "hints": [
+                "Find the username repeated across all three evidence sources."
+            ],
             "explanation": "The announcement is posted by docs_mgr.",
-            "title": "OSINT Link Puzzle",
-        },
-    ],
+            "title": "OSINT Link Puzzle"
+        }
+    ]
 }
 
-
-# ---------------------------------------------------------------------------
-# Seed routine
-# ---------------------------------------------------------------------------
 
 def seed(reset=False):
     if reset:

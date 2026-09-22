@@ -1,0 +1,227 @@
+{% extends "r1_admin_base_v2.html" %}
+{% block title %}MYSTERY TRACE — Monitor{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between" style="flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+  <div>
+    <div class="font-overline text-muted" style="color:var(--hud-purple-lt, #c4b5fd);">MYSTERY TRACE // ROUND 1</div>
+    <h1 class="h2" style="margin:2px 0 0;">Live Monitor</h1>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{{ url_for('mt.admin_monitor') }}" class="btn btn-sm btn-secondary">Monitor</a>
+    <a href="{{ url_for('mt.admin_answer_key') }}" class="btn btn-sm btn-ghost">Answer Key</a>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px;">
+  <div class="card" style="padding:16px;">
+    <div class="font-overline text-muted">CATALOG</div>
+    <div class="h2 font-mono" style="margin:4px 0 0;">{{ data.summary.categories }}<span style="font-size:0.7em;color:var(--text-tertiary);"> categories</span></div>
+    <div class="font-mono text-secondary">{{ data.summary.variants }} variants</div>
+  </div>
+  <div class="card" style="padding:16px;">
+    <div class="font-overline text-muted">LIVE SESSIONS</div>
+    <div class="h2 font-mono" style="margin:4px 0 0;">{{ data.summary.active_sessions }}</div>
+    <div class="font-mono text-secondary">{{ data.summary.solved_total }} correct submissions</div>
+  </div>
+  <div class="card" style="padding:16px;">
+    <div class="font-overline text-muted">CONFIG</div>
+    <div class="h2 font-mono" style="margin:4px 0 0;">{{ data.settings.timer_minutes }}<span style="font-size:0.7em;color:var(--text-tertiary);"> min</span></div>
+    <div class="font-mono text-secondary">{{ data.settings.challenges_per_team }} hand · {{ data.settings.points_per_challenge }} pts</div>
+  </div>
+</div>
+
+<div class="card" style="padding:18px;margin-bottom:22px;">
+    <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:10px;">
+      <div>
+        <div class="font-overline text-muted" style="color:var(--hud-purple-lt, #c4b5fd);">BULK ADD TEAMS</div>
+        <p class="text-secondary" style="margin:4px 0 0;font-size:0.85rem;">One team per line — <span class="font-mono">Team Name | Team ID | Access ID</span>. Access ID is optional (defaults to Team ID).</p>
+      </div>
+      <button id="mt-bulk-add" class="btn btn-success btn-sm" onclick="mtBulkAdd()">ADD ALL LINES</button>
+    </div>
+    <textarea id="mt-bulk-input" rows="6" class="input font-mono"
+      style="width:100%;margin-top:12px;font-size:0.82rem;"
+      placeholder="Blue Team | BLUE01 | alpha-blue&#10;Red Team | RED01 | alpha-red&#10;Green Team | GREEN01"></textarea>
+    <div id="mt-bulk-results" style="margin-top:10px;font-size:0.85rem;"></div>
+</div>
+
+<div class="card" style="padding:18px;margin-bottom:22px;border-color:rgba(239,68,68,0.35);">
+    <div class="font-overline text-danger">DANGER ZONE — RESET ROUND 1</div>
+    <p class="text-secondary" style="margin:6px 0 12px;font-size:0.85rem;">
+      Wipes every Round 1 session, attempt, and login, then re-seeds the 48-challenge
+      catalogue. <strong>Teams are kept</strong> — the same users can log in fresh on the
+      login page. Round 2 data is not touched.
+    </p>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <input id="mt-reset-confirm" class="input" style="width:240px;" placeholder="type RESET to arm the button">
+      <button id="mt-reset-btn" class="btn btn-sm" style="background:var(--state-danger);border-color:var(--state-danger);" disabled onclick="mtResetRound()">RESET ROUND 1</button>
+    </div>
+    <div id="mt-reset-out" style="margin-top:10px;font-size:0.85rem;"></div>
+</div>
+
+<div class="table-wrapper card" style="overflow:hidden;">
+  <table class="table" style="min-width:860px;">
+    <thead>
+      <tr>
+        <th>Team</th>
+        <th>ID</th>
+        <th>Status</th>
+        <th>Remaining</th>
+        <th>Solved</th>
+        <th>Score</th>
+        <th>Last Seen</th>
+        <th></th>
+        <th>Gate</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in data.teams %}
+      <tr>
+        <td>
+          <span style="font-weight:600;">{{ t.team_name }}</span>
+          {% if t.is_dev_seed %}<span class="badge badge-neutral">DEV</span>{% endif %}
+        </td>
+        <td class="font-mono">{{ t.team_id }}</td>
+        <td>
+          {% if t.session %}
+            {% if t.session.finished %}
+              <span class="badge badge-neutral">FINISHED</span>
+            {% else %}
+              <span class="status-dot active"></span><span class="font-mono text-success" style="margin-left:6px;">ACTIVE</span>
+            {% endif %}
+          {% else %}
+            <span class="font-mono text-muted">not started</span>
+          {% endif %}
+        </td>
+        <td class="font-mono" data-countdown="{{ t.session.remaining_ms if t.session else 0 }}">{{ '--:--' if not t.session else ('--:--' if t.session.finished else 'SET') }}</td>
+        <td class="font-mono">{{ t.session.challenges_solved if t.session else 0 }}/{{ t.session.challenges_per_team if t.session else 0 }}</td>
+        <td class="font-mono" style="font-weight:700;">{{ t.session.score if t.session else 0 }}</td>
+        <td class="font-mono text-muted">{% if t.last_seen %}{{ (t.last_seen/1000)|int }}{% else %}-{% endif %}</td>
+        <td><a href="{{ url_for('mt.admin_team_detail', team_id=t.id) }}" class="btn btn-sm btn-ghost">Detail</a></td>
+        <td>
+          <button type="button" class="btn btn-sm {% if t.is_active %}btn-success{% else %}btn-secondary{% endif %} font-mono mt-toggle"
+            data-id="{{ t.id }}" data-active="{{ 1 if t.is_active else 0 }}">
+            {{ 'ENABLED' if t.is_active else 'DISABLED' }}
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+  (function(){
+    var cells = document.querySelectorAll('[data-countdown]');
+    var start = Date.now();
+    var bases = {};
+    cells.forEach(function(el){ bases[el._k=('c'+Math.random())] = parseInt(el.getAttribute('data-countdown')||'0',10); });
+    function pad(n){ return String(n).padStart(2,'0'); }
+    function fmt(ms){
+      ms = Math.max(0, ms);
+      var m = Math.floor(ms/60000), s = Math.floor((ms%60000)/1000);
+      return pad(m)+':'+pad(s);
+    }
+    function tick(){
+      var elapsed = Date.now() - start;
+      cells.forEach(function(el){
+        var base = bases[el._k];
+        if (!base) return;
+        el.textContent = fmt(base - elapsed);
+      });
+    }
+    tick();
+    setInterval(tick, 1000);
+  })();
+  var confirmBox = document.getElementById('mt-reset-confirm');
+  var resetBtn = document.getElementById('mt-reset-btn');
+  if (confirmBox) {
+    confirmBox.addEventListener('input', function(){
+      resetBtn.disabled = confirmBox.value.trim().toUpperCase() !== 'RESET';
+    });
+  }
+  document.querySelectorAll('.mt-toggle').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var id = btn.getAttribute('data-id');
+      var next = btn.getAttribute('data-active') === '1' ? 0 : 1;
+      btn.disabled = true;
+      fetch('/api/admin/team/' + id + '/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !!next })
+      }).then(function(r){ return r.json(); }).then(function(d){
+        if (d.ok) {
+          btn.setAttribute('data-active', d.active ? '1' : '0');
+          btn.textContent = d.active ? 'ENABLED' : 'DISABLED';
+          btn.className = 'btn btn-sm ' + (d.active ? 'btn-success' : 'btn-secondary') + ' font-mono mt-toggle';
+        }
+        btn.disabled = false;
+      }).catch(function(){ btn.disabled = false; });
+    });
+  });
+  function mtResetRound(){
+    var out = document.getElementById('mt-reset-out');
+    var btn = document.getElementById('mt-reset-btn');
+    btn.disabled = true;
+    out.innerHTML = '<span class="text-muted font-mono">Resetting Round 1...</span>';
+    fetch('/api/admin/round/1/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: true })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if (d.ok) {
+        out.innerHTML = '<span class="text-success font-mono">' + esc(d.message) + ' ' + d.reset.variants + ' challenges re-seeded · ' + d.reset.cleared_logins + ' logins cleared.</span>';
+        setTimeout(function(){ window.location.reload(); }, 1400);
+      } else {
+        out.innerHTML = '<span class="text-danger font-mono">' + esc(d.error || 'Reset failed.') + '</span>';
+        btn.disabled = false;
+      }
+    }).catch(function(){
+      out.innerHTML = '<span class="text-danger font-mono">Request failed.</span>';
+      btn.disabled = false;
+    });
+  }
+  function mtBulkAdd(){
+    var raw = document.getElementById('mt-bulk-input');
+    var out = document.getElementById('mt-bulk-results');
+    var teams = [];
+    String(raw.value).split(/\r?\n/).forEach(function(line){
+      line = line.trim();
+      if (!line) return;
+      var parts = line.split(/\s*\|\s*|\t/).map(function(p){ return p.trim(); });
+      var name = parts[0] || '', id = parts[1] || '', acc = parts[2] || id;
+      if (!name || !id) return;
+      teams.push({ name: name, id: id, access_id: acc });
+    });
+    if (!teams.length) { out.innerHTML = '<span class="text-danger font-mono">No valid lines.</span>'; return; }
+    var btn = document.getElementById('mt-bulk-add');
+    btn.disabled = true;
+    out.innerHTML = '<span class="text-muted font-mono">Adding ' + teams.length + ' team(s)...</span>';
+    fetch('/api/admin/round/1/teams/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ teams: teams })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      var html = teams.map(function(t, i){
+        var r = d.results && d.results[i];
+        var ok = r && r.ok;
+        return '<div class="font-mono" style="' + (ok ? 'color:var(--text-secondary);' : 'color:var(--state-danger);') + '">' +
+          esc(t.id) + ' — ' + esc(r ? r.message : 'unknown') + '</div>';
+      }).join('');
+      out.innerHTML = '<div class="font-overline text-muted">' + d.added + ' added · ' + d.failed + ' failed</div>' + html;
+      btn.disabled = false;
+      setTimeout(function(){ window.location.reload(); }, 1200);
+    }).catch(function(){
+      out.innerHTML = '<span class="text-danger font-mono">Request failed.</span>';
+      btn.disabled = false;
+    });
+  }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  }
+</script>
+{% endblock %}

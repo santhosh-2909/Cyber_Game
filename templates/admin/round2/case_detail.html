@@ -168,7 +168,7 @@
   function openStation() {
     stationEditing = null;
     document.getElementById('st_modalTitle').textContent = 'New Investigation Task';
-    ['st_name','st_id','st_domain','st_desc','st_evidence','st_question','st_answer','st_hint'].forEach(function (id) {
+    ['st_name','st_id','st_domain','st_desc','st_evidence','st_question','st_answer','st_hint','st_mcq'].forEach(function (id) {
       document.getElementById(id).value = '';
     });
     document.getElementById('st_points').value = '100';
@@ -176,6 +176,11 @@
     document.getElementById('st_status').value = 'DRAFT';
     document.getElementById('st_validation').value = 'NORMALIZED';
     ApShowPanel('panel_st');
+  }
+  function prettyMcq(raw) {
+    var txt = (raw || '[]').trim();
+    if (!txt) return '[]';
+    try { return JSON.stringify(JSON.parse(txt), null, 2); } catch (e) { return txt; }
   }
   function editStation(id) {
     stationEditing = id;
@@ -192,6 +197,7 @@
         document.getElementById('st_question').value = s.question || '';
         document.getElementById('st_answer').value = s.answer || '';
         document.getElementById('st_hint').value = s.hint || '';
+        document.getElementById('st_mcq').value = prettyMcq(s.mcq_json);
         document.getElementById('st_points').value = s.points || 100;
         document.getElementById('st_max').value = s.max_attempts || 5;
         document.getElementById('st_status').value = s.status || 'DRAFT';
@@ -213,7 +219,8 @@
       points: parseInt(document.getElementById('st_points').value || '100', 10),
       max_attempts: parseInt(document.getElementById('st_max').value || '5', 10),
       status: document.getElementById('st_status').value,
-      validation_mode: document.getElementById('st_validation').value
+      validation_mode: document.getElementById('st_validation').value,
+      mcq_json: document.getElementById('st_mcq').value.trim()
     };
     if (stationEditing) payload.station_id_pk = stationEditing;
     if (!payload.name) { apToast('Task name is required.', true); return; }
@@ -358,6 +365,11 @@
     <div class="ap-field" style="grid-column:1 / -1;"><label>Answer</label><input id="st_answer"></div>
     <div class="ap-field" style="grid-column:1 / -1;"><label>Hint</label><input id="st_hint"></div>
     <div class="ap-field" style="grid-column:1 / -1;"><label>Evidence filename (case folder)</label><input id="st_evidence"></div>
+    <div class="ap-field" style="grid-column:1 / -1;">
+      <label>MCQ bank (JSON) — 3 questions, 4 options, answers 0-3</label>
+      <textarea id="st_mcq" rows="10" spellcheck="false" style="font-family:var(--font-mono);font-size:12px;">{"mcqs": []}</textarea>
+      <div class="ap-mono ap-muted" style="font-size:11px;margin-top:4px;">[{"q": "…", "options": ["A","B","C","D"], "answer": 0}]. Empty &#8594; station stays a text-findings task. Correct answers are hidden from participants.</div>
+    </div>
   </div>
   <div class="ap-row" style="justify-content:flex-end;margin-top:8px;">
     <button class="ap-btn ghost" onclick="ApCloseModal()">CANCEL</button>

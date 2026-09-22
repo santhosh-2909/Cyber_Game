@@ -169,20 +169,45 @@ def r1_register_rules_ack():
     return jsonify({"ok": True})
 
 
+def _r1_login_teams():
+    """Live Round 1 team gate list (drives the login page status panel).
+
+    Every team provisioned for Round 1 (round1_enabled=1) shows up here, so
+    admin bulk-adds / toggles / resets are reflected on the login page.
+    """
+    conn = db.get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT team_id, team_name, is_active FROM teams "
+            "WHERE round1_enabled=1 ORDER BY team_name COLLATE NOCASE").fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
 @r1.route("/r1/login", methods=["GET", "POST"])
 def r1_login():
     if get_current_team() is not None:
         return redirect(url_for("r1.r1_dashboard"))
+    teams = _r1_login_teams()
     if request.method == "POST":
         team_name = request.form.get("team_name", "").strip()
         team_id_input = request.form.get("team_id", "").strip()
         # Login is only permitted for admin-authorized teams.
         ok, error = access.participant_login(team_name, team_id_input, "round1")
         if not ok:
-            return render_template("r1_login.html", error=error, team=None)
+            return render_template("r1_login.html", error=error, team=None,
+                                   teams=teams)
+        # The round may have been reset by an admin: drop the cookie mirror of
+        # any PREVIOUS login so stale completed/in-progress progress can never
+        # resurrect into this fresh attempt (DB-first reads would otherwise
+        # fall back to it after the reset wiped the round tables).
+        team = get_current_team()
+        if team is not None and not rstate.has_active_db_session(team["id"]):
+            rstate.clear()
         return redirect(url_for("r1.r1_dashboard"))
     return render_template("r1_login.html", error=access.pop_login_notice(),
-                           team=None)
+                           team=None, teams=teams)
 
 
 @r1.route("/r1/logout")
@@ -211,6 +236,8 @@ def r1_start(team):
                 pass
             return redirect(url_for("r1.r1_dashboard"))
         if existing["status"] in ("COMPLETED", "EXPIRED"):
+            if _is_mt_session(existing["id"]):
+                return redirect(url_for("mt.mt_page"))
             return redirect(url_for("r1.r1_complete",
                                     session_id=existing["id"]))
     conn = db.get_connection()
@@ -238,10 +265,14 @@ def r1_dashboard(team):
         # take them to the completion state rather than a fresh start screen.
         finished = _get_finished_session(team["id"])
         if finished:
+            if _is_mt_session(finished["id"]):
+                return redirect(url_for("mt.mt_page"))
             return redirect(url_for("r1.r1_complete", session_id=finished["id"]))
         return render_template("r1_dashboard.html", team=team, session_row=None,
                                unlocked=None)
     if session_row["status"] in ("COMPLETED", "EXPIRED"):
+        if _is_mt_session(session_row["id"]):
+            return redirect(url_for("mt.mt_page"))
         return redirect(url_for("r1.r1_complete", session_id=session_row["id"]))
     session_row["remaining_ms"] = session_row["ends_at"] - db.now_ms()
     unlocked = rstate.get_unlocked(session_row["id"])
@@ -304,6 +335,37 @@ def _get_finished_session(team_id):
             "AND status IN ('COMPLETED','EXPIRED') ORDER BY id DESC LIMIT 1",
             (team_id,)).fetchone()
         return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def _lookup_finished_session(team_id, session_id):
+    """Return a specific COMPLETED/EXPIRED round_sessions row, or None."""
+    conn = db.get_connection()
+    try:
+        row = conn.execute(
+            "SELECT * FROM round_sessions WHERE team_id=? AND id=? "
+            "AND status IN ('COMPLETED','EXPIRED')",
+            (team_id, session_id)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def _is_mt_session(session_id):
+    """True when the session's challenge hand is MT-managed.
+
+    The Mystery Trace flow deals its six-challenge hand into the shared
+    round_sessions table (via team_challenge_assignments), so a finished MT
+    round must route to the Mystery Trace terminal page rather than the legacy
+    Round 1 completion screen.
+    """
+    conn = db.get_connection()
+    try:
+        row = conn.execute(
+            "SELECT 1 FROM team_challenge_assignments WHERE session_id=? LIMIT 1",
+            (session_id,)).fetchone()
+        return row is not None
     finally:
         conn.close()
 
@@ -751,12 +813,19 @@ def r1_hint(team, assignment_id):
 def r1_complete(team, session_id):
     sess = rstate.get_session(team["id"])
     if not sess or sess.get("id") != session_id:
-        abort(404)
+        # rstate.get_session deliberately skips COMPLETED/EXPIRED rows, so a
+        # finished round resolved by r1_dashboard used to 404 here. Resolve the
+        # finished session directly from the DB before giving up.
+        sess = _lookup_finished_session(team["id"], session_id)
+        if sess is None:
+            abort(404)
     sess = _mark_expired(dict(sess))
     try:
         rstate.mirror_session(sess)
     except Exception:
         pass
+    if _is_mt_session(session_id):
+        return redirect(url_for("mt.mt_page"))
     assignments = rstate.get_assignments(session_id)
     return render_template("r1_complete.html", team=team, session_row=sess,
                            assignments=assignments)

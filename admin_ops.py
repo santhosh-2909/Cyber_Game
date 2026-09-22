@@ -314,18 +314,34 @@ def clear_selected_round_logins(team_ids, round_name=None):
         conn.close()
 
 
-def clear_all_round_logins(round_name=None):
+def delete_all_teams():
+    """Permanently delete EVERY team row and all of its child records:
+    login sessions, Round 1 assignments/submissions/hints/lab events, and
+    anything else keyed off teams or round_sessions. Used by the roster
+    'CLEAR ... LOGINS' wipe button, which removes the entire round's
+    members and their credential/ID details."""
     conn = db.get_connection()
     try:
-        if round_name:
-            cur = conn.execute(
-                "UPDATE participant_sessions SET status='CLEARED' "
-                "WHERE status='ACTIVE' AND round_name=?", (round_name,))
-        else:
-            cur = conn.execute(
-                "UPDATE participant_sessions SET status='CLEARED' WHERE status='ACTIVE'")
-        conn.commit()
-        return cur.rowcount
+        n = conn.execute("SELECT COUNT(*) AS n FROM teams").fetchone()["n"]
+        conn.execute("PRAGMA foreign_keys = OFF")
+        try:
+            conn.execute(
+                "DELETE FROM hint_usage WHERE assignment_id IN "
+                "(SELECT id FROM team_challenge_assignments)")
+            conn.execute(
+                "DELETE FROM lab_events WHERE session_id IN "
+                "(SELECT id FROM round_sessions)")
+            conn.execute(
+                "DELETE FROM submissions WHERE session_id IN "
+                "(SELECT id FROM round_sessions)")
+            conn.execute("DELETE FROM team_challenge_assignments")
+            conn.execute("DELETE FROM participant_sessions")
+            conn.execute("DELETE FROM round_sessions")
+            conn.execute("DELETE FROM teams")
+            conn.commit()
+        finally:
+            conn.execute("PRAGMA foreign_keys = ON")
+        return n
     finally:
         conn.close()
 
@@ -796,6 +812,63 @@ def list_r2_cases(include_archived=True):
     return [dict(r) for r in rows]
 
 
+def count_r2_cases():
+    """Total rows in r2_cases (used to gate the legacy text-case auto-seed)."""
+    return stat_count("SELECT COUNT(*) AS n FROM r2_cases")
+
+
+def parse_mcq_json(value):
+    """Parse a station's mcq_json column into {"mcqs": [...]} or {'mcqs': []}.
+
+    Each MCQ is expected as {"q": str, "options": [4 str], "answer": int 0-3}.
+    Returns an empty (but valid) structure for malformed/empty input so callers
+    never trip over invalid raw JSON.
+    """
+    if isinstance(value, dict):
+        raw = value
+    elif value:
+        try:
+            raw = json.loads(value)
+        except (TypeError, ValueError):
+            return {"mcqs": []}
+    else:
+        return {"mcqs": []}
+    mcqs = []
+    for item in (raw.get("mcqs") or []) if isinstance(raw, dict) else []:
+        if not isinstance(item, dict) or not str(item.get("q") or "").strip():
+            continue
+        options = [str(o) for o in (item.get("options") or [])]
+        if len(options) != 4 or not all(o.strip() for o in options):
+            continue
+        try:
+            answer = int(item.get("answer"))
+        except (TypeError, ValueError):
+            answer = -1
+        if answer < 0 or answer > 3:
+            continue
+        mcqs.append({
+            "q": str(item.get("q")).strip(),
+            "options": [o.strip() for o in options],
+            "answer": answer,
+        })
+    return {"mcqs": mcqs}
+
+
+def validate_mcq_json(value):
+    """Validate persisted mcq_json (string or dict). Returns (ok, error)."""
+    parsed = parse_mcq_json(value)
+    # Re-serialize input to catch genuinely malformed JSON, not just missing keys.
+    if isinstance(value, str) and value.strip():
+        try:
+            json.loads(value)
+        except (TypeError, ValueError):
+            return False, "MCQ JSON is not valid JSON."
+    for i, mcq in enumerate(parsed["mcqs"], start=1):
+        if len(mcq["options"]) != 4:
+            return False, "MCQ %d must have exactly 4 options." % i
+    return True, ""
+
+
 def create_round2_case(fields):
     title = (fields.get("title") or "").strip()
     if not title:
@@ -902,6 +975,16 @@ def get_round2_case_by_code(case_code):
         conn.close()
 
 
+def get_r2_station(station_id):
+    conn = db.get_connection()
+    try:
+        row = conn.execute("SELECT * FROM r2_stations WHERE id=?",
+                           (int(station_id),)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
 def r2_person_count(case_id):
     return stat_count("SELECT COUNT(*) AS n FROM r2_persons WHERE case_id=?",
                       (int(case_id),))
@@ -938,6 +1021,10 @@ def create_r2_station(case_id, fields):
     name = (fields.get("name") or "").strip()
     if not name:
         return False, "Task name is required."
+    if fields.get("mcq_json"):
+        ok, err = validate_mcq_json(fields.get("mcq_json"))
+        if not ok:
+            return False, "MCQ questions: " + err
     conn = db.get_connection()
     try:
         count = conn.execute("SELECT COUNT(*) AS n FROM r2_stations WHERE case_id=?",
@@ -953,7 +1040,8 @@ def create_r2_station(case_id, fields):
         conn.execute(
             "INSERT INTO r2_stations (case_id, station_id, name, domain, description, "
             "evidence, question, answer, hint, points, max_attempts, validation_mode, "
-            "display_order, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "mcq_json, display_order, status, created_at, updated_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (int(case_id), str(station_id), name, (fields.get("domain") or "").strip(),
              (fields.get("description") or "").strip(),
              (fields.get("evidence") or "").strip(),
@@ -963,6 +1051,7 @@ def create_r2_station(case_id, fields):
              int(fields.get("points") or 100),
              int(fields.get("max_attempts") or 5),
              fields.get("validation_mode") or "NORMALIZED",
+             fields.get("mcq_json") or "[]",
              order, fields.get("status") or "DRAFT", now, now))
         conn.commit()
         return True, "Task created."
@@ -973,7 +1062,11 @@ def create_r2_station(case_id, fields):
 def update_r2_station(station_id, fields):
     allowed = ("station_id", "name", "domain", "description", "evidence", "question",
                "answer", "hint", "points", "max_attempts", "validation_mode",
-               "display_order", "status")
+               "mcq_json", "display_order", "status")
+    if fields.get("mcq_json"):
+        ok, err = validate_mcq_json(fields.get("mcq_json"))
+        if not ok:
+            return False, "MCQ questions: " + err
     conn = db.get_connection()
     try:
         cur_row = conn.execute("SELECT * FROM r2_stations WHERE id=?",
@@ -987,11 +1080,13 @@ def update_r2_station(station_id, fields):
         conn.execute(
             "UPDATE r2_stations SET station_id=?, name=?, domain=?, description=?, "
             "evidence=?, question=?, answer=?, hint=?, points=?, max_attempts=?, "
-            "validation_mode=?, display_order=?, status=?, updated_at=? WHERE id=?",
+            "validation_mode=?, mcq_json=?, display_order=?, status=?, updated_at=? "
+            "WHERE id=?",
             (str(current["station_id"]), current["name"], current["domain"],
              current["description"], current["evidence"], current["question"],
              current["answer"], current["hint"], int(current["points"] or 0),
              int(current["max_attempts"] or 5), current["validation_mode"],
+             current.get("mcq_json") or "[]",
              int(current.get("display_order") or 0), current["status"],
              db.now_ms(), int(station_id)))
         conn.commit()

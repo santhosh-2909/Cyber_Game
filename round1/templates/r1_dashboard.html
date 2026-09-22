@@ -1,214 +1,35 @@
 {% extends "r1_base_v2.html" %}
-{% block title %}Tactical Operations — Round 1 Dashboard{% endblock %}
+{% block title %}MYSTERY TRACE — Round 1{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mt.css') }}">
+{% endblock %}
 
 {% block content %}
-<div class="r1-dashboard-shell" style="max-width:1280px;margin:0 auto;padding:var(--space-5, 20px) 0;">
-
-{% if session_row is none %}
-  <!-- State: No active session (Pre-engagement) -->
-  <div class="card" style="max-width:680px;margin:5vh auto;background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:var(--space-8, 32px);text-align:center;box-shadow:var(--shadow-lg);">
-    <div style="width:64px;height:64px;border-radius:50%;background-color:rgba(0, 240, 255, 0.12);border:1px solid var(--border-signal);display:flex;align-items:center;justify-content:center;margin:0 auto var(--space-4, 16px);color:var(--accent-signal);">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polygon points="5 3 19 12 5 21 5 3"></polygon>
-      </svg>
-    </div>
-    <div class="badge badge-outline font-mono" style="color:var(--accent-signal);margin-bottom:var(--space-2, 8px);">
-      ENGAGEMENT BRIEFING
-    </div>
-    <h1 style="font-family:var(--font-display);font-size:2rem;font-weight:700;color:var(--text-primary);margin:0 0 var(--space-3, 12px) 0;">
-      Round 1 Gauntlet Armed
-    </h1>
-    <p style="font-size:var(--font-size-md, 1.125rem);color:var(--text-secondary);max-width:52ch;line-height:1.6;margin:0 auto var(--space-6, 24px);">
-      Authenticated unit: <strong style="color:var(--text-primary);font-family:var(--font-mono);">{{ team.team_name }}</strong>. 
-      Activating the sequence provisions 6 random challenge variants across the fundamentals matrix and initiates your 30-minute server countdown.
+<div class="r1-dashboard-shell" style="max-width:860px;margin:0 auto;padding:var(--space-5, 20px) 0;">
+  <div class="hud-panel hud-panel-cn" style="padding:36px;text-align:center;border-radius:18px;">
+    <div class="hud-kicker" style="color:var(--hud-purple-lt);">MYSTERY TRACE // ROUND 1</div>
+    <h1 class="hud-h1" style="margin:8px 0 0;">TRACE THE 12 DOMAINS</h1>
+    <p class="hud-sub" style="margin:14px auto 0;max-width:56ch;font-size:1.0rem;line-height:1.7;color:var(--hud-muted);">
+      Each team is dealt <strong style="color:var(--hud-text);">4 mini-challenges</strong> from the
+      12-domain mystery catalogue. Resolve them sequentially, capture a flag for every correct answer,
+      and score <strong style="color:var(--hud-green);">25 points</strong> each — all against a
+      <strong style="color:var(--hud-amber);">30-minute</strong> server timer.
     </p>
 
-    <form method="POST" action="{{ url_for('r1.r1_start') }}">
-      <button type="submit" class="btn btn-primary font-mono" style="width:100%;max-width:380px;padding:14px 28px;font-size:15px;font-weight:700;letter-spacing:0.04em;">
-        START 30-MINUTE ROUND &rarr;
-      </button>
-    </form>
-
-    <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-top:var(--space-5, 20px);color:var(--text-tertiary);font-size:12px;font-family:var(--font-mono);">
-      <span>&bull; Server-authoritative timing</span>
-      <span>&bull; Anti-replay locked</span>
-      <span>&bull; 600 max points</span>
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin:22px 0 26px;">
+      <span class="hud-badge hud-badge-purple">48 CHALLENGES</span>
+      <span class="hud-badge hud-badge-purple">12 DOMAINS</span>
+      <span class="hud-badge hud-badge-green">25 PTS EACH</span>
+      <span class="hud-badge hud-badge-amber">30 MIN</span>
     </div>
+
+    {% if session_row and session_row.status == 'ACTIVE' %}
+      <a href="{{ url_for('mt.mt_page') }}" class="hud-btn hud-btn-green btn-lg" style="font-size:15px;padding:14px 30px;">RESUME OPERATION &rarr;</a>
+    {% else %}
+      <a href="{{ url_for('mt.mt_page') }}" class="hud-btn hud-btn-green btn-lg" style="font-size:15px;padding:14px 30px;">START LIVE OPERATION &rarr;</a>
+    {% endif %}
   </div>
-
-{% else %}
-  {% set a = unlocked %}
-
-  <!-- State: Active Tactical Session -->
-  <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:var(--space-6, 24px);">
-    <div>
-      <div class="badge badge-outline font-mono" style="color:var(--accent-signal);margin-bottom:6px;">
-        OPERATION LIVE &middot; SESSION #{{ session_row.id }}
-      </div>
-      <h1 style="font-family:var(--font-display);font-size:clamp(1.8rem, 3.5vw, 2.5rem);font-weight:700;color:var(--text-primary);margin:0;">
-        CYBER PUZZLE MATRIX
-      </h1>
-    </div>
-
-    <!-- Quick Stats Strip -->
-    <div style="display:flex;align-items:center;gap:16px;">
-      <div class="card" style="padding:8px 16px;background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-sm);display:flex;align-items:center;gap:10px;">
-        <span style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);letter-spacing:0.06em;">TOTAL SCORE</span>
-        <span class="font-mono font-bold" style="font-size:18px;color:var(--accent-signal);">{{ session_row.score }} <small style="font-size:12px;color:var(--text-tertiary);">/ 600</small></span>
-      </div>
-
-      <div class="card" style="padding:8px 16px;background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-sm);display:flex;align-items:center;gap:10px;">
-        <span style="font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);letter-spacing:0.06em;">SOLVED</span>
-        <span class="font-mono font-bold" style="font-size:18px;color:var(--state-success);">{{ completed }} <small style="font-size:12px;color:var(--text-tertiary);">/ 6</small></span>
-      </div>
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 340px;gap:var(--space-6, 24px);align-items:start;">
-    <!-- Main Column: Current Active Mission -->
-    <div>
-      {% if a %}
-      <div class="card card-interactive" style="background-color:var(--bg-surface-1);border:1px solid var(--border-signal);border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-md);">
-        <!-- Card Header -->
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-subtle);background-color:rgba(0, 240, 255, 0.04);">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span class="status-dot active" style="width:8px;height:8px;border-radius:50%;background-color:var(--accent-signal);"></span>
-            <span class="font-mono font-bold" style="font-size:12px;letter-spacing:0.08em;color:var(--accent-signal);">CURRENT DIRECTIVE</span>
-          </div>
-          <span class="badge badge-secondary font-mono" style="font-size:11px;">
-            CHALLENGE {{ a.display_order }} OF 6
-          </span>
-        </div>
-
-        <!-- Card Body -->
-        <div style="padding:24px 20px;">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-            <span class="badge badge-outline font-mono" style="font-size:12px;color:var(--state-success);">{{ a.challenge_code }}</span>
-            <span class="badge badge-outline font-mono" style="font-size:11px;">{{ a.difficulty | upper }}</span>
-            <span style="font-size:12px;color:var(--text-tertiary);">&bull;</span>
-            <span style="font-size:13px;color:var(--text-secondary);">{{ a.domain }}</span>
-          </div>
-
-          <h2 style="font-family:var(--font-display);font-size:1.6rem;font-weight:700;color:var(--text-primary);margin:0 0 12px 0;">
-            {{ a.title }}
-          </h2>
-          <p style="font-size:14px;color:var(--text-secondary);line-height:1.6;margin:0 0 20px 0;">
-            Tactical challenge ready for execution. Inspect provided challenge parameters, decrypt artifacts, or solve the embedded mini-lab to recover the validation flag.
-          </p>
-
-          <!-- Card Actions -->
-          <div style="display:flex;align-items:center;justify-content:space-between;padding-top:16px;border-top:1px solid var(--border-subtle);">
-            <span class="badge badge-outline font-mono" style="font-size:13px;font-weight:700;color:var(--text-primary);">
-              {{ a.points }} PTS AWARD
-            </span>
-
-            <a href="{{ url_for('r1.r1_challenge', assignment_id=a.assignment_id) }}" class="btn btn-primary font-mono" style="padding:8px 20px;font-size:13px;">
-              {% if a.lab_status == 'LAB_COMPLETED' %}
-                SUBMIT FLAG &rarr;
-              {% elif a.lab_status == 'IN_PROGRESS' %}
-                RESUME LAB &rarr;
-              {% else %}
-                ENGAGE LAB &rarr;
-              {% endif %}
-            </a>
-          </div>
-        </div>
-      </div>
-      {% else %}
-      <!-- All Solved State -->
-      <div class="card" style="background-color:var(--bg-surface-1);border:1px solid rgba(16, 185, 129, 0.4);border-radius:var(--radius-md);padding:32px;text-align:center;">
-        <div style="color:var(--state-success);font-size:36px;margin-bottom:12px;">&#10003;</div>
-        <h2 style="font-family:var(--font-display);font-size:1.8rem;color:var(--text-primary);margin:0 0 8px 0;">Round 1 Completed</h2>
-        <p style="color:var(--text-secondary);font-size:14px;margin:0 0 20px 0;">You have successfully completed all challenges assigned for Round 1.</p>
-        <a href="{{ url_for('r1.r1_complete', session_id=session_row.id) }}" class="btn btn-primary font-mono">
-          VIEW FINAL REPORT &rarr;
-        </a>
-      </div>
-      {% endif %}
-
-      <!-- System Diagnostic Panel -->
-      <div class="card" style="margin-top:var(--space-5, 20px);background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:16px 20px;">
-        <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:0.06em;color:var(--text-secondary);margin-bottom:12px;">
-          SYSTEM TELEMETRY &amp; SESSION CONTROLS
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;">
-          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-subtle);font-size:13px;">
-            <span style="color:var(--text-tertiary);">Session Auth</span>
-            <span class="font-mono" style="color:var(--state-success);">SECURE (LAN)</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-subtle);font-size:13px;">
-            <span style="color:var(--text-tertiary);">Variant Seed</span>
-            <span class="font-mono" style="color:var(--text-secondary);">#{{ session_row.assignment_set_id if session_row.assignment_set_id is defined else session_row.id }}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-subtle);font-size:13px;">
-            <span style="color:var(--text-tertiary);">Flag Submissions</span>
-            <span class="font-mono" style="color:var(--accent-signal);">RATE-LIMIT PROTECTED</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Sidebar: Progress Bar & Mission Event Log -->
-    <div>
-      <!-- Progress Card -->
-      <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:20px;margin-bottom:var(--space-5, 20px);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <span style="font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:0.06em;color:var(--text-secondary);">
-            GAUNTLET PROGRESS
-          </span>
-          <span class="font-mono font-bold" style="font-size:13px;color:var(--accent-signal);">
-            {{ ((completed * 100) / 6) | round(0) | int }}%
-          </span>
-        </div>
-
-        <div style="width:100%;height:6px;background-color:var(--bg-surface-2);border-radius:3px;overflow:hidden;margin-bottom:16px;">
-          <div style="width:{{ (completed * 100 / 6) }}%;height:100%;background-color:var(--accent-signal);transition:width 0.3s ease;"></div>
-        </div>
-
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border-subtle);font-size:13px;">
-          <span style="color:var(--text-tertiary);">Time Remaining:</span>
-          <!-- Persistent Hud Timer Hook -->
-          <span class="font-mono font-bold" id="hud-timer" style="color:var(--accent-signal);font-size:14px;">--:--</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border-subtle);font-size:13px;">
-          <span style="color:var(--text-tertiary);">Current Score:</span>
-          <span class="font-mono font-bold" style="color:var(--text-primary);">{{ session_row.score }} pts</span>
-        </div>
-      </div>
-
-      <!-- Mission Event Log -->
-      <div class="card" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:20px;">
-        <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:0.06em;color:var(--text-secondary);margin-bottom:12px;">
-          MISSION AUDIT LOG
-        </div>
-        {% if events %}
-        <div style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;">
-          {% for e in events %}
-          <div style="font-family:var(--font-mono);font-size:11px;padding:6px 8px;background-color:var(--bg-surface-2);border-radius:var(--radius-xs);border-left:2px solid var(--accent-signal);">
-            <div style="color:var(--text-tertiary);margin-bottom:2px;">
-              [{{ ((e.occurred_at - session_row.started_at) / 60000) | round(0, 'floor') | int }}:{{ '%02d' | format(((e.occurred_at - session_row.started_at) % 60000) / 1000 | round(0, 'floor') | int) }}]
-            </div>
-            <div style="color:var(--text-secondary);">
-              {%- if e.kind == 'lab_opened' %}Lab workspace initialized
-              {%- elif e.kind == 'lab_completed' %}Objective completed successfully
-              {%- elif e.kind == 'flag_submitted' and e.detail == 'correct' %}<span style="color:var(--state-success);font-weight:700;">Flag validated (+100 pts)</span>
-              {%- elif e.kind == 'flag_submitted' %}<span style="color:var(--state-danger);">Flag rejected</span>
-              {%- elif e.kind == 'flag_revealed' %}Hint revealed
-              {%- else %}{{ e.kind }} recorded
-              {%- endif -%}
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-        {% else %}
-        <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-tertiary);text-align:center;padding:16px 0;">
-          No operational events recorded yet.
-        </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-{% endif %}
 </div>
 {% endblock %}

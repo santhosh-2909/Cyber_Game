@@ -94,7 +94,7 @@
   }
   function clearLogin(id) { ApOpenForm('/admin/logins/clear', { team_db_id: id, round_name: R }); }
   function clearAll() {
-    if (!confirm('End ALL active Round 2 sessions?')) return;
+    if (!confirm('DELETE ALL TEAMS entirely (both rounds)?\nThis wipes every team, ID, login and all progress. Cannot be undone.')) return;
     ApOpenForm('/admin/logins/clear-all', { round_name: R });
   }
   function rotateId(id) {

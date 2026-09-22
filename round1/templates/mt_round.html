@@ -1,0 +1,108 @@
+{% extends "r1_base_v2.html" %}
+{% block title %}MYSTERY TRACE — Round 1{% endblock %}
+{% block body_class %}mt-round{% endblock %}
+{% block sidebar %}{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mt.css') }}">
+{% endblock %}
+{% block content %}
+
+<div id="mt-root">
+  <!-- ============ HAND GRID ============ -->
+  <div class="hud-kicker" style="color:var(--hud-dim);margin-bottom:10px;">ASSIGNED MISSION HAND</div>
+  <div id="mt-hand" class="mt-hand" style="margin-bottom:24px;"></div>
+
+  <!-- ============ ACTIVE CHALLENGE ============ -->
+  <div id="mt-panel">
+    <div class="hud-panel hud-panel-cn" style="padding:0;margin-bottom:20px;">
+      <div class="hud-panel-title" style="padding:16px 22px;border-bottom:1px solid var(--hud-line-soft);">
+        <div class="flex items-center" style="gap:10px;flex-wrap:wrap;">
+          <span class="hud-badge hud-badge-amber" id="mt-code">--</span>
+          <span class="hud-badge hud-badge-purple" id="mt-domain">--</span>
+          <span class="hud-badge hud-badge-green" id="mt-engine">--</span>
+          <span class="mt-radar" role="img" aria-label="Tracking radar"></span>
+          <span style="margin-left:auto;">
+            <span class="hud-stat-label" style="display:inline;margin:0;margin-right:8px;">Value</span>
+            <span class="font-mono" id="mt-points" style="color:var(--hud-green);font-weight:800;">25 PTS</span>
+            <span class="hud-badge hud-badge-purple font-mono" id="mt-strike" style="display:none;margin-left:8px;" title="Time strike: bonus points for fast solves">+0 strike</span>
+            <span id="mt-flag-chip" style="display:none;margin-left:10px;color:var(--hud-green);"></span>
+            <span class="hud-badge hud-badge-purple font-mono" id="mt-attempts" style="display:none;margin-left:10px;">0/3</span>
+          </span>
+        </div>
+        <h2 class="hud-h1" id="mt-title" style="margin:14px 0 0;font-size:1.25rem;">--</h2>
+      </div>
+      <div style="padding:22px;">
+        <!-- Question 1 (always shown first; Q2 stays hidden until Q1 solves) -->
+        <div id="mt-q1-block">
+          <div class="hud-kicker" style="color:var(--hud-dim);margin-bottom:6px;font-size:0.7rem;">QUESTION 01</div>
+          <div id="mt-question" class="hud-sub" style="font-size:0.95rem;margin-bottom:18px;line-height:1.7;"></div>
+          <!-- Evidence / engine stage (rendered by engines.js) -->
+          <div id="mt-evidence"></div>
+          <div style="height:22px;"></div>
+        </div>
+
+        <!-- Question 2 (the sequential second question) -->
+        <div id="mt-q2-block" style="display:none;">
+          <div class="hud-kicker" style="color:var(--hud-green);margin-bottom:6px;font-size:0.7rem;">
+            QUESTION 02 <span id="mt-q1-solved-chip" class="hud-badge hud-badge-green font-mono" style="margin-left:6px;">Q1 SOLVED</span>
+          </div>
+          <div id="mt-question-2" class="hud-sub" style="font-size:0.95rem;margin-bottom:18px;line-height:1.7;"></div>
+          <div id="mt-evidence-2"></div>
+          <div style="height:10px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ COMPLETE BANNER ============ -->
+  <div id="mt-complete" style="display:none;" class="hud-panel">
+    <div class="flex items-center gap-md">
+      <span class="status-dot active"></span>
+      <div>
+        <div class="hud-kicker" style="color:var(--hud-green);">MISSION COMPLETE</div>
+        <p class="hud-sub" style="margin:8px 0 0;font-size:1.05rem;line-height:1.7;">
+          All <span id="mt-complete-count">0</span> challenges resolved.
+          Final score: <span id="mt-complete-score" style="color:var(--hud-green);font-weight:800;">0</span> pts.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ANSWER BAR (always visible during the round) ============ -->
+<div id="mt-answerbar" class="mt-answerbar" aria-label="Answer entry" style="display:none;">
+  <div id="mt-result" class="mt-answerbar-result"></div>
+  <div id="mt-answer-row-1" class="mt-answerbar-row">
+    <input id="mt-answer" type="text" class="flag-input mt-answerbar-input"
+           placeholder="Enter the value you determined for the open question..." autocomplete="off" spellcheck="false">
+  </div>
+  <div id="mt-answer-row-2" class="mt-answerbar-row" style="margin-top:10px;">
+    <input id="mt-answer-2" type="text" class="flag-input mt-answerbar-input"
+           placeholder="Enter the value for the second question..." autocomplete="off" spellcheck="false">
+  </div>
+  <div class="mt-answerbar-row" style="margin-top:10px;justify-content:flex-end;">
+    <button id="mt-hint-btn" type="button" class="hud-btn hud-btn-ghost btn-sm mt-answerbar-hint">HINT</button>
+    <button id="mt-submit" type="button" class="hud-btn hud-btn-green btn-sm">RUN CHECK</button>
+  </div>
+  <div id="mt-hint" class="mt-answerbar-hintbox" style="display:none;"></div>
+</div>
+
+<!-- ============ TRY AGAIN POP ============ -->
+<div id="mt-pop-backdrop" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mt-pop-title">
+  <div class="mt-pop">
+    <div class="mt-pop-icon">!</div>
+    <div class="mt-pop-title" id="mt-pop-title">INCORRECT</div>
+    <div class="mt-pop-text" id="mt-pop-text">Your answer did not unlock this case.</div>
+    <button id="mt-pop-try" type="button" class="hud-btn hud-btn-amber mt-pop-btn">
+      TRY AGAIN
+    </button>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/mt/engines.js') }}"></script>
+<script src="{{ url_for('static', filename='js/mt/dashboard.js') }}"></script>
+{% endblock %}

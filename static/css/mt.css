@@ -1,0 +1,621 @@
+/* MYSTERY TRACE · mt.css
+ * Companion styles for the MT participant dashboard. Builds on the project
+ * HUD design tokens (cyber-hud.css) so it matches the lab setup exactly.
+ */
+
+/* ---- session HUD ---- */
+.mt-hud .hud-panel { border: 1px solid var(--hud-line-soft); }
+
+/* Fixed/sticky at the top, right below the command header, so Remaining /
+   Solved / Score stay visible while the team scrolls the mission. */
+.mt-hud-sticky {
+  position: sticky;
+  top: 8px;
+  z-index: 30;
+  padding: 14px 18px;
+  border: 1px solid var(--hud-line);
+  border-radius: 14px;
+  background: rgba(9, 14, 22, 0.92);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.mt-hud-sticky .hud-h1 { font-size: 1.05rem; }
+.mt-hud-sticky .hud-bigstat { font-size: 1.15rem; }
+.mt-hud-sticky .hud-panel { padding: 8px 14px !important; }
+.mt-hud-sticky .mt-strike-chip { color: var(--hud-purple-lt); }
+.mt-hud-strike-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; background: var(--hud-green); }
+.mt-hud-strike-dot.done { background: var(--state-danger); }
+.mt-hud-strike-dot.hot { background: var(--state-warning); }
+
+/* ---- hand grid (the 6-of-12 mission tiles) ---- */
+.mt-hand {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.mt-tile {
+  position: relative;
+  border: 1px solid var(--hud-line-soft);
+  border-radius: 14px;
+  background: var(--hud-panel);
+  padding: 16px 16px 14px;
+  cursor: default;
+  transition: border-color 0.2s var(--ease-out), transform 0.2s var(--ease-out),
+              box-shadow 0.2s var(--ease-out), opacity 0.2s var(--ease-out);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 128px;
+}
+
+.mt-tile-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--hud-dim);
+  font-size: 11px;
+}
+
+.mt-tile-num { color: var(--hud-dim); letter-spacing: 0.1em; }
+.mt-tile-icon { color: var(--hud-muted); }
+
+.mt-tile-code {
+  color: var(--hud-purple-lt);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  font-size: 0.85rem;
+}
+
+.mt-tile-title {
+  color: var(--hud-text);
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.mt-tile-domain { margin-top: auto; }
+
+.mt-tile-pts {
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+}
+
+.mt-tile-strike {
+  position: absolute;
+  top: 40px;
+  right: 14px;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: var(--hud-purple-lt);
+  background: var(--accent-signal-dim);
+  border: 1px solid var(--accent-signal-border);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-variant-numeric: tabular-nums;
+}
+.mt-tile-strike.done { color: var(--hud-dim); background: rgba(148, 163, 184, 0.08); border-color: rgba(148, 163, 184, 0.2); }
+
+/* ---- always-visible answer bar (fixed at the bottom of Round 1) ---- */
+.mt-answerbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--hud-line);
+  background: rgba(9, 14, 22, 0.94);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.35);
+}
+.mt-answerbar-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  max-width: 1120px;
+  margin: 0 auto;
+  width: 100%;
+}
+.mt-answerbar-input { flex: 1; min-width: 0; }
+.mt-answerbar-hint { flex-shrink: 0; }
+.mt-answerbar-result { max-width: 1120px; margin: 0 auto 8px; font-size: 0.82rem; }
+.mt-answerbar-hintbox { max-width: 1120px; margin: 8px auto 0; font-size: 0.85rem; }
+#mt-root { padding-bottom: 200px; }
+.mt-answerbar .mt-answerbar-input { min-height: 44px; }
+
+.mt-tile-active {
+  border-color: var(--hud-purple);
+  box-shadow: 0 0 0 1px var(--hud-purple), 0 0 24px var(--accent-signal-dim);
+}
+
+.mt-tile-active .mt-tile-icon { color: var(--hud-purple-lt); animation: mt-pulse 1.6s infinite; }
+
+.mt-tile-solved {
+  border-color: rgba(0, 230, 168, 0.4);
+  background: linear-gradient(180deg, rgba(0, 230, 168, 0.07), var(--hud-panel));
+}
+
+.mt-tile-solved .mt-tile-icon { color: var(--hud-green); }
+.mt-tile-solved .mt-tile-code { color: var(--hud-green); }
+
+.mt-tile-failed {
+  border-color: rgba(239, 68, 68, 0.45);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.08), var(--hud-panel));
+}
+
+.mt-tile-failed .mt-tile-icon { color: var(--state-danger); }
+.mt-tile-failed .mt-tile-code { color: var(--state-danger); }
+.mt-tile-failed .mt-tile-title { text-decoration: line-through; opacity: 0.8; }
+
+.mt-tile-lock { margin-top: 6px; }
+
+@keyframes mt-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* ---- engine stage ---- */
+#mt-evidence { min-height: 40px; }
+
+.mt-row {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--hud-line-soft);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.mt-row:last-child { border-bottom: none; }
+
+.mt-row-label {
+  color: var(--hud-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.mt-row-value { color: var(--hud-text); text-align: right; word-break: break-word; }
+
+.mt-group {
+  border: 1px solid var(--hud-line-soft);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  background: rgba(13, 11, 32, 0.45);
+}
+
+.mt-group-title {
+  color: var(--hud-amber);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  margin-bottom: 6px;
+}
+
+/* ---- card grids (evidence_board / risk_card_hunt / intent_detective) ---- */
+.mt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.mt-grid-ports { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
+.mt-grid-nodes { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+
+.mt-card { padding: 14px 16px; border-radius: 12px; }
+
+.mt-table th {
+  background: rgba(14, 17, 34, 0.9);
+  color: var(--hud-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+}
+
+/* hint + result spacing */
+#mt-hint .card, #mt-result .card { border-radius: 12px; }
+
+/* ---------------------------------------------------------------
+   Answer pop (TRY AGAIN dialog) + button press effects
+   --------------------------------------------------------------- */
+
+/* Buttons give tactile feedback: a quick "kick" on every click
+   (js adds .mt-kick) and a held-in :active press. */
+.hud-btn {
+  transition: transform 0.12s var(--ease-out), box-shadow 0.2s var(--ease-out),
+              background 0.2s var(--ease-out), color 0.2s var(--ease-out);
+  will-change: transform;
+}
+.hud-btn:active:not(:disabled) { transform: translateY(2px) scale(0.96); }
+
+@keyframes mt-kick {
+  0%   { transform: translateY(0) scale(1); }
+  40%  { transform: translateY(2px) scale(0.94); }
+  72%  { transform: translateY(0) scale(1.04); }
+  100% { transform: translateY(0) scale(1); }
+}
+.hud-btn.mt-kick { animation: mt-kick 0.32s var(--ease-out); }
+
+/* Backdrop + card for the TRY AGAIN popup */
+#mt-pop-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 6, 18, 0.8);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s var(--ease-out), visibility 0.18s var(--ease-out);
+}
+#mt-pop-backdrop.show { opacity: 1; visibility: visible; }
+
+.mt-pop {
+  width: min(420px, calc(100% - 40px));
+  background: linear-gradient(180deg, #170F33, #0C0A1F);
+  border: 1px solid rgba(239, 68, 68, 0.55);
+  border-radius: 16px;
+  padding: 28px 26px 22px;
+  text-align: center;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.18),
+              0 24px 70px rgba(0, 0, 0, 0.62),
+              0 0 38px rgba(239, 68, 68, 0.22);
+}
+#mt-pop-backdrop.warn .mt-pop {
+  border-color: rgba(245, 158, 11, 0.6);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.16),
+              0 24px 70px rgba(0, 0, 0, 0.62),
+              0 0 38px rgba(245, 158, 11, 0.22);
+}
+
+@keyframes mt-pop-in {
+  0%   { transform: scale(0.5) translateY(22px); opacity: 0; }
+  68%  { transform: scale(1.06) translateY(-3px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.mt-pop-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--state-danger, #EF4444);
+  border: 2px solid rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.08);
+  box-shadow: 0 0 22px rgba(239, 68, 68, 0.3);
+}
+#mt-pop-backdrop.warn .mt-pop-icon {
+  color: var(--state-warning, #F59E0B);
+  border-color: rgba(245, 158, 11, 0.55);
+  background: rgba(245, 158, 11, 0.08);
+  box-shadow: 0 0 22px rgba(245, 158, 11, 0.3);
+}
+
+.mt-pop-title {
+  font-family: var(--font-display, inherit);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--state-danger, #EF4444);
+  text-transform: uppercase;
+}
+#mt-pop-backdrop.warn .mt-pop-title { color: var(--state-warning, #F59E0B); }
+
+.mt-pop-text {
+  color: var(--text-secondary, #9CA3AF);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 10px 0 20px;
+}
+
+.mt-pop-btn {
+  width: 100%;
+  justify-content: center;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+/* Empty-answer guard: shake the input + flash its border */
+@keyframes mt-shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-8px); }
+  30% { transform: translateX(7px); }
+  45% { transform: translateX(-6px); }
+  60% { transform: translateX(5px); }
+  75% { transform: translateX(-3px); }
+}
+.flag-input.mt-shake {
+  animation: mt-shake 0.4s var(--ease-out);
+  border-color: var(--state-warning, #F59E0B) !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18) !important;
+}
+/* ---------------------------------------------------------------------------
+   HOME PALETTE OVERRIDES (Round 1 only)
+   mt.css is loaded exclusively by the Round 1 page, so these rules swap the
+   purple neon HUD for the exact palette of the landing/home screen (cyan
+   accent, green success, home surfaces).
+--------------------------------------------------------------------------- */
+:root, html {
+  --hud-purple:      var(--accent-signal);
+  --hud-purple-dim:  var(--accent-signal-active);
+  --hud-purple-br:   var(--accent-signal-hover);
+  --hud-purple-lt:   var(--accent-signal);
+  --hud-green:       var(--state-success);
+  --hud-green-dim:   var(--state-success-hover);
+  --hud-amber:       var(--state-warning);
+  --hud-red:         var(--state-danger);
+  --hud-text:        var(--text-primary);
+  --hud-muted:       var(--text-secondary);
+  --hud-dim:         var(--text-secondary);
+  --hud-panel:       var(--bg-surface-2);
+  --hud-panel-solid: var(--bg-surface-1);
+  --hud-line:        var(--border-default);
+  --hud-line-soft:   var(--border-subtle);
+  --hud-glow:        0 0 0 1px var(--border-subtle), 0 0 22px var(--accent-signal-dim);
+}
+
+.hud-badge-purple,
+.hud-kicker,
+.hud-panel-title,
+.hud-top-timer .t-value,
+.hud-nav-arrow,
+.hud-log-line .t,
+.hud-datarow .v.purple { color: var(--accent-signal); }
+
+.hud-panel-title::before { background: var(--accent-signal); box-shadow: 0 0 8px var(--accent-signal); }
+.hud-badge-purple { background: var(--accent-signal-dim); }
+
+.hud-btn { border-color: var(--accent-signal); background: var(--bg-surface-2); color: var(--accent-signal); box-shadow: none; }
+.hud-btn:hover { background: var(--accent-signal-dim); box-shadow: none; color: var(--accent-signal-hover); }
+.hud-btn-ghost { border-color: var(--border-default); background: transparent; color: var(--text-primary); box-shadow: none; }
+.hud-btn-ghost:hover { border-color: var(--accent-signal); background: var(--accent-signal-dim); color: var(--accent-signal); }
+
+.hud-progress-track { background: var(--accent-signal-dim); border-color: var(--accent-signal-border); }
+.hud-progress-fill { background: linear-gradient(90deg, var(--accent-signal), var(--accent-signal-hover)); box-shadow: 0 0 10px var(--accent-signal-dim); }
+
+.mt-tile-code { color: var(--accent-signal); }
+.mt-tile-strike { color: var(--accent-signal); background: var(--accent-signal-dim); border-color: var(--accent-signal-border); }
+.mt-tile-active { border-color: var(--accent-signal); box-shadow: 0 0 0 1px var(--accent-signal), 0 0 24px var(--accent-signal-dim); }
+.mt-tile-active .mt-tile-icon { color: var(--accent-signal); }
+
+/* ---------------------------------------------------------------------------
+   DESIGN-SYSTEM → HOME PALETTE (Round 1 only)
+   design-system.css ships its own violet "cyber command center" :root palette.
+   To make Round 1 use the landing/home screen palette exactly, re-declare the
+   design-system tokens here to the base tokens.css dark values (cyan accent,
+   emerald success, navy surfaces). No self-referential var() is used below.
+--------------------------------------------------------------------------- */
+:root, html {
+  --bg-base:       #070B12;
+  --bg-panel:      #0D131F;
+  --bg-elevated:   #141D2E;
+  --bg-secondary:  #141D2E;
+  --bg-tertiary:   #1D283E;
+  --bg-input:      #070B12;
+
+  --accent:        #00F0FF;
+  --accent-dim:    #38F5FF;
+  --accent-glow:   rgba(0, 240, 255, 0.16);
+  --accent-border: rgba(0, 240, 255, 0.38);
+
+  --success:       #10B981;
+  --success-dim:   #34D399;
+  --success-bg:    rgba(16, 185, 129, 0.09);
+  --warning:       #F59E0B;
+  --warning-dim:   #FBBF24;
+  --warning-bg:    rgba(245, 158, 11, 0.10);
+  --danger:        #F87171;
+  --danger-dim:    #FCA5A5;
+  --danger-bg:     rgba(248, 113, 113, 0.10);
+  --cyan:          #00F0FF;
+  --cyan-dim:      #22D3EE;
+  --cyan-bg:       rgba(0, 240, 255, 0.08);
+
+  --text-primary:   #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted:     #64748B;
+  --text-dim:       #475569;
+
+  --border:         #1B273A;
+  --border-strong:  #2C3E5A;
+  --border-accent:  rgba(0, 240, 255, 0.30);
+
+  --shadow-glow: 0 0 24px rgba(0, 240, 255, 0.22);
+}
+
+a { color: var(--accent); }
+a:hover { color: var(--accent-dim); }
+
+/* Challenge card surface — remove violet tint, use home surfaces */
+.hud-panel-cn { background: linear-gradient(180deg, var(--bg-surface-2), var(--bg-surface-1)); }
+.hud-panel { backdrop-filter: none; }
+
+/* ===========================================================================
+   ROUND 1 UI — SCANLINE GRID + TERMINAL + RADAR HUD (Round 1 only)
+   Everything here is gated on body.mt-round which is set exclusively by the
+   Round 1 template, so no other section of the app inherits these effects.
+   =========================================================================== */
+
+body.mt-round {
+  background-color: #05080F;
+  background-image: radial-gradient(900px 520px at 8% 0%, rgba(0, 240, 255, 0.06), transparent 60%),
+                    radial-gradient(1100px 620px at 92% 8%, rgba(16, 185, 129, 0.05), transparent 62%);
+  background-attachment: fixed;
+}
+
+/* Tech grid overlay */
+body.mt-round::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.055) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at 50% 32%, black 12%, transparent 82%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 32%, black 12%, transparent 82%);
+  animation: mt-grid-drift 26s linear infinite;
+}
+@keyframes mt-grid-drift {
+  from { background-position: 0 0; }
+  to   { background-position: 0 44px; }
+}
+
+/* CRT scanlines */
+body.mt-round::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9995;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(255, 255, 255, 0.02) 2px 3px);
+}
+
+/* Lift page chrome above the fixed overlays */
+body.mt-round .hx-secstrip { position: relative; z-index: 4; }
+body.mt-round .hud-topnav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background-color: rgba(7, 11, 18, 0.82);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+body.mt-round .hud-body    { position: relative; z-index: 1; }
+body.mt-round #main-content{ position: relative; z-index: 1; }
+
+/* ---- Terminal style section markers ---- */
+body.mt-round .hud-kicker { position: relative; display: inline-block; letter-spacing: 0.24em; }
+body.mt-round .hud-kicker::before {
+  content: '▮ ';
+  margin-right: 4px;
+  color: var(--accent);
+  animation: mt-blink 1.1s steps(2, start) infinite;
+}
+@keyframes mt-blink { 50% { opacity: 0; } }
+
+/* ---- HUD corner brackets ---- */
+body.mt-round .hud-panel-cn,
+body.mt-round .mt-tile,
+body.mt-round #mt-complete { position: relative; }
+body.mt-round .hud-panel-cn::before,
+body.mt-round .mt-tile::before,
+body.mt-round #mt-complete::before,
+body.mt-round .mt-answerbar::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--accent), var(--accent)) left  top     / 16px 2px,
+    linear-gradient(var(--accent), var(--accent)) left  top     / 2px 16px,
+    linear-gradient(var(--accent), var(--accent)) right top     / 16px 2px,
+    linear-gradient(var(--accent), var(--accent)) right top     / 2px 16px,
+    linear-gradient(var(--accent), var(--accent)) left  bottom  / 16px 2px,
+    linear-gradient(var(--accent), var(--accent)) left  bottom  / 2px 16px,
+    linear-gradient(var(--accent), var(--accent)) right bottom  / 16px 2px,
+    linear-gradient(var(--accent), var(--accent)) right bottom  / 2px 16px;
+  background-repeat: no-repeat;
+  opacity: 0.5;
+}
+body.mt-round .mt-tile:hover::before,
+body.mt-round .mt-tile-active::before { opacity: 0.9; }
+
+/* ---- Scan sweep across the active challenge card ---- */
+body.mt-round .hud-panel-cn::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -70px;
+  height: 70px;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(0, 240, 255, 0.07), transparent);
+  animation: mt-sweep 6.5s linear infinite;
+}
+@keyframes mt-sweep { to { top: 100%; } }
+
+/* ---- Radar ring ---- */
+.mt-radar {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  margin-left: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.14), inset 0 0 10px rgba(0, 240, 255, 0.10);
+  background:
+    radial-gradient(circle at center, rgba(0, 240, 255, 0.05) 0 48%, transparent 50%),
+    radial-gradient(circle at center, transparent 0 22%, rgba(0, 240, 255, 0.16) 23% 24%, transparent 26% 46%, rgba(0, 240, 255, 0.16) 47% 48%, transparent 51%);
+}
+.mt-radar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(0, 240, 255, 0.0) 0deg, rgba(0, 240, 255, 0.5) 22deg, rgba(0, 240, 255, 0.05) 78deg, transparent 90deg);
+  animation: mt-radar-spin 3.2s linear infinite;
+}
+.mt-radar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    linear-gradient(90deg, transparent calc(50% - 0.5px), rgba(0, 240, 255, 0.22) 50%, transparent calc(50% + 0.5px)),
+    linear-gradient(0deg,  transparent calc(50% - 0.5px), rgba(0, 240, 255, 0.22) 50%, transparent calc(50% + 0.5px));
+}
+@keyframes mt-radar-spin { to { transform: rotate(360deg); } }
+
+/* Terminal glow on big headings */
+body.mt-round .hud-h1 { text-shadow: 0 0 18px rgba(0, 240, 255, 0.18); }
+
+/* ===========================================================================
+   BOTTOM ANSWER BAR — pinned like the top menu + highlighted entry field
+   =========================================================================== */
+body.mt-round .mt-answerbar {
+  background: linear-gradient(180deg, rgba(7, 11, 18, 0.92), rgba(9, 14, 22, 0.97));
+  border-top: 1px solid rgba(0, 240, 255, 0.35);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  animation: mt-bar-pulse 3.2s ease-in-out infinite;
+}
+@keyframes mt-bar-pulse {
+  0%, 100% { box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.45), 0 0 16px rgba(0, 240, 255, 0.06); }
+  50%      { box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.45), 0 0 28px rgba(0, 240, 255, 0.16); }
+}
+
+body.mt-round #mt-answer {
+  border: 1px solid rgba(0, 240, 255, 0.40);
+  background: rgba(7, 11, 18, 0.65);
+  color: var(--text-primary);
+  box-shadow: inset 0 0 14px rgba(0, 240, 255, 0.06), 0 0 16px rgba(0, 240, 255, 0.12);
+}
+body.mt-round #mt-answer:focus {
+  outline: none;
+  border-color: var(--accent-signal);
+  box-shadow: inset 0 0 14px rgba(0, 240, 255, 0.10), 0 0 0 3px rgba(0, 240, 255, 0.20), 0 0 24px rgba(0, 240, 255, 0.28);
+}
