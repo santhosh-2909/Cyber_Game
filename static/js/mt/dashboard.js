@@ -143,10 +143,19 @@
 
   function renderEvidence(u, engine, second) {
     var wrap = document.createElement('div');
-    if (second) {
-      wrap.innerHTML = engine.render(u.evidence2, u.config2 || {});
-    } else {
-      wrap.innerHTML = engine.render(u.evidence, u.config || {});
+    try {
+      wrap.innerHTML = engine.render(
+        second ? u.evidence2 : u.evidence,
+        second ? (u.config2 || {}) : (u.config || {}));
+    } catch (e) {
+      // An evidence renderer must never take the page down: show a readable
+      // fallback (the answer bar stays usable) instead of crashing the controller.
+      console.error('[MT render] ' + (engine && engine.label) + ' failed:', e);
+      wrap.innerHTML = '<div class="hud-panel mt-card">' +
+        '<div class="font-overline text-muted">EVIDENCE RENDER</div>' +
+        '<div class="mt-row"><span class="mt-row-label">STATUS</span>' +
+        '<span class="mt-row-value" style="color:var(--hud-red);">unavailable (renderer error)</span></div>' +
+        '</div>';
     }
     return wrap;
   }
@@ -276,12 +285,21 @@
       .then(function (d) {
         if (!d || !d.ok) { window.location.reload(); return; }
         state = d;
-        renderHand();
-        renderUnlocked();
-        renderHud();
-        startStrike();
+        try {
+          renderHand();
+          renderUnlocked();
+          renderHud();
+          startStrike();
+        } catch (e) {
+          // Render errors must NEVER trigger an infinite reload loop. Surface the
+          // problem and keep the page (and answer bar) alive for the participant.
+          console.error('[MT render] controller error:', e);
+        }
       })
-      .catch(function () { window.location.reload(); });
+      .catch(function (e) {
+        if (window.MT_RELOAD_GUARD) { console.error('[MT] reload guard: not reloading after', e); return; }
+        window.location.reload();
+      });
   }
 
   function submit() {

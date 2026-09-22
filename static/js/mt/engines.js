@@ -17,13 +17,33 @@
 
   function hx(html) { return html; }
 
+  // Evidence shapes are defence-tolerant: some challenges ship their fields as a
+  // single value (a form name, a dict of servers, a flat category list) instead
+  // of an array. Never crash on a non-array — coerce it into a renderable list.
+  function toList(x) {
+    if (Array.isArray(x)) return x;
+    if (x == null || x === '') return [];
+    if (typeof x === 'object') return Object.keys(x).map(function (k) {
+      return { key: k, value: x[k] };
+    });
+    return [x];
+  }
+
   function kv(label, value, mono) {
     return '<div class="mt-row"><span class="mt-row-label">' + esc(label) + '</span>' +
       '<span class="mt-row-value' + (mono ? ' font-mono' : '') + '">' + esc(value) + '</span></div>';
   }
 
   function table(rows) {
-    if (!rows || !rows.length) return '';
+    if (!rows) return '';
+    var dict = !Array.isArray(rows) && typeof rows === 'object';
+    if (dict) {
+      rows = Object.keys(rows).map(function (k) {
+        var v = rows[k];
+        return { name: k, value: Array.isArray(v) ? v.join(', ') : v };
+      });
+    }
+    if (!rows.length) return '';
     var keys = Object.keys(rows[0]);
     var head = keys.map(function (k) { return '<th>' + esc(k) + '</th>'; }).join('');
     var body = rows.map(function (r) {
@@ -51,7 +71,8 @@
   }
 
   function chips(list, cls) {
-    return list.map(function (v) {
+    return toList(list).map(function (v) {
+      if (v && typeof v === 'object') v = v.key != null ? v.key : (v.name || v.label || '');
       return '<span class="font-mono" style="display:inline-block;background:var(--accent-signal-dim);' +
         'border:1px solid var(--accent-signal-border);color:var(--accent-signal);border-radius:6px;' +
         'padding:4px 10px;margin:0 8px 8px 0;font-size:0.8rem;">' + esc(v) + '</span>';
@@ -59,7 +80,8 @@
   }
 
   function keyedRows(list, keyLabel, elLabel) {
-    if (!list || !list.length) return '';
+    list = toList(list);
+    if (!list.length) return '';
     return list.map(function (o) {
       if (typeof o === 'string') return '<div class="card-section">' + esc(o) + '</div>';
       var k = String(o[keyLabel] != null ? o[keyLabel] : Object.keys(o)[0] || '');
@@ -103,7 +125,7 @@
       label: label,
       render: function (ev, cfg) {
         if (!ev || !ev.cards) return terminal(JSON.stringify(ev, null, 2));
-        return '<div class="mt-grid">' + ev.cards.map(function (c) {
+        return '<div class="mt-grid">' + toList(ev.cards).map(function (c) {
           var ttl = c.name || c.title || c.card || (typeof c === 'string' ? c : '');
           var body = '';
           Object.keys(c).forEach(function (k) {
@@ -124,11 +146,15 @@
         var out = '';
         if (ev.query_template) out += section('QUERY TEMPLATE') + terminal(ev.query_template, 'server_route');
         if (ev.form) {
+          // `form` is the login form name (string) for most challenges; some ship
+          // a list of {label, placeholder} fields. Render either without crashing.
           out += section('LOGIN FORM') + block(
-            '<div style="max-width:360px;">' + ev.form.map(function (f) {
+            '<div style="max-width:360px;">' + toList(ev.form).map(function (f) {
+              var label = typeof f === 'string' ? f : (f.label || 'Field');
+              var placeholder = (f && f.placeholder) || '';
               return '<div class="form-group" style="margin-bottom:10px;"><label class="form-label">' +
-                esc(f.label) + '</label><input class="form-input form-input-mono" type="text" disabled ' +
-                'value="" placeholder="' + esc(f.placeholder || '') + '"></div>';
+                esc(label) + '</label><input class="form-input form-input-mono" type="text" disabled ' +
+                'value="" placeholder="' + esc(placeholder) + '"></div>';
             }).join('') + '</div>');
         }
         if (ev.target_user) out += block(chips([ev.target_user], null));
@@ -146,7 +172,7 @@
         var out = '';
         if (ev.host) out += block(kv('Target', ev.host, true) + kv('Role', ev.role || ''));
         if (ev.ports) out += section('PORT SCAN') + block(
-          '<div class="mt-grid mt-grid-ports">' + ev.ports.map(function (p) {
+          '<div class="mt-grid mt-grid-ports">' + toList(ev.ports).map(function (p) {
             if (typeof p === 'string') return terminal(p);
             var open = String(p.state || p.status || '').toLowerCase();
             return '<div class="hud-panel mt-card" style="text-align:center;">' +
@@ -167,26 +193,26 @@
       label: label,
       render: function (ev, cfg) {
         var out = '';
-        if (ev.clues) out += section('PUBLIC CLUES') + block(ev.clues.map(function (c) {
+        if (ev.clues) out += section('PUBLIC CLUES') + block(toList(ev.clues).map(function (c) {
           return '<div class="card-section">' + esc(c) + '</div>';
         }).join(''));
         if (ev.people) out += section('PEOPLE') + block(keyedRows(ev.people, 'name'));
         if (ev.usernames) out += section('USERNAMES') + block(chips(ev.usernames));
         if (ev.projects) out += section('PROJECTS') + block(chips(ev.projects));
         if (ev.org) out += section('ORGANISATION') + block(keyedRows(ev.org, 'name'));
-        if (ev.references) out += section('REFERENCES') + block(ev.references.map(function (r) {
+        if (ev.references) out += section('REFERENCES') + block(toList(ev.references).map(function (r) {
           return '<div class="card-section font-mono" style="font-size:0.85rem;">' + esc(r) + '</div>';
         }).join(''));
-        if (ev.nodes) out += section('CONNECTIONS') + block('<div class="mt-grid mt-grid-nodes">' + ev.nodes.map(function (n) {
+        if (ev.nodes) out += section('CONNECTIONS') + block('<div class="mt-grid mt-grid-nodes">' + toList(ev.nodes).map(function (n) {
           var ttl = typeof n === 'string' ? n : (n.name || n.id || '');
           return '<div class="hud-panel mt-card" style="text-align:center;"><div class="font-mono" style="font-weight:800;color:var(--hud-green);">' +
             esc(ttl) + '</div>' + (n && n.role ? '<div class="hud-stat-label" style="margin-top:4px;">' + esc(n.role) + '</div>' : '') + '</div>';
         }).join('') + '</div>');
-        if (ev.edges) out += block(ev.edges.map(function (e) {
+        if (ev.edges) out += block(toList(ev.edges).map(function (e) {
           return '<div class="card-section font-mono" style="font-size:0.85rem;">' + esc(e.from || e.a || e[0]) +
             ' &rarr; ' + esc(e.to || e.b || e[1]) + '</div>';
         }).join(''));
-        if (ev.events) out += section('EVENT LOG') + block(ev.events.map(function (e) {
+        if (ev.events) out += section('EVENT LOG') + block(toList(ev.events).map(function (e) {
           var t = e.ts || e.time || e.date || '';
           var m = e.msg || e.description || e.desc || '';
           return '<div class="mt-row"><span class="mt-row-label font-mono">' + esc(t) + '</span>' +
@@ -207,10 +233,15 @@
         if (ev.policy) out += section('POLICY') + block('<div class="card-section">' + esc(ev.policy) + '</div>');
         if (ev.categories) {
           out += section('CATEGORIES');
-          Object.keys(ev.categories).forEach(function (cat) {
-            out += block('<div class="mt-group"><div class="mt-group-title font-mono">' + esc(cat) + '</div>' +
-              chips(ev.categories[cat]) + '</div>');
-          });
+          // Flat list (["COMMON","REUSED",...]) or a map of category -> values.
+          if (Array.isArray(ev.categories)) {
+            out += block(chips(ev.categories));
+          } else {
+            Object.keys(ev.categories).forEach(function (cat) {
+              out += block('<div class="mt-group"><div class="mt-group-title font-mono">' + esc(cat) + '</div>' +
+                chips(ev.categories[cat]) + '</div>');
+            });
+          }
         }
         return out;
       }
@@ -233,7 +264,7 @@
         if (ev.headers) out += section('MESSAGE HEADERS') + block(Object.keys(ev.headers).map(function (k) {
           return kv(k, ev.headers[k], true);
         }).join(''));
-        if (ev.links) out += section('LINKS') + block(ev.links.map(function (L) {
+        if (ev.links) out += section('LINKS') + block(toList(ev.links).map(function (L) {
           return '<div class="mt-row"><span class="mt-row-value font-mono" style="color:var(--cyan);">' +
             esc(L.url || L.href || L) + '</span>' + (L.host ? '<span class="mt-row-label">HOST ' + esc(L.host) + '</span>' : '') +
             '</div>';
@@ -257,11 +288,11 @@
         if (ev.date) out += block(kv('Captured', ev.date, true));
         if (ev.gps) out += section('GPS POSITION') + block('<div class="card-terminal font-mono" style="font-size:0.85rem;">lat: ' +
           esc(ev.gps.lat) + '  lon: ' + esc(ev.gps.lon) + '</div>');
-        if (ev.pins) out += section('LOCATION PINS') + block(ev.pins.map(function (p) {
+        if (ev.pins) out += section('LOCATION PINS') + block(toList(ev.pins).map(function (p) {
           return '<div class="card-section font-mono" style="font-size:0.85rem;">' + esc(p.name || p) +
             ' <span class="text-muted">' + (p.coords ? esc(p.coords) : '') + '</span></div>';
         }).join(''));
-        if (ev.events) out += section('EVENT LOG') + block(ev.events.map(function (e) {
+        if (ev.events) out += section('EVENT LOG') + block(toList(ev.events).map(function (e) {
           return '<div class="mt-row"><span class="mt-row-label font-mono">' + esc(e.time || e.ts || e.date || '') +
             '</span><span class="mt-row-value">' + esc(e.msg || e.event || e.description || '') + '</span></div>';
         }).join(''));
