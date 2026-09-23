@@ -198,6 +198,16 @@
     if (hsc) hsc.textContent = s.score || 0;
   }
 
+  /* Screen watchdog: armed while the round is live (not finished, not fully
+   * solved), disarmed the moment it ends so post-round navigation is free. */
+  function updateGuard() {
+    if (!window.RoundGuard) return;
+    var s = state.session;
+    var finished = !s || !!s.finished ||
+      (s.solved || 0) >= (s.challenges_per_team || s.solved || 0);
+    window.RoundGuard.setActive(!finished);
+  }
+
   // ---------------------------------------------------------------- timer
 
   function startTimer() {
@@ -327,6 +337,7 @@
           renderUnlocked();
           renderHud();
           startStrike();
+          updateGuard();
         } catch (e) {
           // Render errors must NEVER trigger an infinite reload loop. Surface the
           // problem and keep the page (and answer bar) alive for the participant.
@@ -540,6 +551,11 @@
     }
 
     load();
+    if (window.RoundGuard) {
+      var completeEl = $('mt-complete');
+      var initialDone = !!(completeEl && completeEl.style.display === 'block');
+      window.RoundGuard.setActive(!initialDone);
+    }
     setTimeout(startTimer, 100);
     pinBar();
     var vv = window.visualViewport;
