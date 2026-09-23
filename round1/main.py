@@ -58,6 +58,12 @@ def login_required_team(view):
         team = get_current_team()
         if team is None:
             return redirect(url_for("r1.r1_landing"))
+        # Server-side Round 1 disqualification gate. The team stays
+        # authenticated (hub / login remain usable) but every Round 1 page and
+        # API is blocked. Round 2 is independently unaffected. Re-checked on
+        # every request so refreshes and direct URLs cannot slip through.
+        if team.get("round1_disqualified"):
+            return access.render_round_blocked("round1", team)
         kwargs["team"] = team
         return view(*args, **kwargs)
     return wrapped
@@ -864,7 +870,8 @@ def r1_timeup(team):
 
 
 @r1.route("/r1/leaderboard")
-def r1_leaderboard():
+@login_required_team
+def r1_leaderboard(team):
     conn = db.get_connection()
     try:
         rows = conn.execute(
@@ -876,7 +883,7 @@ def r1_leaderboard():
             "LIMIT 20").fetchall()
     finally:
         conn.close()
-    return render_template("r1_leaderboard.html", team=get_current_team(),
+    return render_template("r1_leaderboard.html", team=team,
                            leaderboard=[dict(r) for r in rows])
 
 

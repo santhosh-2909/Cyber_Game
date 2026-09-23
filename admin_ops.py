@@ -159,7 +159,9 @@ def list_teams_for_round(round_name):
         rows = conn.execute(
             "SELECT t.id, t.team_id, t.team_name, t.participant_names, t.is_active, "
             "t.round1_access_id, t.round2_access_id, "
-            "t.round1_enabled, t.round2_enabled, t.created_at, t.updated_at, "
+            "t.round1_enabled, t.round2_enabled, "
+            "t.round1_disqualified, t.round2_disqualified, "
+            "t.created_at, t.updated_at, "
             "(SELECT COUNT(*) FROM participant_sessions ps "
             "  WHERE ps.team_id=t.id AND ps.round_name=? AND ps.status='ACTIVE' "
             "  AND ps.last_seen >= ?) AS online_sessions, "

@@ -40,7 +40,7 @@
   {% if teams %}
   <div class="ap-table-wrap">
     <table class="ap-table">
-      <tr><th>Team</th><th>Round 1 ID</th><th>Enrollment</th><th>Online</th><th>Last login</th><th>Actions</th></tr>
+      <tr><th>Team</th><th>Round 1 ID</th><th>Enrollment</th><th>Online</th><th>Last login</th><th>Status</th><th>Actions</th></tr>
       {% for t in teams %}
       <tr>
         <td class="cell-strong">
@@ -59,6 +59,14 @@
         </td>
         <td>{{ t.online_sessions }}/{{ t.active_sessions }}</td>
         <td class="ap-mono">{{ t.last_login | ts }}</td>
+        <td>
+          <select class="ap-input" style="max-width:190px;font-family:var(--font-mono);font-size:11px;" onchange="setDq({{ t.id }}, this.value)" title="Active / disqualify from a round">
+            <option value="active" {{ 'selected' if not (t.round1_disqualified or t.round2_disqualified) }}>ACTIVE</option>
+            <option value="r1" {{ 'selected' if t.round1_disqualified and not t.round2_disqualified }}>R1 DISQUALIFIED</option>
+            <option value="r2" {{ 'selected' if not t.round1_disqualified and t.round2_disqualified }}>R2 DISQUALIFIED</option>
+            <option value="both" {{ 'selected' if t.round1_disqualified and t.round2_disqualified }}>BOTH DISQUALIFIED</option>
+          </select>
+        </td>
         <td>
           <div class="ap-row" style="gap:6px;">
             <a href="{{ url_for('admin_team_profile', team_db_id=t.id) }}" class="ap-btn sm ghost">PROFILE</a>
@@ -101,6 +109,18 @@
     var v = prompt('New Round 1 ID for team #' + id + ':');
     if (!v) return;
     ApOpenForm('/admin/teams/' + id + '/round/' + R + '/access-id', { access_id: v.trim() });
+  }
+  function setDq(id, val) {
+    var dq = {
+      active: { round1: 0, round2: 0 },
+      r1:     { round1: 1, round2: 0 },
+      r2:     { round1: 0, round2: 1 },
+      both:   { round1: 1, round2: 1 }
+    }[val];
+    if (!dq) return;
+    var label = val === 'active' ? 'ACTIVE' : val.toUpperCase() + ' DISQUALIFIED';
+    if (!confirm('Set team #' + id + ' status to: ' + label + '?')) return;
+    ApOpenForm('/admin/teams/' + id + '/disqualify', dq);
   }
   function delTeam(id) {
     if (!confirm('Permanently delete this team and ALL its progress?\nThis cannot be undone.')) return;

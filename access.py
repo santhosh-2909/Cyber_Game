@@ -27,6 +27,8 @@ import secrets
 import round1.db as db
 import admin_ops
 
+from flask import jsonify, render_template, request
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -175,8 +177,36 @@ def get_team_by_credentials(team_name, access_id, round_name=None):
 def _team_pub_dict(d):
     """Return only safe team columns (never session tokens / internal ids)."""
     keys = ("id", "team_id", "team_name", "participant_names",
-            "created_at", "is_active", "updated_at")
+            "created_at", "is_active", "updated_at",
+            "round1_enabled", "round2_enabled",
+            "round1_disqualified", "round2_disqualified")
     return {k: d.get(k) for k in keys}
+
+
+def _live_team_flags(team_id):
+    """Live round-enabled + per-round disqualification flags for a team.
+
+    The signed cookie proves *identity*; access state is never trusted from the
+    cookie. These flags are re-read from the teams table on every fallback so
+    an admin action — disabling a round, or a disqualification — applies
+    immediately and cannot sit stale inside a client cookie. Returns None when
+    the team row is unavailable (fresh serverless instance where the teams
+    table has not been seeded yet).
+    """
+    try:
+        if team_id is None:
+            return None
+        row = team_detail(team_id)
+    except Exception:
+        return None
+    if not row:
+        return None
+    return {
+        "round1_enabled": row.get("round1_enabled", 1),
+        "round2_enabled": row.get("round2_enabled", 1),
+        "round1_disqualified": row.get("round1_disqualified", 0),
+        "round2_disqualified": row.get("round2_disqualified", 0),
+    }
 
 
 def _session_fallback_team(s, round_name=None):
@@ -187,13 +217,21 @@ def _session_fallback_team(s, round_name=None):
     the *next* request (different instance → fresh DB copy).  Because Flask
     session cookies are cryptographically signed with the app secret key the
     client cannot forge them, making them a safe fallback for auth when the
-    DB row is missing.
+    DB row is missing. Round identity comes from the cookie; round access +
+    disqualification flags are applied live from the teams table so admin
+    actions take effect even on the fallback path.
     """
     profile = s.get("r1_profile")
     team_sess = s.get("team")
 
+    def _base(d):
+        flags = _live_team_flags(d.get("id"))
+        if flags:
+            d.update(flags)
+        return d
+
     if round_name == "round1" and profile:
-        return {
+        return _base({
             "id": profile.get("id"),
             "team_id": profile.get("team_id"),
             "team_name": profile.get("team_name"),
@@ -201,9 +239,11 @@ def _session_fallback_team(s, round_name=None):
             "is_active": 1,
             "round1_enabled": 1,
             "round2_enabled": 0,
-        }
+            "round1_disqualified": 0,
+            "round2_disqualified": 0,
+        })
     if round_name == "round2" and team_sess:
-        return {
+        return _base({
             "id": s.get("r1_team"),
             "team_id": team_sess.get("team_id"),
             "team_name": team_sess.get("name"),
@@ -211,10 +251,12 @@ def _session_fallback_team(s, round_name=None):
             "is_active": 1,
             "round1_enabled": 0,
             "round2_enabled": 1,
-        }
+            "round1_disqualified": 0,
+            "round2_disqualified": 0,
+        })
     # No specific round requested — return whichever round's session exists.
     if profile:
-        return {
+        return _base({
             "id": profile.get("id"),
             "team_id": profile.get("team_id"),
             "team_name": profile.get("team_name"),
@@ -222,9 +264,11 @@ def _session_fallback_team(s, round_name=None):
             "is_active": 1,
             "round1_enabled": 1,
             "round2_enabled": 1,
-        }
+            "round1_disqualified": 0,
+            "round2_disqualified": 0,
+        })
     if team_sess:
-        return {
+        return _base({
             "id": s.get("r1_team"),
             "team_id": team_sess.get("team_id"),
             "team_name": team_sess.get("name"),
@@ -232,7 +276,9 @@ def _session_fallback_team(s, round_name=None):
             "is_active": 1,
             "round1_enabled": 1,
             "round2_enabled": 1,
-        }
+            "round1_disqualified": 0,
+            "round2_disqualified": 0,
+        })
     return None
 
 
@@ -645,6 +691,95 @@ def set_team_active(team_id, active):
         return True, "Team access updated."
     finally:
         conn.close()
+
+
+def set_round_disqualification(team_id, round1=None, round2=None):
+    """Set a team's per-round disqualification state.
+
+    ``round1`` / ``round2`` booleans; ``None`` keeps the current value so an
+    admin can update one round without ever touching the other. The two rounds
+    are intentionally independent: disqualifying Round 1 never affects Round 2
+    and vice-versa.
+    """
+    row = team_detail(team_id)
+    if not row:
+        return False, "Team not found."
+    sets, params = [], []
+    if round1 is not None:
+        sets.append("round1_disqualified=?")
+        params.append(1 if round1 else 0)
+    if round2 is not None:
+        sets.append("round2_disqualified=?")
+        params.append(1 if round2 else 0)
+    if not sets:
+        return False, "Provide a round1 and/or round2 flag."
+    sets.append("updated_at=?")
+    params.append(db.now_ms())
+    params.append(int(team_id))
+    conn = db.get_connection()
+    try:
+        cur = conn.execute(
+            "UPDATE teams SET %s WHERE id=?" % ", ".join(sets),
+            tuple(params))
+        conn.commit()
+        if cur.rowcount == 0:
+            return False, "Team not found."
+        return True, "Disqualification status updated."
+    finally:
+        conn.close()
+
+
+def get_disqualification(team_id):
+    """Return {'round1': bool, 'round2': bool} for a team (from the DB)."""
+    row = team_detail(team_id)
+    if row is None:
+        return None
+    return {
+        "round1": bool(row.get("round1_disqualified", 0)),
+        "round2": bool(row.get("round2_disqualified", 0)),
+    }
+
+
+def disqualification_status(team=None):
+    """Disqualification state of the current authenticated participant.
+
+    Returns None when the participant is not logged in; otherwise a dict of
+    booleans: ``{'round1': bool, 'round2': bool}``. Round 1 and Round 2 are
+    always independent.
+    """
+    if team is None:
+        team = validate_participant()
+    if team is None:
+        return None
+    return {
+        "round1": bool(team.get("round1_disqualified", 0)),
+        "round2": bool(team.get("round2_disqualified", 0)),
+    }
+
+
+def render_round_blocked(round_name, team=None):
+    """Block a disqualified participant from ONE round.
+
+    API / POST / JSON requests get a clean ``403 {"error": "disqualified"}``;
+    page requests get the full-screen disqualification notice. This is the
+    server-side gate — participants can never bypass it with client storage,
+    URL edits, or direct API calls, and the restriction travels with their
+    team record across devices and sessions.
+    """
+    wants_json = (request.path.startswith("/api/")
+                  or request.method == "POST"
+                  or (request.accept_mimetypes
+                      and request.accept_mimetypes.best == "application/json"))
+    if wants_json:
+        return jsonify({"ok": False, "error": "disqualified",
+                        "round": round_name, "status": 403}), 403
+    label = "ROUND 2" if round_name == "round2" else "ROUND 1"
+    return render_template(
+        "disqualified.html",
+        round_name=round_name,
+        round_label=label,
+        team=team if isinstance(team, dict) else {},
+    ), 403
 
 
 def update_team(team_db_id, team_name=None, team_id=None,

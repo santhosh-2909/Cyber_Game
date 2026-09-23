@@ -49,8 +49,8 @@
           <span class="badge badge-outline font-mono" style="color:var(--accent-signal);">ROUND 01</span>
           <span style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--text-secondary);">TACTICAL PUZZLE</span>
         </div>
-        <span class="badge {% if r1_stage == 'complete' %}badge-success{% elif r1_stage == 'in_progress' %}badge-secondary{% else %}badge-outline{% endif %} font-mono" style="font-size:11px;">
-          {{ r1_stage|upper|replace('_',' ') }}
+        <span class="badge {% if r1_stage == 'complete' %}badge-success{% elif r1_stage == 'in_progress' %}badge-secondary{% else %}badge-outline{% endif %} font-mono" style="font-size:11px;{% if disqualification and disqualification.round1 %}color:var(--state-danger);border-color:rgba(239,68,68,0.45);{% endif %}">
+          {% if disqualification and disqualification.round1 %}RESTRICTED{% else %}{{ r1_stage|upper|replace('_',' ') }}{% endif %}
         </span>
       </div>
 
@@ -97,8 +97,10 @@
         </script>
         {% endif %}
 
-        <a href="{{ url_for('r1.r1_dashboard') }}" class="btn {% if r1_stage == 'complete' %}btn-secondary{% else %}btn-primary{% endif %} font-mono" style="width:100%;padding:12px;font-size:14px;text-align:center;">
-          {% if r1_stage == 'in_progress' %}RESUME ROUND 1 &rarr;{% elif r1_stage == 'complete' %}REVIEW RESULTS &rarr;{% else %}ENTER ROUND 1 GAUNTLET &rarr;{% endif %}
+        <a href="{{ url_for('r1.r1_dashboard') }}" class="btn {% if disqualification and disqualification.round1 %}btn-danger{% elif r1_stage == 'complete' %}btn-secondary{% else %}btn-primary{% endif %} font-mono" style="width:100%;padding:12px;font-size:14px;text-align:center;">
+          {% if disqualification and disqualification.round1 %}
+            ROUND 1 RESTRICTED &rarr;
+          {% elif r1_stage == 'in_progress' %}RESUME ROUND 1 &rarr;{% elif r1_stage == 'complete' %}REVIEW RESULTS &rarr;{% else %}ENTER ROUND 1 GAUNTLET &rarr;{% endif %}
         </a>
       </div>
     </div>
@@ -110,8 +112,8 @@
           <span class="badge badge-outline font-mono" style="color:var(--accent-purple);">ROUND 02</span>
           <span style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--text-secondary);">DIGITAL FORENSICS</span>
         </div>
-        <span class="badge badge-outline font-mono" style="font-size:11px;color:var(--state-success);">
-          STATION READY
+        <span class="badge badge-outline font-mono" style="font-size:11px;{% if disqualification and disqualification.round2 %}color:var(--state-danger);border-color:rgba(239,68,68,0.45);{% else %}color:var(--state-success);{% endif %}">
+          {% if disqualification and disqualification.round2 %}RESTRICTED{% else %}STATION READY{% endif %}
         </span>
       </div>
 
@@ -133,8 +135,8 @@
           </div>
         </div>
 
-        <a href="{{ url_for('dashboard') }}" class="btn btn-primary font-mono" style="width:100%;padding:12px;font-size:14px;text-align:center;">
-          ENTER FORENSICS WORKSTATION &rarr;
+        <a href="{{ url_for('dashboard') }}" class="btn {% if disqualification and disqualification.round2 %}btn-danger{% else %}btn-primary{% endif %} font-mono" style="width:100%;padding:12px;font-size:14px;text-align:center;">
+          {% if disqualification and disqualification.round2 %}ROUND 2 RESTRICTED &rarr;{% else %}ENTER FORENSICS WORKSTATION &rarr;{% endif %}
         </a>
       </div>
     </div>
@@ -159,11 +161,11 @@
         </div>
         <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border-subtle);">
           <span style="color:var(--text-tertiary);">Round 1 Status</span>
-          <span class="font-mono" style="color:var(--text-primary);">{{ r1_stage|upper|replace('_',' ') }}</span>
+          <span class="font-mono" style="color:{% if disqualification and disqualification.round1 %}var(--state-danger){% else %}var(--text-primary){% endif %};">{% if disqualification and disqualification.round1 %}DISQUALIFIED{% else %}{{ r1_stage|upper|replace('_',' ') }}{% endif %}</span>
         </div>
         <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border-subtle);">
           <span style="color:var(--text-tertiary);">Forensic Locker</span>
-          <span class="font-mono" style="color:var(--accent-signal);">PROVISIONED</span>
+          <span class="font-mono" style="color:{% if disqualification and disqualification.round2 %}var(--state-danger){% else %}var(--accent-signal){% endif %};">{% if disqualification and disqualification.round2 %}REVOKED{% else %}PROVISIONED{% endif %}</span>
         </div>
       </div>
     </div>

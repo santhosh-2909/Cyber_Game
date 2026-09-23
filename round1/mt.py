@@ -43,6 +43,11 @@ def _team_or_api_401():
     team = access.validate_participant("round1")
     if team is None:
         return None, (jsonify({"ok": False, "error": "unauthorized"}), 401)
+    # Server-side Round 1 disqualification gate for MT APIs. Round 2 remains
+    # independently unaffected; enforced per request so direct API calls and
+    # refreshed pages can never bypass the restriction.
+    if team.get("round1_disqualified"):
+        return None, access.render_round_blocked("round1", team)
     return team, None
 
 
@@ -226,6 +231,11 @@ def mt_page():
     team = access.validate_participant("round1")
     if team is None:
         return redirect(url_for("r1.r1_landing"))
+    # Disqualified participants see the full-screen restriction notice instead
+    # of the round. The gate is server-side (DB flag), so it survives refresh
+    # and re-login and cannot be altered from the browser.
+    if team.get("round1_disqualified"):
+        return access.render_round_blocked("round1", team)
     # Header timer (top-right, next to Logout) needs the live remaining time.
     sess = _session_row(team["id"])
     if sess is not None:

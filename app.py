@@ -501,6 +501,13 @@ def login_required(f):
     def wrapper(*args, **kwargs):
         if access.is_logged_in("round2") is False:
             return redirect(url_for("r2_login"))
+        # Server-side disqualification gate for Round 2. The participant stays
+        # authenticated (so the hub / login keep working) but every Round 2
+        # page and API is blocked; Round 1 is unaffected. Enforced on every
+        # request, so direct URLs, page refreshes and re-logins cannot bypass.
+        auth = access.validate_participant("round2")
+        if auth is not None and auth.get("round2_disqualified"):
+            return access.render_round_blocked("round2", auth)
         return f(*args, **kwargs)
     return wrapper
 
@@ -848,6 +855,7 @@ def home():
                            r1_session=r1_session,
                            r1_stage=r1_stage,
                            r1_stats=r1_stats,
+                           disqualification=access.disqualification_status(auth),
                            r2_ready=unify.round2_ready())
 
 
@@ -1557,6 +1565,45 @@ def admin_team_round2_access():
     if not ok:
         return jsonify({"ok": False, "error": error}), 400
     return jsonify({"ok": True})
+
+
+def _parse_bool_flag(value, default=None):
+    """Parse a JSON/form boolean-ish flag; None when absent."""
+    if value is None or value == "":
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value).lower() in ("1", "true", "on", "yes")
+
+
+@app.route("/admin/teams/<int:team_db_id>/disqualify", methods=["POST"])
+@admin_required_api
+def admin_team_disqualify(team_db_id):
+    """Set a team's per-round disqualification state.
+
+    Accepts JSON ``{"round1": bool, "round2": bool}``. Round 1 and Round 2 are
+    fully independent unless the admin explicitly sets both. Missing keys keep
+    the current value.
+    """
+    data = request.get_json(silent=True) or request.form
+    row = access.team_detail(team_db_id)
+    if not row:
+        return jsonify({"ok": False, "error": "Team not found."}), 404
+    r1 = _parse_bool_flag(data.get("round1"), None)
+    r2 = _parse_bool_flag(data.get("round2"), None)
+    if r1 is None and r2 is None:
+        return jsonify({"ok": False,
+                        "error": "Provide round1 and/or round2 flags."}), 400
+    ok, err = access.set_round_disqualification(team_db_id, round1=r1, round2=r2)
+    if not ok:
+        return jsonify({"ok": False, "error": err}), 400
+    state = access.get_disqualification(team_db_id)
+    admin_ops.audit(
+        "admin", "Updated disqualification",
+        target=row["team_name"],
+        detail="R1=%s R2=%s" % ("DQ" if state["round1"] else "OK",
+                                 "DQ" if state["round2"] else "OK"))
+    return jsonify({"ok": True, "disqualification": state})
 
 
 @app.route("/admin/teams/<int:team_db_id>/toggle", methods=["POST"])

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#070B12">
+  <title>{% if round_name == 'round2' %}Round 2{% else %}Round 1{% endif %} :: ACCESS RESTRICTED — Cyber Investigation 2026</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/utilities.css') }}">
+  <style>
+    .dq-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(1200px 500px at 70% -10%, rgba(191,165,255,0.06), transparent 60%),
+        radial-gradient(900px 600px at 10% 110%, rgba(239,68,68,0.05), transparent 60%),
+        var(--bg-base, #070B12);
+    }
+    .dq-card {
+      width: 100%;
+      max-width: 560px;
+      background-color: var(--bg-surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg, 16px);
+      box-shadow: 0 0 0 1px rgba(239,68,68,0.06), 0 24px 60px rgba(0,0,0,0.45);
+      overflow: hidden;
+      position: relative;
+    }
+    .dq-card::before {
+      content: '';
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--state-danger, #EF4444), rgba(239,68,68,0.15));
+    }
+    .dq-head {
+      padding: 22px 26px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background-color: rgba(239,68,68,0.04);
+    }
+    .dq-shield {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-sm, 8px);
+      background-color: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.35);
+      color: var(--state-danger, #EF4444);
+    }
+    .dq-code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--text-tertiary, #6B7280);
+    }
+    .dq-body { padding: 30px 26px 34px; }
+    .dq-title {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      margin: 18px 0 6px;
+      color: var(--text-primary, #F3F4F6);
+    }
+    .dq-round {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      color: var(--state-danger, #EF4444);
+    }
+    .dq-msg {
+      margin: 16px 0 0;
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text-secondary, #9CA3AF);
+    }
+    .dq-msg strong { color: var(--text-primary, #F3F4F6); }
+    .dq-flag {
+      margin: 22px 0 0;
+      padding: 12px 16px;
+      border: 1px dashed rgba(239,68,68,0.4);
+      border-radius: var(--radius-sm, 8px);
+      background-color: var(--bg-surface-2, #0D1420);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary, #6B7280);
+    }
+    .dq-actions {
+      margin-top: 26px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .dq-note {
+      margin-top: 18px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text-tertiary, #6B7280);
+    }
+  </style>
+</head>
+<body>
+  <div class="dq-screen">
+    <div class="dq-card" role="alert" aria-labelledby="dq-title">
+      <div class="dq-head">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span class="dq-shield" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L4 5.5V11c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5.5L12 2z"/>
+              <path d="M12 8v4"/>
+              <circle cx="12" cy="15.5" r="0.5" fill="currentColor"/>
+            </svg>
+          </span>
+          <div>
+            <div class="font-overline" style="letter-spacing:0.2em;color:var(--text-tertiary);font-size:11px;">CYBER INVESTIGATION &middot; COMPETITION</div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:0.08em;color:var(--text-primary);margin-top:2px;">EQUITY &amp; INTEGRITY ENFORCEMENT</div>
+          </div>
+        </div>
+        <span class="dq-code">INC-403-{{ round_name.upper() }} &middot; PERMANENT</span>
+      </div>
+
+      <div class="dq-body">
+        <div class="dq-round">{{ round_label }} &middot; DISQUALIFICATION</div>
+        <h1 id="dq-title" class="dq-title">ACCESS RESTRICTED</h1>
+
+        <p class="dq-msg">
+          You have been <strong>disqualified</strong> from {{ round_label }}.
+          Your access to this round has been <strong>disabled</strong> by the
+          competition administration.
+        </p>
+
+        <div class="dq-flag">
+          <span>TEAM RECORD</span>
+          <span style="color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">
+            {{ team.team_name if team and team.team_name else 'UNNAMED' }} &middot; {{ team.team_id if team and team.team_id else '—' }}
+          </span>
+          <span style="color:var(--state-danger);font-weight:700;">{{ round_label }}: REVOKED</span>
+        </div>
+
+        <div class="dq-actions">
+          <a class="btn btn-danger" href="{{ url_for('home') }}" style="flex:1;justify-content:center;">
+            RETURN TO DASHBOARD
+          </a>
+          <a class="btn btn-ghost" href="{{ url_for('logout') }}" style="min-width:120px;justify-content:center;">
+            LOG OUT
+          </a>
+        </div>
+
+        <p class="dq-note">
+          This decision cannot be appealed through the participant console.
+          If you believe this was issued in error, contact the event
+          administration.
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS teams (
     round2_access_id TEXT,
     round1_enabled INTEGER NOT NULL DEFAULT 1,
     round2_enabled INTEGER NOT NULL DEFAULT 1,
+    round1_disqualified INTEGER NOT NULL DEFAULT 0,
+    round2_disqualified INTEGER NOT NULL DEFAULT 0,
     is_dev_seed INTEGER NOT NULL DEFAULT 0
 );
 
@@ -502,6 +504,18 @@ def migrate():
             conn.execute("ALTER TABLE teams ADD COLUMN round1_enabled INTEGER NOT NULL DEFAULT 1")
         if "round2_enabled" not in team_cols:
             conn.execute("ALTER TABLE teams ADD COLUMN round2_enabled INTEGER NOT NULL DEFAULT 1")
+        # Per-round disqualification flags (independent for each round):
+        # a team disqualified from Round 1 keeps full Round 2 access and
+        # vice-versa. Admin-controlled; enforced server-side on every round
+        # entry + API. Exported to participant dicts, never client-set.
+        if "round1_disqualified" not in team_cols:
+            conn.execute(
+                "ALTER TABLE teams ADD COLUMN "
+                "round1_disqualified INTEGER NOT NULL DEFAULT 0")
+        if "round2_disqualified" not in team_cols:
+            conn.execute(
+                "ALTER TABLE teams ADD COLUMN "
+                "round2_disqualified INTEGER NOT NULL DEFAULT 0")
         conn.execute("UPDATE teams SET round1_access_id=team_id "
                      "WHERE round1_access_id IS NULL OR round1_access_id='' ")
         conn.execute("UPDATE teams SET round2_access_id=team_id "
