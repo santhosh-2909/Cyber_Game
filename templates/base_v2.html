@@ -61,7 +61,6 @@
           <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm {% if request.endpoint in ('dashboard','case_session') %}btn-secondary{% endif %}" style="font-size:13px;">Dashboard</a>
           <a href="{{ url_for('case_study') }}" class="btn btn-ghost btn-sm {% if request.endpoint in ('case_study','evidence') %}btn-secondary{% endif %}" style="font-size:13px;">Case Brief</a>
           <a href="{{ url_for('score') }}" class="btn btn-ghost btn-sm {% if request.endpoint in ('score','report') %}btn-secondary{% endif %}" style="font-size:13px;">Score Card</a>
-          <a href="{{ url_for('scoreboard') }}" class="btn btn-ghost btn-sm {% if request.endpoint in ('scoreboard',) %}btn-secondary{% endif %}" style="font-size:13px;">Scoreboard</a>
         </nav>
       </div>
 

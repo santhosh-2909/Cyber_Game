@@ -4,13 +4,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/forensics.css') }}">
 {% endblock %}
 {% block content %}
-{% set next_open = case.stations[0].id %}
 {% set case_done = (mcq_answers.get(case.stations[-1].id) or [])|length >= mcq_total %}
-{% for item in vault %}
-  {% if item.state in ('opened', 'analyzing') %}
-    {% set next_open = item.station.id %}
-  {% endif %}
-{% endfor %}
 
 <div class="fs-shell">
   <!-- Masthead -->

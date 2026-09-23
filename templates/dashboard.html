@@ -169,12 +169,6 @@
       <h3 style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;color:var(--text-primary);margin:0 0 6px 0;">Scoring Rules</h3>
       <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin:0;">+20 correct, &minus;5 wrong, +5 speed bonus for a correct answer inside 30s; max {{ case.stations|length * MCQ_PER_STATION * 25 }} pts. Questions stay open until answered — no timeout penalty.</p>
     </div>
-
-    <a href="{{ url_for('scoreboard') }}" class="card card-interactive" style="background-color:var(--bg-surface-1);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:20px;text-decoration:none;">
-      <div class="badge badge-outline font-mono" style="color:var(--state-success);margin-bottom:8px;">COMPETITION</div>
-      <h3 style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;color:var(--text-primary);margin:0 0 6px 0;">Leaderboard &amp; Podium</h3>
-      <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin:0;">View real-time LAN standings and competitive team scores.</p>
-    </a>
   </div>
 
 </div>

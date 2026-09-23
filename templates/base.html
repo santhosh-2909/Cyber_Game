@@ -55,7 +55,6 @@
         <a href="{{ url_for('case_selector') }}" class="topnav-link {% if request.endpoint == 'case_selector' or request.endpoint == 'case_study' or request.endpoint == 'evidence' or request.endpoint == 'puzzle_lab' or request.endpoint == 'challenge' %}active{% endif %}">Cases</a>
         <a href="{{ url_for('evidence_board') }}" class="topnav-link {% if request.endpoint == 'evidence_board' %}active{% endif %}">Evidence</a>
         <a href="{{ url_for('report') }}" class="topnav-link {% if request.endpoint == 'report' %}active{% endif %}">Report</a>
-        <a href="{{ url_for('scoreboard') }}" class="topnav-link {% if request.endpoint in ('scoreboard','score') %}active{% endif %}">Scoreboard</a>
       </div>
 
       <div class="topnav-right">

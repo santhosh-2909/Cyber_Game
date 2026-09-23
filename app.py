@@ -915,11 +915,14 @@ def evidence(station_id):
     unlocked = state != "locked"
     station_done = _station_answered(answers, station)
     accent = STATION_ACCENTS[idx % len(STATION_ACCENTS)]
+    next_open = next((s["id"] for s, st in zip(case["stations"], states)
+                      if st in ("opened", "analyzing")), case["stations"][0]["id"])
     return render_template(
         "station.html", team=session["team"], case=case,
         station=station if unlocked else None,
         unlocked=unlocked, state=state,
         accent=accent,
+        next_open=next_open,
         station_done=station_done,
         station_answers=answers.get(station_id, []) or [],
         mcq_answers=answers,
@@ -930,7 +933,7 @@ def evidence(station_id):
         answered=quiz_count(case, answers),
         report_done=bool(session.get("report")),
         note=session.get("notes", {}).get(station_id, ""),
-        vault=[{"station": s, "state": st, "active": s["id"] == station_id}
+        vault=[{"station": s, "state": st, "active": s["id"] == next_open}
                for s, st in zip(case["stations"], states)])
 
 
@@ -1395,37 +1398,6 @@ def case_selector():
             cases_for_view.append(item)
     return render_template("cases.html", team=session["team"],
                            cases=cases_for_view, current_case=current)
-
-
-# ---------------------------------------------------------------------------
-# SCOREBOARD
-# ---------------------------------------------------------------------------
-
-@app.route("/scoreboard")
-@login_required
-def scoreboard():
-    # Round 2 participants should only see Round 2 standings.
-    r2_data = admin_ops.r2_leaderboard()
-
-    leaderboard = [{
-        "name": t["team_name"],
-        "round2": t.get("total", 0),
-        "total": t.get("total", 0),
-        "active": False,
-        "r2_done": t.get("completed_at"),
-    } for t in r2_data]
-
-    # Sort by the Round 2 score, then earliest completion.
-    leaderboard = sorted(
-        leaderboard,
-        key=lambda x: (-x["round2"], x["r2_done"] or float("inf"))
-    )
-
-    last_solves = []
-
-    return render_template("scoreboard.html", team=session["team"],
-                           leaderboard=leaderboard, last_solves=last_solves)
-
 
 
 # ---------------------------------------------------------------------------

@@ -24,7 +24,6 @@
 
       <nav class="landing-nav-links" aria-label="Primary Navigation">
         <a href="#mission" class="landing-nav-link">MISSION</a>
-        <a href="{{ url_for('scoreboard') }}" class="landing-nav-link">LEADERBOARD</a>
         <a href="{{ url_for('r1.r1_rules') }}" class="landing-nav-link">RULES</a>
         <a href="{{ url_for('start') }}" class="btn btn-ghost btn-sm font-mono" style="font-size:12px;">LOGIN</a>
       </nav>
@@ -180,9 +179,6 @@
           <p class="mission-col-desc">
             Self-hosted offline architecture. Zero cloud dependencies, zero external tracker beacons, and synchronized server-authoritative countdown timers across all stations.
           </p>
-          <a href="{{ url_for('scoreboard') }}" class="mission-round-link">
-            <span>LIVE SCOREBOARD &rarr;</span>
-          </a>
         </div>
       </div>
     </section>
@@ -192,7 +188,6 @@
       <span>GOOD HACKERS MAKE A SAFER WORLD</span>
       <div class="landing-footer-links">
         <a href="#mission">MISSION</a>
-        <a href="{{ url_for('scoreboard') }}">LEADERBOARD</a>
         <a href="{{ url_for('r1.r1_rules') }}">RULES</a>
         <a href="{{ url_for('start') }}">TEAM LOGIN</a>
         <a href="{% if is_admin %}{{ url_for('admin_dashboard') }}{% else %}{{ url_for('r1.r1_admin_login') }}{% endif %}">
