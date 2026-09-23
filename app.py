@@ -2485,8 +2485,10 @@ app.register_blueprint(mt1)
 
 
 if __name__ == "__main__":
+    _host = os.environ.get("HOST", "127.0.0.1")
+    _port = int(os.environ.get("PORT", "5000"))
     print("==============================================")
     print(" CYBER INVESTIGATION - FORENSIC INVESTIGATION APP")
-    print(" Running at: http://127.0.0.1:5000")
+    print(f" Running at: http://{_host}:{_port}")
     print("==============================================")
-    app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)
+    app.run(host=_host, port=_port, debug=False, threaded=True)
