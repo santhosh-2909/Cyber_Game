@@ -16,6 +16,35 @@
 
   var $ = function (id) { return document.getElementById(id); };
 
+  // ---------------------------------------------------------------- transport
+
+  /* Resilient fetch: Accepts JSON, retries once on network failures / 5xx /
+   * server-declared transient busy errors, and never throws on a bad
+   * response so a transient hiccup surfaces a RETRY UI instead of a dead
+   * "NETWORK ERROR" box. Resolves {status, ok, d} where d is the JSON body
+   * (or null when the server replied without JSON).
+   */
+  function api(url, opts, attemptsLeft) {
+    attemptsLeft = (attemptsLeft == null) ? 2 : attemptsLeft;
+    return fetch(url, opts)
+      .then(function (r) {
+        return r.json()
+          .then(function (d) { return { status: r.status, ok: !!d, d: d }; })
+          .catch(function () { return { status: r.status, ok: false, d: null }; });
+      })
+      .catch(function () { return { status: 0, ok: false, d: null }; })
+      .then(function (res) {
+        var transient = res.status === 0 || res.status >= 500 ||
+          (res.d && res.d.retry === true);
+        if (transient && attemptsLeft > 1) {
+          return new Promise(function (resolve) {
+            setTimeout(function () { resolve(api(url, opts, attemptsLeft - 1)); }, 700);
+          });
+        }
+        return res;
+      });
+  }
+
   // ---------------------------------------------------------------- rendering
 
   function renderHand() {
@@ -280,9 +309,15 @@
   }
 
   function load() {
-    fetch('/api/participant/round/1', { headers: { 'Accept': 'application/json' } })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
+    api('/api/participant/round/1', {})
+      .then(function (res) {
+        var d = res.d;
+        if (res.status === 503 || (d && d.retry === true)) {
+          // Transient (SQLite busy under multi-user load) — retried once by
+          // api(); if still busy, wait a beat and load again rather than dead.
+          setTimeout(function () { load(); }, 1200);
+          return;
+        }
         if (!d || !d.ok) { window.location.reload(); return; }
         state = d;
         try {
@@ -320,18 +355,33 @@
     btn.disabled = true;
     result.innerHTML = '<span class="text-muted font-mono">CHECKING...</span>';
 
-    fetch('/api/participant/challenges/' + state.unlocked.id + '/submit', {
+    api('/api/participant/challenges/' + state.unlocked.id + '/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ answer: answer })
     })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
+      .then(function (res) {
+        var d = res.d || {};
+        if (d.retry === true || res.status === 503) {
+          // Writer contention under concurrent teams — give the participant a
+          // one-tap RETRY instead of a dead error card.
+          result.innerHTML =
+            '<div class="card" style="background:var(--warning-bg);border-color:var(--warning);padding:14px 16px;">' +
+              '<div class="font-overline text-warning">NETWORK BUSY</div>' +
+              '<p style="margin:6px 0 0;color:var(--text-secondary);font-size:0.85rem;">' +
+                'The grading server is momentarily overloaded. ' +
+                '<button type="button" class="btn btn-warning btn-sm" onclick="MT.submit()">RETRY</button>' +
+              '</p></div>';
+          btn.disabled = false;
+          return;
+        }
         if (!d || d.ok === false) {
           if (d && d.error === 'locked') { load(); return; }
           if (d && d.error === 'session_ended') { load(); return; }
           if (d && d.error === 'empty_answer') {
             pop('ANSWER REQUIRED', 'The answer field cannot be empty. Enter a value and try again.', 'warn');
+          } else if (d && d.error === 'attempts_exhausted') {
+            load(); return;
           } else {
             result.innerHTML = '<span class="text-muted font-mono">' + esc((d && d.error) || 'Request failed.') + '</span>';
           }
@@ -396,7 +446,13 @@
         }
       })
       .catch(function () {
-        result.innerHTML = '<span class="text-danger font-mono">NETWORK ERROR</span>';
+        result.innerHTML =
+          '<div class="card" style="background:var(--warning-bg);border-color:var(--warning);padding:14px 16px;">' +
+            '<div class="font-overline text-warning">NETWORK ERROR</div>' +
+            '<p style="margin:6px 0 0;color:var(--text-secondary);font-size:0.85rem;">' +
+              'Could not reach the grading server. ' +
+              '<button type="button" class="btn btn-warning btn-sm" onclick="MT.submit()">RETRY</button>' +
+            '</p></div>';
         btn.disabled = false;
       });
   }
@@ -406,13 +462,14 @@
     var box = $('mt-hint');
     var btn = $('mt-hint-btn');
     btn.disabled = true;
-    fetch('/api/participant/challenges/' + state.unlocked.id + '/hint')
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
+    api('/api/participant/challenges/' + state.unlocked.id + '/hint', {})
+      .then(function (res) {
+        var d = res.d || {};
         box.style.display = 'block';
         box.innerHTML = '<div class="card" style="background:var(--warning-bg);border-color:var(--warning);padding:14px 16px;">' +
           '<div class="font-overline text-warning">HINT</div><p style="margin:6px 0 0;font-size:0.9rem;color:var(--text-secondary);">' +
-          esc((d && d.hint) || 'No hint available.') + '</p></div>';
+          esc((d && d.hint) || ((d && d.error) ? 'Hint service busy — try again.' : 'No hint available.')) +
+          '</p></div>';
       })
       .catch(function () { box.style.display = 'block'; box.textContent = 'Hint unavailable.'; })
       .finally(function () { btn.disabled = false; });
@@ -483,6 +540,8 @@
 
 /* Public helper used by the flag-copy button (engines.js + template share it). */
 window.MT = window.MT || {};
+window.MT.submit = function () { submit(); };
+window.MT.hint = function () { hint(); };
 window.MT.copyFlag = function () {
   var f = document.getElementById('js-flag');
   if (!f) return;

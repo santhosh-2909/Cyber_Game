@@ -324,12 +324,64 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_teams_team_id_ci ON teams(team_id COLLATE 
 """
 
 
+class OperationalErrorBusy(sqlite3.OperationalError):
+    """SQLite writer contention that survived ``busy_timeout``.
+
+    Raised instead of the generic OperationalError so request handlers can
+    surface a transient, retryable failure to the participant (never silently
+    record corrupt state) when many teams write at the same moment.
+    """
+
+
+class _BusyAwareConnection(sqlite3.Connection):
+    """Connection whose cursor methods translate ``database is locked``.
+
+    ``busy_timeout`` absorbs short-lived contention; anything that still
+    escapes is almost always peak multi-user traffic, so it is flagged as
+    :class:`OperationalErrorBusy` for a clean client retry.
+    """
+
+    def _check(self, method, *args, **kwargs):
+        try:
+            return method(*args, **kwargs)
+        except sqlite3.OperationalError as exc:
+            msg = str(exc).lower()
+            if "database is locked" in msg or "locking protocol" in msg:
+                raise OperationalErrorBusy(str(exc)) from None
+            raise
+
+    def execute(self, *args, **kwargs):
+        return self._check(super().execute, *args, **kwargs)
+
+    def executemany(self, *args, **kwargs):
+        return self._check(super().executemany, *args, **kwargs)
+
+
+def _enable_wal():
+    """Switch the DB file to WAL once (persisted on disk).
+
+    WAL must be enabled a single time, not on every connection: the
+    ``PRAGMA journal_mode = WAL`` statement needs an exclusive lock and
+    re-running it on each connection during concurrent multi-user traffic can
+    itself raise ``database is locked``. Runs best-effort; a fresh DB gets it
+    via :func:`init_db` and an existing one already keeps the mode stored in
+    its file header.
+    """
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=30.0)
+        try:
+            conn.execute("PRAGMA journal_mode = WAL")
+        finally:
+            conn.close()
+    except sqlite3.OperationalError:
+        pass
+
+
 def get_connection():
     """Return a new SQLite connection with row factory enabled."""
-    conn = sqlite3.connect(DB_PATH, timeout=30.0)
+    conn = sqlite3.connect(DB_PATH, timeout=30.0, factory=_BusyAwareConnection)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    conn.execute("PRAGMA journal_mode = WAL")
     conn.execute("PRAGMA synchronous = NORMAL")
     conn.execute("PRAGMA busy_timeout = 30000")
     return conn
@@ -342,6 +394,7 @@ def now_ms():
 
 def init_db():
     """Create tables if they do not exist."""
+    _enable_wal()
     conn = get_connection()
     try:
         conn.executescript(SCHEMA)

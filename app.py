@@ -15,6 +15,50 @@ app.secret_key = "forencis-csae-secret-key-2026"
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 
+def _wants_json():
+    """API-ish JSON endpoints return machine-readable errors so participant
+    UIs (Round 1 MT, Round 2 MCQ) can show a friendly retry instead of
+    failing to parse an HTML error page into a dead 'NETWORK ERROR' box."""
+    return (request.path.startswith("/api/")
+            or request.path.startswith("/evidence")
+            or request.path.startswith("/r2")
+            or (request.accept_mimetypes
+                and request.accept_mimetypes.best == "application/json"))
+
+
+@app.errorhandler(404)
+def _handle_404(e):
+    if _wants_json():
+        return jsonify({"ok": False, "error": "not_found", "status": 404}), 404
+    return e
+
+
+@app.errorhandler(503)
+def _handle_503(e):
+    if _wants_json():
+        return jsonify({"ok": False, "error": "temporarily_unavailable",
+                        "retry": True, "status": 503}), 503
+    return e
+
+
+@app.errorhandler(500)
+def _handle_500(e):
+    app.logger.error("Unhandled 500 on %s: %s",
+                     request.path, e, exc_info=type(e))
+    if _wants_json():
+        return jsonify({"ok": False, "error": "server_error",
+                        "retry": True, "status": 500}), 500
+    return e
+
+
+@app.errorhandler(db.OperationalErrorBusy)
+def _handle_busy(e):
+    """SQLite writer contention is transient — surface a RETRYABLE JSON
+    error instead of an unhandled 500, and never let it corrupt state."""
+    return jsonify({"ok": False, "error": "database_busy",
+                    "retry": True, "status": 503}), 503
+
+
 @app.template_filter("ts")
 def _fmt_ts(ms):
     """Format a millisecond timestamp for admin panels."""
