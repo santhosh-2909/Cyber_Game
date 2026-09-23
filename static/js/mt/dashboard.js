@@ -7,6 +7,7 @@
 
   var state = null;
   var _focusQ2 = false;
+  var _sessionRetried = false;
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -320,6 +321,7 @@
         }
         if (!d || !d.ok) { window.location.reload(); return; }
         state = d;
+        _sessionRetried = false;
         try {
           renderHand();
           renderUnlocked();
@@ -376,9 +378,26 @@
           return;
         }
         if (!d || d.ok === false) {
-          if (d && d.error === 'locked') { load(); return; }
-          if (d && d.error === 'session_ended') { load(); return; }
-          if (d && d.error === 'empty_answer') {
+          if (d && d.error === 'session_not_found') {
+            // Serverless instances keep per-instance SQLite: a submit can land
+            // on an instance that never saw our session row. Re-run the
+            // summary (it recreates a fresh Round 1 session if missing) once;
+            // if that still fails, tell the participant to log in again.
+            if (!_sessionRetried) {
+              _sessionRetried = true;
+              load();
+              return;
+            }
+            result.innerHTML =
+              '<div class="card" style="background:var(--warning-bg);border-color:var(--warning);padding:14px 16px;">' +
+                '<div class="font-overline text-warning">SESSION NOT FOUND</div>' +
+                '<p style="margin:6px 0 0;color:var(--text-secondary);font-size:0.85rem;">' +
+                  'Your game session is not on this server node. ' +
+                  '<a class="btn btn-warning btn-sm" href="/start">LOG IN AGAIN</a>' +
+                '</p></div>';
+          } else if (d && d.error === 'locked') { load(); return; }
+          else if (d && d.error === 'session_ended') { load(); return; }
+          else if (d && d.error === 'empty_answer') {
             pop('ANSWER REQUIRED', 'The answer field cannot be empty. Enter a value and try again.', 'warn');
           } else if (d && d.error === 'attempts_exhausted') {
             load(); return;
