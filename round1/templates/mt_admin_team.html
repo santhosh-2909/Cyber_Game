@@ -1,11 +1,15 @@
 {% extends "r1_admin_base_v2.html" %}
-{% block title %}MYSTERY TRACE — Team{% endblock %}
+{% block title %}SHADOW HUNT — Team{% endblock %}
 {% block content %}
 
 <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:12px;margin-bottom:18px;">
   <div>
-    <div class="font-overline text-muted">MYSTERY TRACE // ROUND 1</div>
-    <h1 class="h2" style="margin:2px 0 0;">{{ data.team.team_name }} <span class="font-mono text-muted text-sm">{{ data.team.team_id }}</span></h1>
+    <div class="font-overline text-muted">SHADOW HUNT // ROUND 1</div>
+    <h1 class="h2" style="margin:2px 0 0;">{{ data.team.team_name }} <span class="font-mono text-muted text-sm">{{ data.team.team_id }}</span>
+      {% if data.team.variant_letter %}
+        <span class="hud-badge hud-badge-amber font-mono" style="margin-left:8px;vertical-align:middle;">VARIANT {{ data.team.variant_letter }}</span>
+      {% endif %}
+    </h1>
     {% if data.team.is_dev_seed %}<span class="badge badge-neutral">DEV TEAM</span>{% endif %}
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -47,7 +51,7 @@
       {% for a in data.assignments %}
       <tr>
         <td class="font-mono">{{ a.display_order }}</td>
-        <td class="font-mono">{{ a.variant_code }}</td>
+        <td class="font-mono">{{ a.challenge_code }}{% if a.variant_code %}-{{ a.variant_code }}{% endif %}</td>
         <td>{{ a.variant_title }}</td>
         <td class="font-mono">{{ a.game_type }}</td>
         <td>

@@ -24,7 +24,7 @@ import round1.db as db
 DEFAULT_ROUND_SETTINGS = {
     "round1": {
         "round_name": "round1",
-        "display_name": "MIXED FUNDAMENTALS",
+        "display_name": "SHADOW HUNT",
         "description": "Cyber Puzzle technical challenges.",
         "status": "ACTIVE",
         "timer_minutes": 30,

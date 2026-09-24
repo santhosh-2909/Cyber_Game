@@ -1,5 +1,5 @@
 {% extends "r1_base_v2.html" %}
-{% block title %}MYSTERY TRACE — Round 1{% endblock %}
+{% block title %}SHADOW HUNT — Round 1{% endblock %}
 {% block body_class %}mt-round{% endblock %}
 {% block sidebar %}{% endblock %}
 {% block extra_css %}
@@ -11,7 +11,7 @@
 
 <div id="mt-root">
   <!-- ============ HAND GRID ============ -->
-  <div class="hud-kicker" style="color:var(--hud-dim);margin-bottom:10px;">ASSIGNED MISSION HAND</div>
+  <div class="hud-kicker" style="color:var(--hud-dim);margin-bottom:10px;">SHADOW HUNT // CHALLENGE HAND — ALL CARD OPEN</div>
   <div id="mt-hand" class="mt-hand" style="margin-bottom:24px;"></div>
 
   <!-- ============ ACTIVE CHALLENGE ============ -->
@@ -25,7 +25,7 @@
           <span class="mt-radar" role="img" aria-label="Tracking radar"></span>
           <span style="margin-left:auto;">
             <span class="hud-stat-label" style="display:inline;margin:0;margin-right:8px;">Value</span>
-            <span class="font-mono" id="mt-points" style="color:var(--hud-green);font-weight:800;">25 PTS</span>
+            <span class="font-mono" id="mt-points" style="color:var(--hud-green);font-weight:800;">0 PTS</span>
             <span class="hud-badge hud-badge-purple font-mono" id="mt-strike" style="display:none;margin-left:8px;" title="Time strike: bonus points for fast solves">+0 strike</span>
             <span id="mt-flag-chip" style="display:none;margin-left:10px;color:var(--hud-green);"></span>
             <span class="hud-badge hud-badge-purple font-mono" id="mt-attempts" style="display:none;margin-left:10px;">0/3</span>
@@ -61,9 +61,9 @@
     <div class="flex items-center gap-md">
       <span class="status-dot active"></span>
       <div>
-        <div class="hud-kicker" style="color:var(--hud-green);">MISSION COMPLETE</div>
+        <div class="hud-kicker" style="color:var(--hud-green);">HUNT COMPLETE</div>
         <p class="hud-sub" style="margin:8px 0 0;font-size:1.05rem;line-height:1.7;">
-          All <span id="mt-complete-count">0</span> challenges resolved.
+          All <span id="mt-complete-count">0</span> flags captured.
           Final score: <span id="mt-complete-score" style="color:var(--hud-green);font-weight:800;">0</span> pts.
         </p>
       </div>
@@ -76,7 +76,7 @@
   <div id="mt-result" class="mt-answerbar-result"></div>
   <div id="mt-answer-row-1" class="mt-answerbar-row">
     <input id="mt-answer" type="text" class="flag-input mt-answerbar-input"
-           placeholder="Enter the value you determined for the open question..." autocomplete="off" spellcheck="false">
+           placeholder="Enter the CIC{...} flag for this challenge..." autocomplete="off" spellcheck="false">
   </div>
   <div id="mt-answer-row-2" class="mt-answerbar-row" style="margin-top:10px;">
     <input id="mt-answer-2" type="text" class="flag-input mt-answerbar-input"
@@ -84,7 +84,7 @@
   </div>
   <div class="mt-answerbar-row" style="margin-top:10px;justify-content:flex-end;">
     <button id="mt-hint-btn" type="button" class="hud-btn hud-btn-ghost btn-sm mt-answerbar-hint">HINT</button>
-    <button id="mt-submit" type="button" class="hud-btn hud-btn-green btn-sm">RUN CHECK</button>
+    <button id="mt-submit" type="button" class="hud-btn hud-btn-green btn-sm">SUBMIT FLAG</button>
   </div>
   <div id="mt-hint" class="mt-answerbar-hintbox" style="display:none;"></div>
 </div>

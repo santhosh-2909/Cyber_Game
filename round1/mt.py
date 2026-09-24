@@ -124,7 +124,8 @@ def _overview_payload(sess):
                               2 if a.get("q1_solved") else 1)),
         "attempts_limit": 0 if shadow_session else assign.MT_MAX_ATTEMPTS,
         "question_count": 1 if shadow_session else 2,
-        "code": a["variant_code"],
+        "code": (a["challenge_code"] + "-" + a["variant_code"])
+                if shadow_session else a["variant_code"],
         "domain": a.get("domain") or "",
         "title": a.get("title") or "",
         "points": (assign._shadow_points(a["assignment_id"])
@@ -141,6 +142,7 @@ def _overview_payload(sess):
     session_data = {
         "id": sess["id"],
         "round_name": sess["round_name"],
+        "shadow": bool(shadow_session),
         "started_at": sess["started_at"],
         "ends_at": sess["ends_at"],
         "status": sess["status"],
@@ -199,7 +201,7 @@ def _challenge_payload(assignment_id, sess):
         cfg2.setdefault("title", d.get("variant2_title") or "")
         cfg2.setdefault("category", d.get("category_title") or "")
         cfg2.setdefault("points", sess.get("points_per_challenge") or 25)
-    return {
+    payload = {
         "id": d["assignment_id"],
         "sequence_number": d["display_order"],
         "status": d["status"],
@@ -213,7 +215,8 @@ def _challenge_payload(assignment_id, sess):
                               d["assignment_id"],
                               2 if d.get("q1_solved") else 1)),
         "attempts_limit": 0 if shadow else assign.MT_MAX_ATTEMPTS,
-        "code": d["variant_code"],
+        "code": (d["challenge_code"] + "-" + d["variant_code"])
+                if shadow else d["variant_code"],
         "domain": d.get("domain") or "",
         "title": d.get("variant_title") or d.get("category_title") or "",
         "game_type": d.get("game_type") or "",
@@ -232,7 +235,22 @@ def _challenge_payload(assignment_id, sess):
         "config": cfg,
         "evidence2": evidence2,
         "config2": cfg2,
+        "flag": "",
+        "artifact_url": "",
     }
+    if shadow:
+        # Solved Shadow Hunt cards carry the team's OWN flag so a solved
+        # challenge can be revisited (and the flag re-displayed). A team can
+        # never see another team's variant: the flag comes from their
+        # assignment's variant row only.
+        if d["status"] == "COMPLETED":
+            payload["flag"] = assign.get_mt_flag(assignment_id)
+            cfg.setdefault("solved_flag", payload["flag"])
+        if d.get("challenge_code") == "C04":
+            payload["artifact_url"] = "/challenge4/%s.html" % (
+                d["variant_code"]).lower()
+            cfg.setdefault("artifact_url", payload["artifact_url"])
+    return payload
 
 
 def _mt_points_per_challenge(session_id):
@@ -402,6 +420,48 @@ def api_challenge_submit(assignment_id):
         "total": sess["challenges_per_team"] or 0,
         "message": message,
     })
+
+
+@mt.route("/challenge4/<letter>")
+def challenge4_page(letter):
+    """Developer's Mistake (C04): per-variant static "staff portal" page.
+
+    Each team can only ever reach the page for THEIR OWN variant letter
+    (matched against their C04 assignment on the server). The flag hides in
+    an HTML comment that is only visible in view-source.
+    """
+    team = access.validate_participant("round1")
+    if team is None:
+        return redirect(url_for("r1.r1_landing"))
+    target = (letter or "").lower()
+    if target.endswith(".html"):
+        target = target[:-5]
+    if team.get("round1_disqualified"):
+        return access.render_round_blocked("round1", team)
+    if target not in ("a", "b", "c"):
+        abort(404)
+    conn = db.get_connection()
+    try:
+        row = conn.execute(
+            "SELECT v.id FROM team_challenge_assignments a "
+            "JOIN round_sessions s ON a.session_id = s.id "
+            "JOIN challenge_categories c ON a.challenge_category_id = c.id "
+            "JOIN challenge_variants v ON a.variant_id = v.id "
+            "WHERE s.team_id=? AND s.status='ACTIVE' "
+            "AND c.challenge_code='C04' AND LOWER(v.variant_code)=?",
+            (team["id"], target)).fetchone()
+        flag = ""
+        if row is not None:
+            frow = conn.execute(
+                "SELECT flag FROM challenge_variants WHERE id=?",
+                (row["id"],)).fetchone()
+            flag = frow["flag"] if frow else ""
+    finally:
+        conn.close()
+    if not flag:
+        abort(404)
+    return render_template("challenge4.html", letter=target.upper(),
+                           debug_flag=flag)
 
 
 @mt.route("/api/participant/challenges/<int:assignment_id>/hint")
@@ -651,6 +711,7 @@ def _admin_monitor_data():
             "id": t["id"],
             "team_id": t["team_id"],
             "team_name": t["team_name"],
+            "variant_letter": (t.get("variant_letter") or "").strip(),
             "is_dev_seed": t.get("is_dev_seed") or 0,
             "last_seen": t.get("last_seen"),
             "session": sess,

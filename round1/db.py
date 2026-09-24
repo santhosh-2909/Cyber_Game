@@ -37,7 +37,10 @@ CREATE TABLE IF NOT EXISTS teams (
     round2_enabled INTEGER NOT NULL DEFAULT 1,
     round1_disqualified INTEGER NOT NULL DEFAULT 0,
     round2_disqualified INTEGER NOT NULL DEFAULT 0,
-    is_dev_seed INTEGER NOT NULL DEFAULT 0
+    is_dev_seed INTEGER NOT NULL DEFAULT 0,
+    -- Shadow Hunt (Round 1): round-robin variant letter (A/B/C) assigned at
+    -- team creation. Teams 1,4,7,10 -> A; 2,5,8 -> B; 3,6,9 -> C.
+    variant_letter TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS challenge_categories (
@@ -521,6 +524,21 @@ def migrate():
         conn.execute("UPDATE teams SET round2_access_id=team_id "
                      "WHERE round2_access_id IS NULL OR round2_access_id='' ")
 
+        # Shadow Hunt variant letter: round-robin by creation order, so teams
+        # 1,4,7,10 get A; 2,5,8 get B; 3,6,9 get C. Backfills teams created
+        # before the column existed (inert for classic MYSTERY TRACE content).
+        SHADOW_VARIANTS = ("A", "B", "C")
+        if "variant_letter" not in team_cols:
+            conn.execute(
+                "ALTER TABLE teams "
+                "ADD COLUMN variant_letter TEXT NOT NULL DEFAULT ''")
+            team_cols.add("variant_letter")
+        for row in conn.execute(
+                "SELECT id FROM teams WHERE variant_letter=''").fetchall():
+            letter = SHADOW_VARIANTS[(row["id"] - 1) % len(SHADOW_VARIANTS)]
+            conn.execute("UPDATE teams SET variant_letter=? WHERE id=?",
+                         (letter, row["id"]))
+
         # Active participant login tracking table (fresh installs get it from
         # SCHEMA; existing DBs get it here).
         conn.execute(
@@ -684,6 +702,11 @@ def migrate():
         conn.execute(
             "UPDATE round_settings SET timer_minutes=45, updated_at=? "
             "WHERE round_name='round2' AND timer_minutes != 45",
+            (now_ms(),))
+        # Shadow Hunt branding: keep the round1 display name in sync.
+        conn.execute(
+            "UPDATE round_settings SET display_name='SHADOW HUNT', updated_at=? "
+            "WHERE round_name='round1' AND display_name != 'SHADOW HUNT'",
             (now_ms(),))
 
         # =====================================================================

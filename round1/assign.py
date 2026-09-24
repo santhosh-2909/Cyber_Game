@@ -437,11 +437,17 @@ def _is_mt_variant(variant_id, conn):
     return bool(row and (row["flag"] or "").startswith("MT{"))
 
 
+_MT_SESSION_ROUND = ("s.round_name LIKE 'SHADOW HUNT%' "
+                     "OR s.round_name LIKE 'MYSTERY TRACE%'")
+
+
 def get_mt_session(team_id):
     """Return the ACTIVE MT round session for a team, or None.
 
-    Only sessions built on MT variants are considered; legacy Cyber-Puzzle
-    sessions are excluded so a new MT round can start cleanly.
+    Only sessions dealt by the MT flows (SHADOW HUNT / MYSTERY TRACE) are
+    considered; legacy Cyber-Puzzle sessions are excluded so a new round can
+    start cleanly even if a legacy session's assignments happen to point at
+    current catalogue variants.
     """
     conn = db.get_connection()
     try:
@@ -449,6 +455,7 @@ def get_mt_session(team_id):
             "SELECT s.id FROM round_sessions s "
             "JOIN team_challenge_assignments a ON a.session_id = s.id "
             "WHERE s.team_id=? AND s.status NOT IN ('COMPLETED','EXPIRED') "
+            "AND (" + _MT_SESSION_ROUND + ") "
             "ORDER BY s.id DESC LIMIT 5",
             (team_id,)).fetchall()
         for r in rows:
@@ -473,17 +480,20 @@ def _legacy_sessions_for_team(conn, team_id):
     return conn.execute(
         "SELECT s.id FROM round_sessions s "
         "WHERE s.team_id=? AND s.status NOT IN ('COMPLETED','EXPIRED') "
-        "AND NOT EXISTS (SELECT 1 FROM team_challenge_assignments a "
-        "                JOIN challenge_variants v ON a.variant_id = v.id "
-        "                WHERE a.session_id = s.id AND v.game_type != '')",
+        "AND NOT (" + _MT_SESSION_ROUND + ")",
         (team_id,)).fetchall()
 
 
 def assign_mt(team_id, secret=None):
-    """Create (or resume) the MYSTERY TRACE round for a team.
+    """Create (or resume) the Round 1 round for a team.
 
     Returns a dict: {"session": {...}, "fresh": bool}. Idempotent: an existing
-    ACTIVE MT session is resumed; a finished one stays finished.
+    ACTIVE Round 1 session is resumed; a finished one stays finished.
+
+    Shadow Hunt (Round 1 rework): teams carry a round-robin variant letter
+    (A/B/C). Their hand is ALL six challenges, each handed with the single
+    variant matching their letter (one flag question per challenge), all
+    unlocked together so any order is playable.
     """
     conn = db.get_connection()
     try:
@@ -510,13 +520,16 @@ def assign_mt(team_id, secret=None):
             return finished, False
 
         # Any leftover legacy ACTIVE sessions are retired so the team starts
-        # a clean MT round (the historical data stays in the DB).
+        # a clean Round 1 round (the historical data stays in the DB).
         for old in _legacy_sessions_for_team(conn, team_id):
             conn.execute(
                 "UPDATE round_sessions SET status='EXPIRED', completed_at=? "
                 "WHERE id=?", (db.now_ms(), old["id"]))
 
         settings = _mt_settings()
+        shadow_letter = _team_variant_letter(conn, team_id)
+        round_name = ("SHADOW HUNT — Round 1" if shadow_letter
+                      else "MYSTERY TRACE — Round 1")
         cats = [dict(r) for r in conn.execute(
             "SELECT * FROM challenge_categories WHERE active=1 "
             "ORDER BY challenge_code").fetchall()]
@@ -527,29 +540,42 @@ def assign_mt(team_id, secret=None):
         rng = _mt_rng(team_id, secret)
         ordered = list(cats)
         rng.shuffle(ordered)
-        chosen = ordered[: settings["count"]]
+        if shadow_letter:
+            # Shadow Hunt: every challenge is dealt to every team.
+            chosen = ordered
+        else:
+            chosen = ordered[: settings["count"]]
         # Guarantee: no duplicate domain across the hand (categories ARE the
         # domains here, and the UNIQUE(session, category) constraint enforces
         # it structurally as well).
         if len({c["id"] for c in chosen}) != len(chosen):
             raise ValueError("duplicate domain selection")
 
-        # Deterministically pick two MT variants per chosen category: the
-        # primary question plus a SECOND question from the SAME domain
-        # (category) that is never the same variant — so no question repeats
-        # for a team within a round.
+        # Deterministically pick variants per chosen category:
+        #  * Shadow Hunt — the ONE variant matching the team's letter and no
+        #    second question (a single flag per challenge).
+        #  * Classic MT — a primary plus a SECOND question from the SAME
+        #    category, never the same variant.
         picks = []
         for cat in chosen:
             variants = [dict(r) for r in conn.execute(
                 "SELECT * FROM challenge_variants WHERE challenge_category_id=? "
                 "AND game_type != '' ORDER BY variant_code",
                 (cat["id"],)).fetchall()]
-            if len(variants) < 2:
-                raise ValueError("Need >=2 MT variants for category %s"
-                                 % cat["id"])
-            primary = rng.choice(variants)
-            second = rng.choice([v for v in variants
-                                 if v["id"] != primary["id"]])
+            if shadow_letter:
+                match = [v for v in variants
+                         if v["variant_code"] == shadow_letter]
+                if not match:
+                    raise ValueError("No variant %s for category %s"
+                                     % (shadow_letter, cat["id"]))
+                primary, second = match[0], None
+            else:
+                if len(variants) < 2:
+                    raise ValueError("Need >=2 MT variants for category %s"
+                                     % cat["id"])
+                primary = rng.choice(variants)
+                second = rng.choice([v for v in variants
+                                     if v["id"] != primary["id"]])
             picks.append((cat, primary, second))
 
         start = db.now_ms()
@@ -559,18 +585,19 @@ def assign_mt(team_id, secret=None):
             "ends_at, status, score, challenges_solved, challenges_per_team, "
             "challenges_total, points_per_challenge) "
             "VALUES (?,?,?,?,?,?,?,?,?,?)",
-            (team_id, "MYSTERY TRACE — Round 1", start, end, "ACTIVE", 0, 0,
-             settings["count"], settings["count"], settings["points"]))
+            (team_id, round_name, start, end, "ACTIVE", 0, 0,
+             len(picks), len(picks), settings["points"]))
         session_id = cur.lastrowid
 
         rng.shuffle(picks)
-        for idx, (cat, variant, variant2) in enumerate(picks):
+        for idx, (cat, variant, second) in enumerate(picks):
             conn.execute(
                 "INSERT INTO team_challenge_assignments (session_id, "
                 "challenge_category_id, variant_id, variant2_id, "
                 "display_order, status, started_at, points_awarded) "
                 "VALUES (?,?,?,?,?,?,?,?)",
-                (session_id, cat["id"], variant["id"], variant2["id"], idx + 1,
+                (session_id, cat["id"], variant["id"],
+                 second["id"] if second else None, idx + 1,
                  "IN_PROGRESS", start, 0))
 
         conn.commit()
@@ -583,6 +610,26 @@ def assign_mt(team_id, secret=None):
         return sess, True
     finally:
         conn.close()
+
+
+def team_variant_letter(team_id):
+    """A team's Shadow Hunt variant letter ('' for classic MT teams)."""
+    conn = db.get_connection()
+    try:
+        row = conn.execute(
+            "SELECT variant_letter FROM teams WHERE id=?",
+            (team_id,)).fetchone()
+        return (row["variant_letter"] or "").strip() if row else ""
+    finally:
+        conn.close()
+
+
+def _team_variant_letter(conn, team_id):
+    """Connection-scoped variant letter (see team_variant_letter)."""
+    row = conn.execute(
+        "SELECT variant_letter FROM teams WHERE id=?",
+        (team_id,)).fetchone()
+    return (row["variant_letter"] or "").strip() if row else ""
 
 
 def get_mt_assignments(session_id):
@@ -740,9 +787,12 @@ def get_mt_challenge(assignment_id):
             "WHERE a.id=?",
             (assignment_id,)).fetchone()
         # Legacy rows without a stored variant2_id: resolve the second
-        # question deterministically on read (same rule graders use).
-        raw = dict(row) if row else None
-        if raw is not None and raw.get("variant2_id") is None:
+        # question deterministically on read (same rule graders use). Shadow
+        # Hunt assignments carry a single flag question and variant2_id=NULL
+        # by design, so the legacy two-question fallback never applies.
+        raw = dict(row) if row is not None else None
+        is_shadow = row is not None and _is_shadow_variant(conn, assignment_id)
+        if raw is not None and raw.get("variant2_id") is None and not is_shadow:
             v2id = _default_variant2(conn, raw["category_id"],
                                      raw["variant_id"])
             if v2id is not None:
@@ -1022,9 +1072,14 @@ def grade_shadow_flag(conn, session_id, assignment_id, team_id, submitted):
     flag = get_mt_flag(assignment_id)
     correct = bool(flag) and submitted.strip().lower() == flag.strip().lower()
 
-    stage_attempts = get_mt_attempts_used(assignment_id)
+    def _attempt_count():
+        return conn.execute(
+            "SELECT COUNT(*) AS c FROM submissions WHERE assignment_id=?",
+            (assignment_id,)).fetchone()["c"]
+
+    stage_attempts = _attempt_count()
     record_mt_submission(session_id, assignment_id, submitted, 1, correct, conn)
-    new_attempts = get_mt_attempts_used(assignment_id)
+    new_attempts = _attempt_count()
 
     if already_solved:
         if not correct:
