@@ -427,8 +427,9 @@ def challenge4_page(letter):
     """Developer's Mistake (C04): per-variant static "staff portal" page.
 
     Each team can only ever reach the page for THEIR OWN variant letter
-    (matched against their C04 assignment on the server). The flag hides in
-    an HTML comment that is only visible in view-source.
+    (matched against their C04 assignment on the server). The portal hides
+    a USERNAME in its page metadata/source (never the flag); recovering the
+    USERNAME and wrapping it in SHADOW{...} yields the flag.
     """
     team = access.validate_participant("round1")
     if team is None:
@@ -460,8 +461,14 @@ def challenge4_page(letter):
         conn.close()
     if not flag:
         abort(404)
+    # The staff portal is a "username recovery" lab: the page hides the
+    # guest USERNAME (recovered from the flag's inner token) in its source
+    # metadata, and the team must wrap it in SHADOW{...} themselves. Only
+    # the recovered USERNAME is exposed to the template -- never the flag.
+    inner = flag[len("SHADOW{"):-1]
+    username = inner.lower()
     return render_template("challenge4.html", letter=target.upper(),
-                           debug_flag=flag)
+                           debug_username=username)
 
 
 @mt.route("/api/participant/challenges/<int:assignment_id>/hint")

@@ -3,7 +3,7 @@
 Six challenges x three variants (A/B/C), transcribed from the Shadow Hunt
 Master Specification. Participants receive ONE global variant letter
 determined when their team is created (round-robin: teams 1,4,7,10 -> A;
-2,5,8 -> B; 3,6,9 -> C) and submit CIC{...} flags directly. Grading
+2,5,8 -> B; 3,6,9 -> C) and submit SHADOW{...} flags directly. Grading
 evaluates the submission against the flag SAVED here (challenge_variants.flag);
 wrong flags are recorded as wrong attempts but never lock the challenge.
 
@@ -16,7 +16,7 @@ Per-variant entries carry:
     game_type   engine key          ("shadow_text")
     title       challenge title     (same for all three variants)
     answer      canonical flag      (server-side only, same as flag)
-    flag        CIC{...} flag       (server-side only)
+    flag        SHADOW{...} flag       (server-side only)
     q / hint    participant question + hint
     ev          evidence: static text/object shipped as-is
     cfg         public game_config extra (e.g. the challenge-4 staff-portal URL)
@@ -38,46 +38,46 @@ CHALLENGES = [
     {
         "code": "A", "domain": "crypto", "game_type": "shadow_text",
         "title": "Shifted Message",
-        "answer": "CIC{CAESAR_IS_EASY}",
-        "flag": "CIC{CAESAR_IS_EASY}",
+        "answer": "SHADOW{CAESAR_IS_EASY}",
+        "flag": "SHADOW{CAESAR_IS_EASY}",
         "accept": [],
         "points": 75, "difficulty": "Easy",
         "solve_time": "3m",
         "q": "The ciphertext below has been shifted with one fixed Caesar "
-            "rotation. Decode the message and submit the recovered CIC{...} flag.",
+            "rotation. Decode the message and submit the recovered SHADOW{...} flag.",
         "hint": "A Caesar shift moves every letter by the same amount. Here "
-                "FLF{...} decodes to CIC{...}, so the rotation is easy to find.",
-        "ev": "FLF{FDHVDU_LV_HDVB}",
+                "VKDGRZ{...} decodes to SHADOW{...}, so the rotation is easy to find.",
+        "ev": "VKDGRZ{FDHVDU_LV_HDVB}",
         "cfg": {},
     },
     {
         "code": "B", "domain": "crypto", "game_type": "shadow_text",
         "title": "Shifted Message",
-        "answer": "CIC{SIMPLE_SHIFT_WINS}",
-        "flag": "CIC{SIMPLE_SHIFT_WINS}",
+        "answer": "SHADOW{SIMPLE_SHIFT_WINS}",
+        "flag": "SHADOW{SIMPLE_SHIFT_WINS}",
         "accept": [],
         "points": 75, "difficulty": "Easy",
         "solve_time": "3m",
         "q": "The ciphertext below has been shifted with one fixed Caesar "
-            "rotation. Decode the message and submit the recovered CIC{...} flag.",
+            "rotation. Decode the message and submit the recovered SHADOW{...} flag.",
         "hint": "A Caesar shift moves every letter by the same amount. Here "
-                "FLF{...} decodes to CIC{...}, so the rotation is easy to find.",
-        "ev": "FLF{VLPSOH_VKLIW_ZLQV}",
+                "VKDGRZ{...} decodes to SHADOW{...}, so the rotation is easy to find.",
+        "ev": "VKDGRZ{VLPSOH_VKLIW_ZLQV}",
         "cfg": {},
     },
     {
         "code": "C", "domain": "crypto", "game_type": "shadow_text",
         "title": "Shifted Message",
-        "answer": "CIC{ROT_THREE_BASICS}",
-        "flag": "CIC{ROT_THREE_BASICS}",
+        "answer": "SHADOW{ROT_THREE_BASICS}",
+        "flag": "SHADOW{ROT_THREE_BASICS}",
         "accept": [],
         "points": 75, "difficulty": "Easy",
         "solve_time": "3m",
         "q": "The ciphertext below has been shifted with one fixed Caesar "
-            "rotation. Decode the message and submit the recovered CIC{...} flag.",
+            "rotation. Decode the message and submit the recovered SHADOW{...} flag.",
         "hint": "A Caesar shift moves every letter by the same amount. Here "
-                "FLF{...} decodes to CIC{...}, so the rotation is easy to find.",
-        "ev": "FLF{URW_WKUHH_EDVLFV}",
+                "VKDGRZ{...} decodes to SHADOW{...}, so the rotation is easy to find.",
+        "ev": "VKDGRZ{URW_WKUHH_EDVLFV}",
         "cfg": {},
     },
 
@@ -85,15 +85,15 @@ CHALLENGES = [
     {
         "code": "A", "domain": "email", "game_type": "shadow_text",
         "title": "Email Trail",
-        "answer": "CIC{203_0_113_42}",
-        "flag": "CIC{203_0_113_42}",
+        "answer": "SHADOW{203_0_113_42}",
+        "flag": "SHADOW{203_0_113_42}",
         "accept": [],
         "points": 100, "difficulty": "Easy-Medium",
         "solve_time": "5m",
         "q": "Examine the full message headers. The relay that delivered this "
             "email claims a legitimate-looking name, but its REAL IP address is "
             "visible in the Received lines. Submit that IP wrapped in the "
-            "CIC{...} flag format, using underscores instead of dots.",
+            "SHADOW{...} flag format, using underscores instead of dots.",
         "hint": "Received lines list every hop the message crossed. The "
                 "suspicious relay's true address sits in the square brackets "
                 "[...] of its Received line.",
@@ -111,15 +111,15 @@ CHALLENGES = [
     {
         "code": "B", "domain": "email", "game_type": "shadow_text",
         "title": "Email Trail",
-        "answer": "CIC{198_51_100_77}",
-        "flag": "CIC{198_51_100_77}",
+        "answer": "SHADOW{198_51_100_77}",
+        "flag": "SHADOW{198_51_100_77}",
         "accept": [],
         "points": 100, "difficulty": "Easy-Medium",
         "solve_time": "5m",
         "q": "Examine the full message headers. The relay that delivered this "
             "email claims a legitimate-looking name, but its REAL IP address is "
             "visible in the Received lines. Submit that IP wrapped in the "
-            "CIC{...} flag format, using underscores instead of dots.",
+            "SHADOW{...} flag format, using underscores instead of dots.",
         "hint": "Received lines list every hop the message crossed. The "
                 "suspicious relay's true address sits in the square brackets "
                 "[...] of its Received line.",
@@ -137,15 +137,15 @@ CHALLENGES = [
     {
         "code": "C", "domain": "email", "game_type": "shadow_text",
         "title": "Email Trail",
-        "answer": "CIC{192_0_2_10}",
-        "flag": "CIC{192_0_2_10}",
+        "answer": "SHADOW{192_0_2_10}",
+        "flag": "SHADOW{192_0_2_10}",
         "accept": [],
         "points": 100, "difficulty": "Easy-Medium",
         "solve_time": "5m",
         "q": "Examine the full message headers. The relay that delivered this "
             "email claims a legitimate-looking name, but its REAL IP address is "
             "visible in the Received lines. Submit that IP wrapped in the "
-            "CIC{...} flag format, using underscores instead of dots.",
+            "SHADOW{...} flag format, using underscores instead of dots.",
         "hint": "Received lines list every hop the message crossed. The "
                 "suspicious relay's true address sits in the square brackets "
                 "[...] of its Received line.",
@@ -165,14 +165,14 @@ CHALLENGES = [
     {
         "code": "A", "domain": "logs", "game_type": "shadow_text",
         "title": "Midnight Log",
-        "answer": "CIC{MIDNIGHT_ARCHIVE}",
-        "flag": "CIC{MIDNIGHT_ARCHIVE}",
+        "answer": "SHADOW{MIDNIGHT_ARCHIVE}",
+        "flag": "SHADOW{MIDNIGHT_ARCHIVE}",
         "accept": [],
         "points": 100, "difficulty": "Easy-Medium",
         "solve_time": "5m",
         "q": "One archived file was downloaded from the server moments after the "
             "breach session started. Identify which archive left the machine and "
-            "submit its NAME wrapped in the CIC{...} flag format.",
+            "submit its NAME wrapped in the SHADOW{...} flag format.",
         "hint": "Follow the suspicious session from LOGIN SUCCESS to DOWNLOAD — "
                 "only one archive reaches the wire.",
         "ev": ("2026-09-23 22:37:51 INFO  173.203.12.9    LOGIN FAILED   admin\n"
@@ -186,14 +186,14 @@ CHALLENGES = [
     {
         "code": "B", "domain": "logs", "game_type": "shadow_text",
         "title": "Midnight Log",
-        "answer": "CIC{PROJECT_SECRETS}",
-        "flag": "CIC{PROJECT_SECRETS}",
+        "answer": "SHADOW{PROJECT_SECRETS}",
+        "flag": "SHADOW{PROJECT_SECRETS}",
         "accept": [],
         "points": 100, "difficulty": "Easy-Medium",
         "solve_time": "5m",
         "q": "One archived file was downloaded from the server moments after the "
             "breach session started. Identify which archive left the machine and "
-            "submit its NAME wrapped in the CIC{...} flag format.",
+            "submit its NAME wrapped in the SHADOW{...} flag format.",
         "hint": "Follow the suspicious session from LOGIN SUCCESS to DOWNLOAD — "
                 "only one archive reaches the wire.",
         "ev": ("2026-09-23 22:58:30 INFO  54.32.10.7      LOGIN FAILED   operator\n"
@@ -207,14 +207,14 @@ CHALLENGES = [
     {
         "code": "C", "domain": "logs", "game_type": "shadow_text",
         "title": "Midnight Log",
-        "answer": "CIC{BACKUP_VAULT}",
-        "flag": "CIC{BACKUP_VAULT}",
+        "answer": "SHADOW{BACKUP_VAULT}",
+        "flag": "SHADOW{BACKUP_VAULT}",
         "accept": [],
         "points": 100, "difficulty": "Easy-Medium",
         "solve_time": "5m",
         "q": "One archived file was downloaded from the server moments after the "
             "breach session started. Identify which archive left the machine and "
-            "submit its NAME wrapped in the CIC{...} flag format.",
+            "submit its NAME wrapped in the SHADOW{...} flag format.",
         "hint": "Follow the suspicious session from LOGIN SUCCESS to DOWNLOAD — "
                 "only one archive reaches the wire.",
         "ev": ("2026-09-24 00:10:03 INFO  8.8.201.66      LOGIN FAILED   root\n"
@@ -229,97 +229,111 @@ CHALLENGES = [
     # ------------------------------------------------------------------ C04
     {
         "code": "A", "domain": "source", "game_type": "shadow_text",
-        "title": "Developer's Mistake",
-        "answer": "CIC{VIEW_SOURCE_WINS}",
-        "flag": "CIC{VIEW_SOURCE_WINS}",
+        "title": "The Hidden Login Trail",
+        "answer": "SHADOW{SHADOW_ADMIN}",
+        "flag": "SHADOW{SHADOW_ADMIN}",
         "accept": [],
         "points": 100, "difficulty": "Easy-Medium",
         "solve_time": "4m",
-        "q": "A developer left a debug note inside the public staff-portal page. "
-            "Open the portal below and inspect its RAW HTML source to recover "
-            "the flag.",
-        "hint": "The note is an HTML comment — `<!-- ... -->` — which appears "
-                "only in the source, never in the rendered page.",
-        "ev": "A staff-only page is still live. Open the portal and read its source.",
+        "q": "A staff-only portal is still live and someone left a hidden login "
+            "trail on it. Open the portal and inspect its RAW HTML SOURCE to "
+            "find the hidden USERNAME, then wrap it in SHADOW{...}. The flag is "
+            "the recovered USERNAME wrapped in UPPERCASE (recover a lowercase "
+            "username, submit it UPPERCASED inside SHADOW{...}).",
+        "hint": "The portal hides the USERNAME in its page metadata -- an HTML "
+                "comment or meta tag that appears only in the page source, "
+                "never in the rendered page. Read the RAW SOURCE to find it.",
+        "ev": "A staff-only login trail is still live. Open the portal and read "
+              "its SOURCE to recover the hidden USERNAME.",
         "cfg": {"artifact_url": "/challenge4/A.html"},
     },
     {
         "code": "B", "domain": "source", "game_type": "shadow_text",
-        "title": "Developer's Mistake",
-        "answer": "CIC{HTML_COMMENTS_LEAK}",
-        "flag": "CIC{HTML_COMMENTS_LEAK}",
+        "title": "The Hidden Login Trail",
+        "answer": "SHADOW{NIGHT_OPERATOR}",
+        "flag": "SHADOW{NIGHT_OPERATOR}",
         "accept": [],
         "points": 100, "difficulty": "Easy-Medium",
         "solve_time": "4m",
-        "q": "A developer left a debug note inside the public staff-portal page. "
-            "Open the portal below and inspect its RAW HTML source to recover "
-            "the flag.",
-        "hint": "The note is an HTML comment — `<!-- ... -->` — which appears "
-                "only in the source, never in the rendered page.",
-        "ev": "A staff-only page is still live. Open the portal and read its source.",
+        "q": "An undocumented operator account is still live in the staff portal. "
+            "Open the portal and inspect its RAW HTML SOURCE to find the hidden "
+            "USERNAME, then wrap it in SHADOW{...}. The flag is the recovered "
+            "USERNAME in UPPERCASE (e.g. recovering a word like ``operator_login`` "
+            "gives SHADOW{OPERATOR_LOGIN}).",
+        "hint": "Look for the username in the page source -- a debug meta tag "
+                "or comment left by the developer. It is lowercase like "
+                "``night_operator``; the flag is that word in UPPERCASE inside "
+                "SHADOW{...}.",
+        "ev": "An undocumented operator trail is still live in the staff portal. "
+              "Inspect its SOURCE to recover the hidden USERNAME.",
         "cfg": {"artifact_url": "/challenge4/B.html"},
     },
     {
         "code": "C", "domain": "source", "game_type": "shadow_text",
-        "title": "Developer's Mistake",
-        "answer": "CIC{INSPECT_ELEMENT_FTW}",
-        "flag": "CIC{INSPECT_ELEMENT_FTW}",
+        "title": "The Hidden Login Trail",
+        "answer": "SHADOW{GHOST_USER}",
+        "flag": "SHADOW{GHOST_USER}",
         "accept": [],
         "points": 100, "difficulty": "Easy-Medium",
         "solve_time": "4m",
-        "q": "A developer left a debug note inside the public staff-portal page. "
-            "Open the portal below and inspect its RAW HTML source to recover "
-            "the flag.",
-        "hint": "The note is an HTML comment — `<!-- ... -->` — which appears "
-                "only in the source, never in the rendered page.",
-        "ev": "A staff-only page is still live. Open the portal and read its source.",
+        "q": "There is one more hidden user in the portal's login trail. Inspect "
+            "the RAW HTML SOURCE of the staff portal, recover the hidden "
+            "USERNAME, and wrap it in SHADOW{...}. The flag is the recovered "
+            "USERNAME in UPPERCASE (e.g. recovering a placeholder word like "
+            "``temporary_account`` would give SHADOW{TEMPORARY_ACCOUNT}; "
+            "recover the real USERNAME from the source instead).",
+        "hint": "The username is stashed in the page metadata -- check every "
+                "comment and meta tag in the source. It is lowercase like "
+                "``ghost_user``; the flag is that word in UPPERCASE inside "
+                "SHADOW{...}.",
+        "ev": "A final hidden user is in the portal trail. Open the portal and "
+              "read its SOURCE to recover the hidden USERNAME.",
         "cfg": {"artifact_url": "/challenge4/C.html"},
     },
-
     # ------------------------------------------------------------------ C05
     {
         "code": "A", "domain": "encode", "game_type": "shadow_text",
         "title": "Encoded Ransom",
-        "answer": "CIC{BASE64_IS_NOT_ENCRYPTION}",
-        "flag": "CIC{BASE64_IS_NOT_ENCRYPTION}",
+        "answer": "SHADOW{BASE64_IS_NOT_ENCRYPTION}",
+        "flag": "SHADOW{BASE64_IS_NOT_ENCRYPTION}",
         "accept": [],
         "points": 125, "difficulty": "Easy-Medium",
         "solve_time": "4m",
         "q": "The ransom note hides one encoded token. Decode it to reveal the "
-            "CIC{...} flag and submit it.",
+            "SHADOW{...} flag and submit it.",
         "hint": "The token is a binary-to-text encoding whose output often ends "
                 "in '=' padding — decode it to plain text.",
-        "ev": "Q0lDe0JBU0U2NF9JU19OT1RfRU5DUllQVElPTn0=",
+        "ev": "U0hBRE9Xe0JBU0U2NF9JU19OT1RfRU5DUllQVElPTn0=",
         "cfg": {},
     },
     {
         "code": "B", "domain": "encode", "game_type": "shadow_text",
         "title": "Encoded Ransom",
-        "answer": "CIC{ENCODING_IS_NOT_ENCRYPTION}",
-        "flag": "CIC{ENCODING_IS_NOT_ENCRYPTION}",
+        "answer": "SHADOW{ENCODING_IS_NOT_ENCRYPTION}",
+        "flag": "SHADOW{ENCODING_IS_NOT_ENCRYPTION}",
         "accept": [],
         "points": 125, "difficulty": "Easy-Medium",
         "solve_time": "4m",
         "q": "The ransom note hides one encoded token. Decode it to reveal the "
-            "CIC{...} flag and submit it.",
+            "SHADOW{...} flag and submit it.",
         "hint": "The token is a binary-to-text encoding whose output often ends "
                 "in '=' padding — decode it to plain text.",
-        "ev": "Q0lDe0VOQ09ESU5HX0lTX05PVF9FTkNSWVBUSU9OfQ==",
+        "ev": "U0hBRE9Xe0VOQ09ESU5HX0lTX05PVF9FTkNSWVBUSU9OfQ==",
         "cfg": {},
     },
     {
         "code": "C", "domain": "encode", "game_type": "shadow_text",
         "title": "Encoded Ransom",
-        "answer": "CIC{DECODE_ME_IF_YOU_CAN}",
-        "flag": "CIC{DECODE_ME_IF_YOU_CAN}",
+        "answer": "SHADOW{DECODE_ME_IF_YOU_CAN}",
+        "flag": "SHADOW{DECODE_ME_IF_YOU_CAN}",
         "accept": [],
         "points": 125, "difficulty": "Easy-Medium",
         "solve_time": "4m",
         "q": "The ransom note hides one encoded token. Decode it to reveal the "
-            "CIC{...} flag and submit it.",
+            "SHADOW{...} flag and submit it.",
         "hint": "The token is a binary-to-text encoding whose output often ends "
                 "in '=' padding — decode it to plain text.",
-        "ev": "Q0lDe0RFQ09ERV9NRV9JRl9ZT1VfQ0FOfQ==",
+        "ev": "U0hBRE9Xe0RFQ09ERV9NRV9JRl9ZT1VfQ0FOfQ==",
         "cfg": {},
     },
 
@@ -327,13 +341,13 @@ CHALLENGES = [
     {
         "code": "A", "domain": "words", "game_type": "shadow_text",
         "title": "Final Connection",
-        "answer": "CIC{CLESST}",
-        "flag": "CIC{CLESST}",
+        "answer": "SHADOW{CLESST}",
+        "flag": "SHADOW{CLESST}",
         "accept": [],
         "points": 100, "difficulty": "Medium",
         "solve_time": "2m",
         "q": "Every word in the sentence is a clue. Take the FIRST LETTER of each "
-            "word, in order, to reveal the CIC{...} flag and submit it.",
+            "word, in order, to reveal the SHADOW{...} flag and submit it.",
         "hint": "Read only the first letters — ignoring commas and spaces — "
                 "and join them into one uppercase word.",
         "ev": "Case Locked, Evidence Secured, Suspect Traced",
@@ -342,13 +356,13 @@ CHALLENGES = [
     {
         "code": "B", "domain": "words", "game_type": "shadow_text",
         "title": "Final Connection",
-        "answer": "CIC{DENTECD}",
-        "flag": "CIC{DENTECD}",
+        "answer": "SHADOW{DENTECD}",
+        "flag": "SHADOW{DENTECD}",
         "accept": [],
         "points": 100, "difficulty": "Medium",
         "solve_time": "2m",
         "q": "Every word in the sentence is a clue. Take the FIRST LETTER of each "
-            "word, in order, to reveal the CIC{...} flag and submit it.",
+            "word, in order, to reveal the SHADOW{...} flag and submit it.",
         "hint": "Read only the first letters — ignoring commas and spaces — "
                 "and join them into one uppercase word.",
         "ev": "Danger Every Night, Trust Every Clue, Decide",
@@ -357,13 +371,13 @@ CHALLENGES = [
     {
         "code": "C", "domain": "words", "game_type": "shadow_text",
         "title": "Final Connection",
-        "answer": "CIC{SHADOWS}",
-        "flag": "CIC{SHADOWS}",
+        "answer": "SHADOW{SHADOWS}",
+        "flag": "SHADOW{SHADOWS}",
         "accept": [],
         "points": 100, "difficulty": "Medium",
         "solve_time": "2m",
         "q": "Every word in the sentence is a clue. Take the FIRST LETTER of each "
-            "word, in order, to reveal the CIC{...} flag and submit it.",
+            "word, in order, to reveal the SHADOW{...} flag and submit it.",
         "hint": "Read only the first letters — ignoring commas and spaces — "
                 "and join them into one uppercase word.",
         "ev": "Shadow Hides, Answers Dawn, Only Walk Slowly",

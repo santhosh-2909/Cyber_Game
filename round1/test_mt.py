@@ -119,7 +119,7 @@ class TestShadowCatalog(MTShadowBase):
                 "SELECT COUNT(*) c FROM challenge_variants").fetchone()["c"]
             bad = conn.execute(
                 "SELECT COUNT(*) c FROM challenge_variants WHERE flag='' OR "
-                "flag NOT LIKE 'CIC{%' OR expected_answer != flag OR "
+                "flag NOT LIKE 'SHADOW{%' OR expected_answer != flag OR "
                 "game_type != 'shadow_text'").fetchone()["c"]
             letters = [dict(r) for r in conn.execute(
                 "SELECT challenge_category_id, variant_code FROM "
@@ -161,7 +161,7 @@ class TestShadowCatalog(MTShadowBase):
             conn.close()
         self.assertEqual(len(rows), 18)
         for r in rows:
-            self.assertRegex(r["flag"], r"^CIC\{[^}]+\}$")
+            self.assertRegex(r["flag"], r"^SHADOW\{[^}]+\}$")
             self.assertEqual(r["expected_answer"], r["flag"])
             self.assertTrue(r["hint"], r["variant_code"])
             ev = json.loads(r["evidence_config"])
@@ -241,7 +241,7 @@ class TestShadowHand(MTShadowBase):
         # no flag/answer leaks on an open challenge
         self.assertEqual(u["flag"], "")
         self.assertEqual(u["artifact_url"], "")
-        self.assertNotIn('"flag": "CIC', json.dumps(d))
+        self.assertNotIn('"flag": "SHADOW', json.dumps(d))
 
 
 class TestShadowPlay(MTShadowBase):
@@ -250,7 +250,7 @@ class TestShadowPlay(MTShadowBase):
         c = _team_client(tid, token)
         d = self.summary(c)
         u = d["unlocked"]
-        g = self._submit(c, u, "CIC{WRONG}")
+        g = self._submit(c, u, "SHADOW{WRONG}")
         self.assertFalse(g["accepted"])
         self.assertEqual(g["points"], 0)
         self.assertEqual(g["points_total"], 0)
@@ -268,12 +268,12 @@ class TestShadowPlay(MTShadowBase):
         d = self.summary(c)
         u = d["unlocked"]
         for i in (1, 2):
-            g = self._submit(c, u, "CIC{WRONG_%d}" % i)
+            g = self._submit(c, u, "SHADOW{WRONG_%d}" % i)
             self.assertFalse(g["accepted"])
             self.assertFalse(g["exhausted"])
             self.assertEqual(g["attempts_used"], i)
             self.assertEqual(g["points_total"], 0)
-        g = self._submit(c, u, "CIC{WRONG_3}")
+        g = self._submit(c, u, "SHADOW{WRONG_3}")
         self.assertFalse(g["accepted"])
         self.assertTrue(g["exhausted"])
         self.assertEqual(g["attempts_used"], 3)
@@ -285,7 +285,7 @@ class TestShadowPlay(MTShadowBase):
         self.assertTrue(detail["failed"])
         self.assertEqual(detail["attempts_limit"], 3)
         dup = c.post("/api/participant/challenges/%d/submit" % u["id"],
-                     json={"answer": "CIC{WRONG_4}"})
+                     json={"answer": "SHADOW{WRONG_4}"})
         self.assertEqual(dup.status_code, 403)
         # overview shows CLOSED card, other challenges still open
         d2 = self.summary(c)
@@ -301,7 +301,7 @@ class TestShadowPlay(MTShadowBase):
         expected = next(a["points"] for a in d["assignments"]
                         if a["id"] == u["id"])
         for i in (1, 2):
-            self._submit(c, u, "CIC{WRONG_%d}" % i)
+            self._submit(c, u, "SHADOW{WRONG_%d}" % i)
         g = self._solve(c, u)
         self.assertTrue(g["accepted"])
         self.assertEqual(g["attempts_used"], 3)
@@ -317,7 +317,7 @@ class TestShadowPlay(MTShadowBase):
         failed_points = u["points"]
         # burn this card on 3 wrong flags
         for i in (1, 2, 3):
-            self._submit(c, u, "CIC{WRONG_%d}" % i)
+            self._submit(c, u, "SHADOW{WRONG_%d}" % i)
         # solve the other five
         d = self.summary(c)
         opens = [a for a in d["assignments"] if a["status"] != "FAILED"]
@@ -348,7 +348,7 @@ class TestShadowPlay(MTShadowBase):
         self.assertEqual(g["points"], expected)
         self.assertEqual(g["strike"], 0)
         self.assertEqual(g["points_total"], expected)
-        self.assertRegex(g["flag"], r"^CIC\{[^}]+\}$")
+        self.assertRegex(g["flag"], r"^SHADOW\{[^}]+\}$")
         # solved challenge carries its OWN flag on revisit (view-only mode)
         detail = c.get("/api/participant/challenges/%d" % u["id"]).get_json()
         self.assertEqual(detail["flag"], self._server_flag(u["id"]))
@@ -427,7 +427,7 @@ class TestShadowPlay(MTShadowBase):
         finally:
             conn.close()
         r = c.post("/api/participant/challenges/%d/submit" % u["id"],
-                   json={"answer": "CIC{ANY}"})
+                   json={"answer": "SHADOW{ANY}"})
         self.assertEqual(r.status_code, 410)
         self.assertEqual(r.get_json()["error"], "session_ended")
 
@@ -477,8 +477,8 @@ class TestShadowPlay(MTShadowBase):
             d = self.summary(c)
             u = d["unlocked"]
             flag = self._server_flag(u["id"])
-            self.assertRegex(flag, "^CIC\\{.+\\}$")
-            inner = flag[4:-1]
+            self.assertRegex(flag, "^SHADOW\\{.+\\}$")
+            inner = flag[7:-1]
             answer = {"inner": inner, "lower": inner.lower(),
                       "upper": inner.upper()}[casing]
             g = self._submit(c, u, answer)
@@ -552,7 +552,13 @@ class TestShadowC04Artifact(MTShadowBase):
                 (d["session"]["id"],)).fetchone()["flag"]
         finally:
             conn.close()
-        self.assertIn(c04, body, "their own flag comment must be present")
+        # the redesign exposes only the recovered USERNAME (flag inner,
+        # lowercased) as the page comment — never the SHADOW envelope itself
+        username = c04[len("SHADOW{"):-1].lower()
+        self.assertIn(username, body,
+                      "their own recovered-USERNAME comment must be present")
+        self.assertNotIn(c04, body,
+                         "the solved SHADOW envelope must never be a comment")
         # other letters route nowhere
         for other in ("a", "c"):
             self.assertEqual(c.get("/challenge4/%s.html" % other).status_code,
@@ -607,7 +613,7 @@ class TestShadowAdmin(MTShadowBase):
         data = r.get_json()
         self.assertEqual(len(data["challenges"]), 18)
         for ch in data["challenges"]:
-            self.assertRegex(ch["flag"], r"^CIC\{")
+            self.assertRegex(ch["flag"], r"^SHADOW{")
             self.assertEqual(ch["expected_answer"], ch["flag"])
         self.assertEqual(c.get("/api/admin/round/1").status_code, 200)
         cat = c.get("/api/admin/challenges").get_json()
@@ -629,7 +635,7 @@ class TestShadowAdmin(MTShadowBase):
         d = self.summary(c)
         u = d["unlocked"]
         c.post("/api/participant/challenges/%d/submit" % u["id"],
-               json={"answer": "CIC{WRONG}"})
+               json={"answer": "SHADOW{WRONG}"})
         a = APP.test_client()
         _admin(a)
         r = a.get("/api/admin/team/%d" % tid)

@@ -117,7 +117,7 @@ def run_team(team_id, out):
             g = c.post("/api/participant/challenges/%d/submit" % aid,
                        json={"answer": flag}).get_json()
             assert g["accepted"] is True, (token, aid, g)
-            assert g["flag"].startswith("CIC{"), (token, g)
+            assert g["flag"].startswith("SHADOW{"), (token, g)
             assert g["strike"] == 0
             earned += g["points_total"]
             guard += 1

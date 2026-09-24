@@ -1000,7 +1000,7 @@ def record_mt_submission(session_id, assignment_id, submitted, stage,
 # ===========================================================================
 # SHADOW HUNT (Round 1 rework) grading.
 #
-# Shadow Hunt participants submit CIC{...} flags directly. The submitted
+# Shadow Hunt participants submit SHADOW{...} flags directly. The submitted
 # value is evaluated against the flag SAVED in the database
 # (challenge_variants.flag). Every wrong answer is recorded as a WRONG
 # ATTEMPT (persisted in submissions, surfaced to the UI). A challenge allows
@@ -1009,11 +1009,11 @@ def record_mt_submission(session_id, assignment_id, submitted, stage,
 # open card. A correct flag completes the challenge for its category points.
 #
 # Detection is by flag prefix, so the rework is inert until the Shadow Hunt
-# catalogue (CIC{...} flags) is seeded; the existing MT / legacy flows are
+# catalogue (SHADOW{...} flags) is seeded; the existing MT / legacy flows are
 # untouched.
 # ===========================================================================
 
-SHADOW_FLAG_PREFIX = "CIC{"
+SHADOW_FLAG_PREFIX = "SHADOW{"
 
 
 def _is_shadow_variant(conn, assignment_id):
@@ -1028,9 +1028,11 @@ def _is_shadow_variant(conn, assignment_id):
 def _flag_accepts(submitted, flag):
     """Case-insensitive Shadow Hunt flag match.
 
-    A participant may submit the full CIC{...} envelope OR the bare inner
-    token (e.g. 'SHADOWS' for the 'CIC{SHADOWS}' card); both are accepted
-    so a correct solve is never rejected for formatting.
+    A participant may submit the full SHADOW{...} envelope OR the bare inner
+    token (e.g. 'NIGHT_SENTINEL' for the 'SHADOW{NIGHT_SENTINEL}' card); both
+    are accepted so a correct solve is never rejected for formatting. The
+    legacy CIC{...} envelope that wrapped the same inner token in Round 1
+    play-testing is also tolerated so earlier-issued cards never hard-fail.
     """
     s = (submitted or "").strip().upper()
     f = (flag or "").strip().upper()
@@ -1038,8 +1040,14 @@ def _flag_accepts(submitted, flag):
         return False
     if s == f:
         return True
-    if f.startswith(SHADOW_FLAG_PREFIX.upper()) and f.endswith("}") and len(f) > len(SHADOW_FLAG_PREFIX) + 1:
-        return s == f[len(SHADOW_FLAG_PREFIX):-1]
+    if (f.startswith(SHADOW_FLAG_PREFIX.upper()) and f.endswith("}")
+            and len(f) > len(SHADOW_FLAG_PREFIX) + 1):
+        inner = f[len(SHADOW_FLAG_PREFIX):-1]
+        if s == inner:
+            return True
+        # legacy CIC{inner} envelope — same token, older prefix
+        if s.startswith("CIC{") and s[4:-1] == inner:
+            return True
     return False
 
 
@@ -1050,7 +1058,7 @@ def _session_is_shadow(session_id):
         row = conn.execute(
             "SELECT COUNT(*) AS c FROM team_challenge_assignments a "
             "JOIN challenge_variants v ON a.variant_id = v.id "
-            "WHERE a.session_id=? AND v.flag LIKE 'CIC{%'",
+            "WHERE a.session_id=? AND v.flag LIKE 'SHADOW{%'",
             (session_id,)).fetchone()
         return bool(row and row["c"])
     finally:
