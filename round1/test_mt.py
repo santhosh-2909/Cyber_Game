@@ -469,6 +469,23 @@ class TestShadowPlay(MTShadowBase):
             self.assertTrue(g["accepted"],
                             "%s-cased flag should grade correct" % casing)
 
+    def test_bare_inner_token_without_cic_wrapper_is_accepted(self):
+        for i, casing in enumerate(("inner", "lower", "upper")):
+            tid, token, _ = _active_participant(
+                None, "DEV-TEAM-%d" % (11 + i))
+            c = _team_client(tid, token)
+            d = self.summary(c)
+            u = d["unlocked"]
+            flag = self._server_flag(u["id"])
+            self.assertRegex(flag, "^CIC\\{.+\\}$")
+            inner = flag[4:-1]
+            answer = {"inner": inner, "lower": inner.lower(),
+                      "upper": inner.upper()}[casing]
+            g = self._submit(c, u, answer)
+            self.assertTrue(g["accepted"],
+                            "bare token %r should grade correct" % answer)
+            self.assertEqual(g["points"], d["assignments"][0]["points"])
+
     def test_hint_returns_and_logs_usage(self):
         tid, token, _ = _active_participant(None, "DEV-TEAM-02")
         c = _team_client(tid, token)

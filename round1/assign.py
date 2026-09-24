@@ -1025,6 +1025,24 @@ def _is_shadow_variant(conn, assignment_id):
     return bool(row and (row["flag"] or "").startswith(SHADOW_FLAG_PREFIX))
 
 
+def _flag_accepts(submitted, flag):
+    """Case-insensitive Shadow Hunt flag match.
+
+    A participant may submit the full CIC{...} envelope OR the bare inner
+    token (e.g. 'SHADOWS' for the 'CIC{SHADOWS}' card); both are accepted
+    so a correct solve is never rejected for formatting.
+    """
+    s = (submitted or "").strip().upper()
+    f = (flag or "").strip().upper()
+    if not s or not f:
+        return False
+    if s == f:
+        return True
+    if f.startswith(SHADOW_FLAG_PREFIX.upper()) and f.endswith("}") and len(f) > len(SHADOW_FLAG_PREFIX) + 1:
+        return s == f[len(SHADOW_FLAG_PREFIX):-1]
+    return False
+
+
 def _session_is_shadow(session_id):
     """True when a session's hand is built from Shadow Hunt challenges."""
     conn = db.get_connection()
@@ -1074,7 +1092,7 @@ def grade_shadow_flag(conn, session_id, assignment_id, team_id, submitted):
     already_solved = status == "COMPLETED"
 
     flag = get_mt_flag(assignment_id)
-    correct = bool(flag) and submitted.strip().lower() == flag.strip().lower()
+    correct = _flag_accepts(submitted, flag)
 
     def _attempt_count():
         return conn.execute(
