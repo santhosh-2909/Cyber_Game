@@ -131,6 +131,20 @@
             </div>
           </div>
         </div>
+        <div class="mcq-qnav" id="qnav" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 24px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg-surface-2);">
+          {% for i in range(mcq_total) %}
+          <button type="button" class="qnav-btn" data-q="{{ i }}" data-status="{% if i < station_done %}done{% elif i == station_done %}active{% else %}locked{% endif %}" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-surface-2);cursor:pointer;font:inherit;font-family:var(--font-mono);font-weight:800;font-size:12px;letter-spacing:0.08em;color:var(--text-secondary);">
+            <span class="qnav-num">Q{{ i + 1 }}</span><span class="qnav-mark"></span>
+          </button>
+          {% endfor %}
+          <div style="flex:1;"></div>
+          <button type="button" id="q-next" class="btn btn-primary btn-sm" disabled style="font-weight:700;">NEXT QUESTION &rarr;</button>
+        </div>
+        <div id="q-review-banner" style="display:none;align-items:center;gap:10px;padding:10px 24px;background:rgba(139,92,246,0.08);border-bottom:1px solid rgba(139,92,246,0.25);">
+          <span class="fs-mono" style="font-size:11px;letter-spacing:0.1em;color:var(--accent-{{ accent }});font-weight:700;">REVIEW MODE</span>
+          <span class="fs-mono" id="q-review-label" style="font-size:11px;color:var(--text-secondary);">VIEWING ANSWERED QUESTION</span>
+          <button type="button" id="q-resume" class="btn btn-ghost btn-sm" style="margin-left:auto;font-weight:700;">BACK TO LIVE QUESTION</button>
+        </div>
         <div style="padding:24px;">
           <p class="mcq-question" id="q-text" style="font-size:1.05rem;line-height:1.6;color:var(--text-primary);margin:0 0 18px;font-weight:600;">{{ station.mcqs[station_done].q }}</p>
           <div class="mcq-options" id="q-options" style="display:grid;gap:12px;">
@@ -239,6 +253,7 @@
   const correctPts = {{ mcq_correct }};
   const bonusPts = {{ mcq_bonus }};
   const wrongPts = {{ mcq_wrong }};
+  const total = {{ mcq_total }};
 
   const qText = document.getElementById('q-text');
   const qOptions = document.getElementById('q-options');
@@ -246,8 +261,31 @@
   const qProgress = document.getElementById('q-progress');
   const timerBar = document.getElementById('q-timer-bar');
   const timerMeta = document.getElementById('q-timer-meta');
+  const qnavBtns = Array.from(document.querySelectorAll('.qnav-btn'));
+  const qNext = document.getElementById('q-next');
+  const qReviewBanner = document.getElementById('q-review-banner');
+  const qReviewLabel = document.getElementById('q-review-label');
+  const qResume = document.getElementById('q-resume');
 
   const esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  /* Question navigator state:
+   * answeredCount  — questions answered at page load (== station_done)
+   * sessionAnswered— the open question got graded this session
+   * lastGrade      — its record, so it can be reviewed without a reload
+   */
+  let answeredCount = {{ station_done }};
+  let sessionAnswered = false;
+  let lastGrade = null;
+  let viewing = 'live';          // 'live' | 'review'
+  const activeIdx = qCurrent;    // the open/answerable question index
+
+  const effectiveAnswered = () => answeredCount + (sessionAnswered ? 1 : 0);
+  const recordFor = i => {
+    if (i < answersSoFar.length) return answersSoFar[i];
+    if (sessionAnswered && i === activeIdx && lastGrade) return lastGrade;
+    return null;
+  };
 
   let timer = null;
   let deadline = 0;
@@ -324,6 +362,120 @@
     window.location.reload();
   }
 
+  /********************** QUESTION NAVIGATOR **********************/
+  function optionHTML(opt, i) {
+    return '<button type="button" class="mcq-opt" data-opt="' + i + '" data-letter="' + 'ABCD'[i] + '" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface-2);cursor:pointer;font:inherit;">' +
+      '<span class="mcq-opt-letter" style="width:30px;height:30px;border-radius:var(--radius-xs);background:var(--bg-tertiary);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:800;font-size:12px;color:var(--text-secondary);">' + 'ABCD'[i] + '</span>' +
+      '<span style="flex:1;color:var(--text-primary);font-size:14px;">' + esc(opt) + '</span></button>';
+  }
+
+  function paintOptionChoice(btn, chosen, correct) {
+    const i = parseInt(btn.dataset.opt, 10);
+    const letter = btn.querySelector('.mcq-opt-letter');
+    if (chosen === i && correct) { btn.style.background = 'var(--success-bg)'; btn.style.borderColor = 'rgba(16,185,129,0.6)'; letter.textContent = '✓'; }
+    else if (chosen === i) { btn.style.background = 'var(--danger-bg)'; btn.style.borderColor = 'rgba(239,68,68,0.6)'; letter.textContent = '✗'; }
+  }
+
+  function reviewFeedback(r) {
+    let cls, head, det;
+    if (r.correct && r.bonus) { cls = 'ok'; head = '✓ CORRECT'; det = '+' + correctPts + ' pts (+' + bonusPts + ' speed bonus) — total +' + r.pts + ' pts.'; }
+    else if (r.correct) { cls = 'ok'; head = '✓ CORRECT'; det = '+' + correctPts + ' pts (answered after the bonus window) — total +' + r.pts + ' pts.'; }
+    else { cls = 'bad'; head = '✗ INCORRECT'; det = r.pts + ' pts.'; }
+    return '<div class="fs-result ' + cls + '"><b>' + head + '</b><div>' + det + '</div></div>';
+  }
+
+  function paintNav() {
+    const done = effectiveAnswered();
+    const lastQ = done >= total;
+    qNext.disabled = !sessionAnswered;
+    qNext.innerHTML = (lastQ ? 'NEXT STATION' : 'NEXT QUESTION') + ' &rarr;';
+    qnavBtns.forEach(btn => {
+      const i = parseInt(btn.dataset.q, 10);
+      const mark = btn.querySelector('.qnav-mark');
+      if (i < done) {
+        btn.dataset.status = 'done';
+        btn.style.borderColor = 'rgba(16,185,129,0.55)';
+        btn.style.background = 'var(--success-bg)';
+        btn.style.color = 'var(--success)';
+        btn.style.cursor = 'pointer';
+        mark.textContent = '✓';
+      } else if (i === activeIdx && !sessionAnswered) {
+        btn.dataset.status = 'active';
+        btn.style.borderColor = 'var(--accent-signal, #7C3AED)';
+        btn.style.background = 'var(--bg-surface-1)';
+        btn.style.color = 'var(--text-primary)';
+        btn.style.boxShadow = '0 0 0 1px var(--accent-signal, #7C3AED)';
+        btn.style.cursor = 'pointer';
+        mark.textContent = '→';
+      } else {
+        btn.dataset.status = 'locked';
+        btn.style.borderColor = 'var(--border)';
+        btn.style.background = 'var(--bg-surface-2)';
+        btn.style.color = 'var(--text-muted, #64748B)';
+        btn.style.boxShadow = 'none';
+        btn.style.cursor = 'not-allowed';
+        mark.textContent = '';
+      }
+    });
+  }
+
+  function bindOptions() {
+    qOptions.querySelectorAll('.mcq-opt').forEach(b => {
+      b.addEventListener('click', () => {
+        if (answering) return;
+        submitAnswer(parseInt(b.dataset.opt, 10));
+      });
+    });
+  }
+
+  function showReview(i) {
+    if (answering) return;
+    const r = recordFor(i);
+    viewing = 'review';
+    qText.textContent = mcqs[i].q;
+    qOptions.innerHTML = mcqs[i].options.map((o, j) => optionHTML(o, j)).join('');
+    qOptions.querySelectorAll('.mcq-opt').forEach(b => b.disabled = true);
+    if (r) paintOptionChoice(qOptions.querySelectorAll('.mcq-opt')[r.chosen], r.chosen, r.correct);
+    qFeedback.innerHTML = r ? reviewFeedback(r) : '';
+    qProgress.textContent = (i + 1) + '/' + total;
+    qReviewLabel.textContent = 'VIEWING Q' + (i + 1) + ' — ANSWERED';
+    qReviewBanner.style.display = 'flex';
+    paintNav();
+  }
+
+  function showLive() {
+    if (answering) return;
+    if (sessionAnswered) { showReview(activeIdx); return; }
+    viewing = 'live';
+    qText.textContent = mcqs[activeIdx].q;
+    qOptions.innerHTML = mcqs[activeIdx].options.map((o, j) => optionHTML(o, j)).join('');
+    bindOptions();
+    setLocked(false);                        // answerable anytime (no timeout penalty)
+    qFeedback.innerHTML = '';
+    qProgress.textContent = (answeredCount + 1) + '/' + total;
+    qReviewBanner.style.display = 'none';
+    paintNav();
+  }
+
+  function bindNav() {
+    qnavBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const s = btn.dataset.status;
+        if (s === 'done') { showReview(parseInt(btn.dataset.q, 10)); }
+        else if (s === 'active') { showLive(); }
+        else if (s === 'locked' && !sessionAnswered) {
+          qFeedback.innerHTML = '<div class="fs-result bad"><b>LOCKED</b>' +
+            '<div>Questions unlock in sequence — answer the current open question Q' + (activeIdx + 1) + ' first.</div></div>';
+        }
+      });
+    });
+    qNext.addEventListener('click', () => {
+      if (!sessionAnswered || answering) return;
+      advance();
+    });
+    qResume.addEventListener('click', () => { if (!answering) showLive(); });
+  }
+
   async function submitAnswer(option) {
     if (answering) return;
     if (option === null) return;   // never auto-submit a blank answer
@@ -350,10 +502,16 @@
       }
       renderOptionState(option, data.answer_index);
       renderFeedback(data.correct, data.bonus, data.pts, data.answer_index);
-      setTimeout(() => {
-        if (data.case_done) { window.location.href = '{{ url_for('score') }}'; }
-        else { advance(); }
-      }, 1400);
+      sessionAnswered = true;
+      lastGrade = { chosen: option, correct: !!data.correct, pts: data.pts, bonus: !!data.bonus };
+      answering = false;
+      paintNav();
+      if (data.case_done) {
+        setTimeout(() => { window.location.href = '{{ url_for('score') }}'; }, 1400);
+      } else {
+        // Stay on the result; the participant drives the NEXT QUESTION button.
+        qNext.focus();
+      }
     } catch (e) {
       answering = false;
       setLocked(false);
@@ -361,12 +519,9 @@
     }
   }
 
-  qOptions.querySelectorAll('.mcq-opt').forEach(b => {
-    b.addEventListener('click', () => {
-      if (answering) return;
-      submitAnswer(parseInt(b.dataset.opt, 10));
-    });
-  });
+  bindOptions();
+  bindNav();
+  paintNav();
 
   fetch('/api/mcq/start', {
     method: 'POST',
