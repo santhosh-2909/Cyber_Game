@@ -6,7 +6,7 @@ competition:
 - **Round 1 — Mixed Fundamentals (Cyber Puzzles)**: timed, variant-based capture-the-flag
   style challenges (Web, Crypto, Forensics, Network, OSINT) with a virtual lab sandbox,
   hints, and normalized answer validation.
-- **Round 2 — Digital Forensics (Investigation)**: narrative case investigations where
+- **Round 2 — Mystery Trace (Investigation)**: narrative case investigations where
   teams interview persons of interest, examine evidence artifacts, and complete task
   stations to reconstruct what happened.
 
@@ -221,7 +221,7 @@ single-entity payloads so edit modals never blank fields.
    `CASE_SENSITIVE`); max attempts per lab are enforced from settings.
 5. On completion the session closes and results flow to the leaderboard.
 
-### Round 2 (Forensics)
+### Round 2 (Mystery Trace)
 1. Admin publishes cases. Teams sign in at `/r2/login` with **team name + R2 access ID**.
 2. Team picks a case, explores evidence artifacts, interviews persons, and answers task
    stations (validation is normalized).

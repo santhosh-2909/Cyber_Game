@@ -34,7 +34,7 @@ DEFAULT_ROUND_SETTINGS = {
     },
     "round2": {
         "round_name": "round2",
-        "display_name": "DIGITAL FORENSICS",
+        "display_name": "MYSTERY TRACE",
         "description": "Cyber Investigation cases.",
         "status": "ACTIVE",
         "timer_minutes": 45,

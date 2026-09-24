@@ -695,7 +695,7 @@ def migrate():
             "INSERT OR IGNORE INTO round_settings "
             "(round_name, display_name, description, status, timer_minutes, "
             " max_attempts, scoring_mode, access_enabled, updated_at) "
-            "VALUES ('round2', 'DIGITAL FORENSICS', 'Cyber Investigation cases.', "
+            "VALUES ('round2', 'MYSTERY TRACE', 'Cyber Investigation cases.', "
             "'ACTIVE', 45, 5, 'AUTO', 1, ?)",
             (now_ms(),))
         # Fix: Round 2 timer is 45 minutes. Migrate legacy 90-min rows.
