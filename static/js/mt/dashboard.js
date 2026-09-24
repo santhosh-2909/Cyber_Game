@@ -8,6 +8,51 @@
   var state = null;
   var _focusQ2 = false;
   var _sessionRetried = false;
+  var _transientTries = 0;
+
+  /* Bounded reload budget: a missing/erroring Round 1 payload must never put
+   * the participant in an infinite reload loop on a page that has no answer
+   * bar. After a few quick reloads the page settles into a readable card
+   * that routes back to Round 1 / re-login instead. */
+  var _reloadBudget = (function () {
+    var key = 'mt-r1-reload';
+    var now = Date.now();
+    var n = parseInt(sessionStorage.getItem(key) || '0', 10) || 0;
+    var last = parseInt(sessionStorage.getItem(key + '-t') || '0', 10) || 0;
+    if (now - last > 8000) n = 0; // cooled down -> fresh budget
+    n += 1;
+    sessionStorage.setItem(key, String(n));
+    sessionStorage.setItem(key + '-t', String(now));
+    return n <= 3;
+  })();
+
+  /* Dead-end fallback: rendered when Round 1 data cannot be loaded at all.
+   * Always surfaces a path back to the round (never a bare page with no
+   * answer UI, never an endless reload). */
+  function renderMissedRound(d) {
+    var wrap = $('mt-hand');
+    var panel = $('mt-panel');
+    var bar = $('mt-answerbar');
+    if (panel) panel.style.display = 'none';
+    if (bar) bar.style.display = 'none';
+    var detail = (d && d.error)
+      ? '<br><span class="font-mono" style="color:var(--hud-red);">' +
+        esc(d.error) + '</span>' : '';
+    if (wrap) {
+      wrap.innerHTML =
+        '<div class="hud-panel" style="padding:24px;max-width:560px;margin:40px auto;">' +
+          '<div class="font-overline text-warning">ROUND 1 UNAVAILABLE</div>' +
+          '<p style="margin:10px 0 18px;color:var(--text-secondary);font-size:0.9rem;line-height:1.7;">' +
+            'Your game session data is missing or the round could not be loaded.' +
+            detail + '</p>' +
+          '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+            '<button type="button" class="hud-btn hud-btn-green btn-sm" ' +
+            'onclick="location.href=\'/participant/round/1\'">RETRY ROUND 1</button>' +
+            '<a class="hud-btn hud-btn-ghost btn-sm" href="/start">LOG IN AGAIN</a>' +
+          '</div></div>';
+    }
+    if (window.RoundGuard) window.RoundGuard.setActive(false);
+  }
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -100,6 +145,11 @@
         complete.style.display = 'block';
         $('mt-complete-count').textContent = state.session.solved;
         $('mt-complete-score').textContent = state.session.score;
+      } else {
+        // Round is live and unsolved but the open challenge payload is
+        // missing — surface a recovery card instead of a dead page with no
+        // answer bar.
+        renderMissedRound();
       }
       return;
     }
@@ -326,12 +376,25 @@
         if (res.status === 503 || (d && d.retry === true)) {
           // Transient (SQLite busy under multi-user load) — retried once by
           // api(); if still busy, wait a beat and load again rather than dead.
-          setTimeout(function () { load(); }, 1200);
+          // Bounded: after a few tries a readable fallback (leading back to
+          // Round 1) replaces the retry loop so it can never spin forever.
+          _transientTries += 1;
+          if (_reloadBudget && _transientTries <= 3) {
+            setTimeout(function () { load(); }, 1200);
+          } else { renderMissedRound(d); }
           return;
         }
-        if (!d || !d.ok) { window.location.reload(); return; }
+        if (!d || !d.ok) {
+          // Missing/erroring session data: never loop forever on a page with
+          // no answer bar — bounded reloads first, then a fallback that
+          // routes back to Round 1 / re-login.
+          if (_reloadBudget) { window.location.reload(); }
+          else { renderMissedRound(d); }
+          return;
+        }
         state = d;
         _sessionRetried = false;
+        _transientTries = 0;
         try {
           renderHand();
           renderUnlocked();
@@ -345,8 +408,10 @@
         }
       })
       .catch(function (e) {
-        if (window.MT_RELOAD_GUARD) { console.error('[MT] reload guard: not reloading after', e); return; }
-        window.location.reload();
+        // Network/render failure: surface the Round 1 fallback instead of an
+        // unbounded reload that leaves the participant without an answer bar.
+        console.error('[MT] load failed:', e);
+        renderMissedRound();
       });
   }
 

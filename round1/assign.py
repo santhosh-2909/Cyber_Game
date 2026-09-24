@@ -668,9 +668,16 @@ def get_mt_phase(assignment_id):
 
 
 def is_mt_unlocked(session_id, assignment_id):
-    """Sequential unlock: only the current (lowest-order) open challenge is
-    attemptable. Completed or failed challenges stay viewable/re-verifiable,
-    but never expose future ones."""
+    """Open state of a challenge.
+
+    Classic Mystery Trace: sequential unlock — only the current
+    (lowest-order) open challenge is attemptable; completed or failed
+    challenges stay viewable/re-verifiable but never expose future ones.
+
+    Shadow Hunt: all challenges are unlocked at once (any order), so any
+    still-open assignment of a Shadow Hunt session is attemptable until
+    it is solved.
+    """
     conn = db.get_connection()
     try:
         row = conn.execute(
@@ -680,6 +687,8 @@ def is_mt_unlocked(session_id, assignment_id):
             return False
         if row["status"] in ("COMPLETED", "FAILED"):
             return True
+        if _session_is_shadow(session_id):
+            return True  # Shadow Hunt: every open challenge is attemptable.
         unlocked = get_mt_unlocked_id(session_id)
         return unlocked is not None and unlocked == assignment_id
     finally:
@@ -936,6 +945,136 @@ def record_mt_submission(session_id, assignment_id, submitted, stage,
     finally:
         if own:
             conn.close()
+
+
+# ===========================================================================
+# SHADOW HUNT (Round 1 rework) grading.
+#
+# Shadow Hunt participants submit CIC{...} flags directly. The submitted
+# value is evaluated against the flag SAVED in the database
+# (challenge_variants.flag). Every wrong answer is recorded as a WRONG
+# ATTEMPT (persisted in submissions, surfaced to the UI) and stays fully
+# retryable — a wrong guess never costs points and never locks the
+# challenge. A correct flag completes the challenge for its category points.
+#
+# Detection is by flag prefix, so the rework is inert until the Shadow Hunt
+# catalogue (CIC{...} flags) is seeded; the existing MT / legacy flows are
+# untouched.
+# ===========================================================================
+
+SHADOW_FLAG_PREFIX = "CIC{"
+
+
+def _is_shadow_variant(conn, assignment_id):
+    """True when an assignment's variant belongs to the Shadow Hunt catalogue."""
+    row = conn.execute(
+        "SELECT v.flag FROM team_challenge_assignments a "
+        "JOIN challenge_variants v ON a.variant_id = v.id "
+        "WHERE a.id=?", (assignment_id,)).fetchone()
+    return bool(row and (row["flag"] or "").startswith(SHADOW_FLAG_PREFIX))
+
+
+def _session_is_shadow(session_id):
+    """True when a session's hand is built from Shadow Hunt challenges."""
+    conn = db.get_connection()
+    try:
+        row = conn.execute(
+            "SELECT COUNT(*) AS c FROM team_challenge_assignments a "
+            "JOIN challenge_variants v ON a.variant_id = v.id "
+            "WHERE a.session_id=? AND v.flag LIKE 'CIC{%'",
+            (session_id,)).fetchone()
+        return bool(row and row["c"])
+    finally:
+        conn.close()
+
+
+def _shadow_points(assignment_id):
+    """Category points for an assignment (the Shadow Hunt per-challenge mark)."""
+    conn = db.get_connection()
+    try:
+        row = conn.execute(
+            "SELECT c.points FROM team_challenge_assignments a "
+            "JOIN challenge_categories c ON a.challenge_category_id = c.id "
+            "WHERE a.id=?", (assignment_id,)).fetchone()
+        return int(row["points"]) if row else 100
+    finally:
+        conn.close()
+
+
+def grade_shadow_flag(conn, session_id, assignment_id, team_id, submitted):
+    """Grade a Shadow Hunt flag submission against the DB-saved flag.
+
+    - Correct (matches challenge_variants.flag, case-insensitive):
+      challenge COMPLETED, category points awarded once, flag returned.
+    - Wrong: recorded as a wrong attempt (submissions is_correct=0), no
+      points lost, challenge stays open for retry — never auto-FAILED.
+    - Resubmit after completion: already_solved, no extra points.
+
+    Returns the same dict shape as ``grade_and_award`` so the web layer
+    treats both graders identically.
+    """
+    row = conn.execute(
+        "SELECT status FROM team_challenge_assignments WHERE id=?",
+        (assignment_id,)).fetchone()
+    status = row["status"] if row else "IN_PROGRESS"
+    already_solved = status == "COMPLETED"
+
+    flag = get_mt_flag(assignment_id)
+    correct = bool(flag) and submitted.strip().lower() == flag.strip().lower()
+
+    stage_attempts = get_mt_attempts_used(assignment_id)
+    record_mt_submission(session_id, assignment_id, submitted, 1, correct, conn)
+    new_attempts = get_mt_attempts_used(assignment_id)
+
+    if already_solved:
+        if not correct:
+            # Logged above; a late wrong answer never damages a solved card.
+            conn.commit()
+        return {"accepted": True, "q1_done": True, "phase": "q1",
+                "already_solved": True, "exhausted": False,
+                "stage_attempts": new_attempts,
+                "attempts_used": new_attempts, "attempts_limit": 0,
+                "flag": "", "points": 0, "strike": 0, "points_total": 0,
+                "session_done": False}
+
+    if not correct:
+        conn.commit()
+        return {"accepted": False, "q1_done": False, "phase": "q1",
+                "already_solved": False, "exhausted": False,
+                "stage_attempts": new_attempts,
+                "attempts_used": new_attempts, "attempts_limit": 0,
+                "flag": "", "points": 0, "strike": 0, "points_total": 0,
+                "session_done": False}
+
+    points = _shadow_points(assignment_id)
+    now = db.now_ms()
+    conn.execute(
+        "UPDATE team_challenge_assignments SET status='COMPLETED', "
+        "completed_at=?, points_awarded=? WHERE id=? AND status != 'COMPLETED'",
+        (now, points, assignment_id))
+    conn.execute(
+        "UPDATE round_sessions SET challenges_solved = challenges_solved + 1, "
+        "score = score + ? WHERE id=?", (points, session_id))
+
+    total = conn.execute(
+        "SELECT COUNT(*) AS c FROM team_challenge_assignments "
+        "WHERE session_id=?", (session_id,)).fetchone()["c"]
+    solved = conn.execute(
+        "SELECT COUNT(*) AS c FROM team_challenge_assignments "
+        "WHERE session_id=? AND status='COMPLETED'",
+        (session_id,)).fetchone()["c"]
+    session_done = solved >= total
+    if session_done:
+        conn.execute(
+            "UPDATE round_sessions SET status='COMPLETED', completed_at=? "
+            "WHERE id=? AND status='ACTIVE'", (now, session_id))
+    conn.commit()
+    return {"accepted": True, "q1_done": True, "phase": "q1",
+            "already_solved": False, "exhausted": False,
+            "stage_attempts": new_attempts,
+            "attempts_used": new_attempts, "attempts_limit": 0,
+            "flag": flag, "points": points, "strike": 0,
+            "points_total": points, "session_done": session_done}
 
 
 def grade_and_award(conn, session_id, assignment_id, team_id, submitted):
