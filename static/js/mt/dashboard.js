@@ -177,7 +177,9 @@
     var q2 = u.phase === 'q2';
     var shadow = isShadow();
     // Solved Shadow Hunt cards are view-only: evidence + recorded flag.
-    var solvedView = shadow && u.solved;
+    // Exhausted (3 wrong flags) cards are view-only too: the challenge is
+    // CLOSED, the team moves on to the next open card.
+    var closedView = shadow && (u.solved || u.failed);
 
     // One question at a time: Q1 first, Q2 only after Q1 is solved.
     var q1Block = $('mt-q1-block');
@@ -188,7 +190,7 @@
     var row2 = $('mt-answer-row-2');
     var hintBtn = $('mt-hint-btn');
     var submitBtn = $('mt-submit');
-    if (solvedView) {
+    if (closedView) {
       if (row1) row1.style.display = 'none';
       if (row2) row2.style.display = 'none';
       if (hintBtn) hintBtn.style.display = 'none';
@@ -240,8 +242,13 @@
         if (u.solved) {
           ab.textContent = 'SOLVED';
           ab.className = 'hud-badge hud-badge-green font-mono';
+        } else if (u.failed) {
+          ab.textContent = 'OUT OF TRIES (' + (u.attempts_used || 0) + '/' +
+            (u.attempts_limit || 3) + ')';
+          ab.className = 'hud-badge hud-badge-red font-mono';
         } else {
-          ab.textContent = 'TRIES ' + (u.attempts_used || 0) + ' · UNLIMITED';
+          ab.textContent = 'TRIES ' + (u.attempts_used || 0) + '/' +
+            (u.attempts_limit || 3);
           ab.className = 'hud-badge hud-badge-amber font-mono';
         }
       } else {
@@ -598,16 +605,21 @@
           // Wrong answer -> pop a TRY AGAIN dialog (answers are compared
           // case-insensitively server-side).
           var wrongNote = isShadow()
-            ? 'Wrong flag. This challenge stays open and no points are lost — '
+            ? 'Wrong flag — ' + d.attempts_used + ' of ' +
+              (d.attempts_limit || 3) + ' tries used, no points lost. '
             : 'Your answer did not unlock this case. ' +
               d.attempts_used + ' of ' + d.attempts_limit + ' attempts used — ';
           pop('INCORRECT', wrongNote + 're-verify the evidence and try again.', '');
           btn.disabled = false;
           var ab = $('mt-attempts');
           if (ab && typeof d.attempts_used === 'number') {
-            ab.textContent = isShadow()
-              ? 'TRIES ' + d.attempts_used + ' · UNLIMITED'
-              : 'TRIES ' + d.attempts_used + '/' + d.attempts_limit;
+            ab.textContent = 'TRIES ' + d.attempts_used + '/' +
+              (d.attempts_limit || 3);
+            if (isShadow() && d.attempts_used >= (d.attempts_limit || 3)) {
+              ab.className = 'hud-badge hud-badge-red font-mono';
+            } else {
+              ab.className = 'hud-badge hud-badge-amber font-mono';
+            }
           }
         }
       })

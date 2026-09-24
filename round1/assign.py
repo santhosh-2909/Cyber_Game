@@ -1003,9 +1003,10 @@ def record_mt_submission(session_id, assignment_id, submitted, stage,
 # Shadow Hunt participants submit CIC{...} flags directly. The submitted
 # value is evaluated against the flag SAVED in the database
 # (challenge_variants.flag). Every wrong answer is recorded as a WRONG
-# ATTEMPT (persisted in submissions, surfaced to the UI) and stays fully
-# retryable — a wrong guess never costs points and never locks the
-# challenge. A correct flag completes the challenge for its category points.
+# ATTEMPT (persisted in submissions, surfaced to the UI). A challenge allows
+# MT_MAX_ATTEMPTS (3) flags: a wrong guess never costs points, but the 3rd
+# wrong answer FAILS the challenge (0 pts) and the team moves on to the next
+# open card. A correct flag completes the challenge for its category points.
 #
 # Detection is by flag prefix, so the rework is inert until the Shadow Hunt
 # catalogue (CIC{...} flags) is seeded; the existing MT / legacy flows are
@@ -1057,12 +1058,15 @@ def grade_shadow_flag(conn, session_id, assignment_id, team_id, submitted):
     - Correct (matches challenge_variants.flag, case-insensitive):
       challenge COMPLETED, category points awarded once, flag returned.
     - Wrong: recorded as a wrong attempt (submissions is_correct=0), no
-      points lost, challenge stays open for retry — never auto-FAILED.
+      points lost. On the MT_MAX_ATTEMPTS-th wrong answer the challenge is
+      FAILED (0 pts) so the team moves on to the next open card.
     - Resubmit after completion: already_solved, no extra points.
+    - Resubmit after failure: blocked upstream (403 attempts_exhausted).
 
     Returns the same dict shape as ``grade_and_award`` so the web layer
     treats both graders identically.
     """
+    limit = MT_MAX_ATTEMPTS
     row = conn.execute(
         "SELECT status FROM team_challenge_assignments WHERE id=?",
         (assignment_id,)).fetchone()
@@ -1088,16 +1092,22 @@ def grade_shadow_flag(conn, session_id, assignment_id, team_id, submitted):
         return {"accepted": True, "q1_done": True, "phase": "q1",
                 "already_solved": True, "exhausted": False,
                 "stage_attempts": new_attempts,
-                "attempts_used": new_attempts, "attempts_limit": 0,
+                "attempts_used": new_attempts, "attempts_limit": limit,
                 "flag": "", "points": 0, "strike": 0, "points_total": 0,
                 "session_done": False}
 
     if not correct:
+        exhausted = new_attempts >= limit
+        if exhausted:
+            conn.execute(
+                "UPDATE team_challenge_assignments SET status='FAILED', "
+                "completed_at=? WHERE id=? AND status='IN_PROGRESS'",
+                (db.now_ms(), assignment_id))
         conn.commit()
         return {"accepted": False, "q1_done": False, "phase": "q1",
-                "already_solved": False, "exhausted": False,
+                "already_solved": False, "exhausted": exhausted,
                 "stage_attempts": new_attempts,
-                "attempts_used": new_attempts, "attempts_limit": 0,
+                "attempts_used": new_attempts, "attempts_limit": limit,
                 "flag": "", "points": 0, "strike": 0, "points_total": 0,
                 "session_done": False}
 
@@ -1114,11 +1124,13 @@ def grade_shadow_flag(conn, session_id, assignment_id, team_id, submitted):
     total = conn.execute(
         "SELECT COUNT(*) AS c FROM team_challenge_assignments "
         "WHERE session_id=?", (session_id,)).fetchone()["c"]
-    solved = conn.execute(
+    # A shadow session finishes once every card is SOLVED or FAILED (no open
+    # challenges left) — failed cards earn no points but still end the round.
+    resolved = conn.execute(
         "SELECT COUNT(*) AS c FROM team_challenge_assignments "
-        "WHERE session_id=? AND status='COMPLETED'",
+        "WHERE session_id=? AND status IN ('COMPLETED','FAILED')",
         (session_id,)).fetchone()["c"]
-    session_done = solved >= total
+    session_done = resolved >= total
     if session_done:
         conn.execute(
             "UPDATE round_sessions SET status='COMPLETED', completed_at=? "
@@ -1127,7 +1139,7 @@ def grade_shadow_flag(conn, session_id, assignment_id, team_id, submitted):
     return {"accepted": True, "q1_done": True, "phase": "q1",
             "already_solved": False, "exhausted": False,
             "stage_attempts": new_attempts,
-            "attempts_used": new_attempts, "attempts_limit": 0,
+            "attempts_used": new_attempts, "attempts_limit": limit,
             "flag": flag, "points": points, "strike": 0,
             "points_total": points, "session_done": session_done}
 

@@ -210,7 +210,7 @@ class TestShadowHand(MTShadowBase):
                           "C06-A"])
         for a in d["assignments"]:
             self.assertEqual(a["question_count"], 1)
-            self.assertEqual(a["attempts_limit"], 0)
+            self.assertEqual(a["attempts_limit"], 3)
         # per-challenge value comes from the category points
         total = sum(a["points"] for a in d["assignments"])
         self.assertEqual(total, 600)
@@ -233,7 +233,7 @@ class TestShadowHand(MTShadowBase):
         d = self.summary(c)
         u = d["unlocked"]
         self.assertIsNotNone(u)
-        self.assertEqual(u["attempts_limit"], 0)
+        self.assertEqual(u["attempts_limit"], 3)
         self.assertEqual(u["question2"], "")
         self.assertEqual(u["game_type2"], "")
         self.assertTrue(u["question"])
@@ -255,12 +255,85 @@ class TestShadowPlay(MTShadowBase):
         self.assertEqual(g["points"], 0)
         self.assertEqual(g["points_total"], 0)
         self.assertEqual(g["attempts_used"], 1)
-        self.assertEqual(g["attempts_limit"], 0)
+        self.assertEqual(g["attempts_limit"], 3)
         self.assertFalse(g["exhausted"])
         self.assertEqual(g["phase"], "q1")
-        # challenge still open, never failed by wrong attempts
+        # challenge still open, never failed by a single wrong attempt
         self.assertEqual(c.get("/api/participant/challenges/%d" % u["id"])
                          .get_json()["status"], "IN_PROGRESS")
+
+    def test_three_wrong_attempts_fail_challenge_for_zero_points(self):
+        tid, token, _ = _active_participant(None, "DEV-TEAM-08")
+        c = _team_client(tid, token)
+        d = self.summary(c)
+        u = d["unlocked"]
+        for i in (1, 2):
+            g = self._submit(c, u, "CIC{WRONG_%d}" % i)
+            self.assertFalse(g["accepted"])
+            self.assertFalse(g["exhausted"])
+            self.assertEqual(g["attempts_used"], i)
+            self.assertEqual(g["points_total"], 0)
+        g = self._submit(c, u, "CIC{WRONG_3}")
+        self.assertFalse(g["accepted"])
+        self.assertTrue(g["exhausted"])
+        self.assertEqual(g["attempts_used"], 3)
+        self.assertEqual(g["attempts_limit"], 3)
+        self.assertEqual(g["points_total"], 0)
+        # challenge is now FAILED and further submissions are rejected
+        detail = c.get("/api/participant/challenges/%d" % u["id"]).get_json()
+        self.assertEqual(detail["status"], "FAILED")
+        self.assertTrue(detail["failed"])
+        self.assertEqual(detail["attempts_limit"], 3)
+        dup = c.post("/api/participant/challenges/%d/submit" % u["id"],
+                     json={"answer": "CIC{WRONG_4}"})
+        self.assertEqual(dup.status_code, 403)
+        # overview shows CLOSED card, other challenges still open
+        d2 = self.summary(c)
+        mine = [a for a in d2["assignments"] if a["id"] == u["id"]]
+        self.assertTrue(mine and mine[0]["failed"])
+        self.assertEqual(self.summary(c)["session"]["status"], "ACTIVE")
+
+    def test_correct_flag_on_third_attempt_still_scores(self):
+        tid, token, _ = _active_participant(None, "DEV-TEAM-09")
+        c = _team_client(tid, token)
+        d = self.summary(c)
+        u = d["unlocked"]
+        expected = next(a["points"] for a in d["assignments"]
+                        if a["id"] == u["id"])
+        for i in (1, 2):
+            self._submit(c, u, "CIC{WRONG_%d}" % i)
+        g = self._solve(c, u)
+        self.assertTrue(g["accepted"])
+        self.assertEqual(g["attempts_used"], 3)
+        self.assertEqual(g["attempts_limit"], 3)
+        self.assertEqual(g["points"], expected)
+        self.assertEqual(g["points_total"], expected)
+
+    def test_session_completes_when_remaining_cards_resolve_or_fail(self):
+        tid, token, _ = _active_participant(None, "DEV-TEAM-04")
+        c = _team_client(tid, token)
+        d = self.summary(c)
+        u = d["unlocked"]
+        failed_points = u["points"]
+        # burn this card on 3 wrong flags
+        for i in (1, 2, 3):
+            self._submit(c, u, "CIC{WRONG_%d}" % i)
+        # solve the other five
+        d = self.summary(c)
+        opens = [a for a in d["assignments"] if a["status"] != "FAILED"]
+        self.assertEqual(len(opens), 5)
+        solved_and_points = 0
+        for a in opens:
+            detail = c.get("/api/participant/challenges/%d" % a["id"])
+            self.assertEqual(detail.status_code, 200, a["code"])
+            g = self._solve(c, a)
+            self.assertTrue(g["accepted"], a["code"])
+            solved_and_points += g["points_total"]
+        final = self.summary(c)
+        self.assertEqual(final["session"]["status"], "COMPLETED")
+        self.assertEqual(final["session"]["solved"], 5)
+        self.assertEqual(final["session"]["score"], 600 - failed_points)
+        self.assertIsNone(final["unlocked"])
 
     def test_correct_flag_scores_category_points_and_awards_flag(self):
         tid, token, _ = _active_participant(None, "DEV-TEAM-02")
