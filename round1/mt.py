@@ -413,8 +413,12 @@ def api_challenge_submit(assignment_id):
             pass
 
     if result["exhausted"]:
-        message = ("3 attempts used on this question — moving to the next "
-                   "challenge.")
+        if result["attempts_limit"] == 1:
+            message = ("Incorrect — that pick failed this challenge. "
+                       "Moving to the next one.")
+        else:
+            message = ("3 attempts used on this question — moving to the "
+                       "next challenge.")
     elif result["already_solved"]:
         message = "Already solved earlier."
     elif result["accepted"] and result["flag"]:
