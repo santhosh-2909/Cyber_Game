@@ -1,5 +1,5 @@
 {% extends "r1_base_v2.html" %}
-{% block title %}MYSTERY TRACE — Round 1{% endblock %}
+{% block title %}SHADOW HUNT — Round 1{% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber-hud.css') }}">
@@ -9,19 +9,19 @@
 {% block content %}
 <div class="r1-dashboard-shell" style="max-width:860px;margin:0 auto;padding:var(--space-5, 20px) 0;">
   <div class="hud-panel hud-panel-cn" style="padding:36px;text-align:center;border-radius:18px;">
-    <div class="hud-kicker" style="color:var(--hud-purple-lt);">MYSTERY TRACE // ROUND 1</div>
-    <h1 class="hud-h1" style="margin:8px 0 0;">TRACE THE 12 DOMAINS</h1>
+    <div class="hud-kicker" style="color:var(--hud-purple-lt);">SHADOW HUNT // ROUND 1</div>
+    <h1 class="hud-h1" style="margin:8px 0 0;">HUNT THE 6 FILES</h1>
     <p class="hud-sub" style="margin:14px auto 0;max-width:56ch;font-size:1.0rem;line-height:1.7;color:var(--hud-muted);">
-      Each team is dealt <strong style="color:var(--hud-text);">4 mini-challenges</strong> from the
-      12-domain mystery catalogue. Resolve them sequentially, capture a flag for every correct answer,
-      and score <strong style="color:var(--hud-green);">25 points</strong> each — all against a
+      Every team receives the same <strong style="color:var(--hud-text);">6 challenges</strong> — an
+      A/B/C variant from the shadow files. Solve them in any order, submit each
+      <span class="font-mono">SHADOW{...}</span> flag, and score per-challenge points against a
       <strong style="color:var(--hud-amber);">30-minute</strong> server timer.
     </p>
 
     <div style="display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin:22px 0 26px;">
-      <span class="hud-badge hud-badge-purple">48 CHALLENGES</span>
-      <span class="hud-badge hud-badge-purple">12 DOMAINS</span>
-      <span class="hud-badge hud-badge-green">25 PTS EACH</span>
+      <span class="hud-badge hud-badge-purple">6 CHALLENGES</span>
+      <span class="hud-badge hud-badge-purple">3 VARIANTS A/B/C</span>
+      <span class="hud-badge hud-badge-green">600 PTS MAX</span>
       <span class="hud-badge hud-badge-amber">30 MIN</span>
     </div>
 

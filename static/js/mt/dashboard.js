@@ -8,6 +8,55 @@
   var state = null;
   var _focusQ2 = false;
   var _sessionRetried = false;
+  var _transientTries = 0;
+
+  function isShadow() {
+    return !!(state && state.session && state.session.shadow);
+  }
+
+  /* Bounded reload budget: a missing/erroring Round 1 payload must never put
+   * the participant in an infinite reload loop on a page that has no answer
+   * bar. After a few quick reloads the page settles into a readable card
+   * that routes back to Round 1 / re-login instead. */
+  var _reloadBudget = (function () {
+    var key = 'mt-r1-reload';
+    var now = Date.now();
+    var n = parseInt(sessionStorage.getItem(key) || '0', 10) || 0;
+    var last = parseInt(sessionStorage.getItem(key + '-t') || '0', 10) || 0;
+    if (now - last > 8000) n = 0; // cooled down -> fresh budget
+    n += 1;
+    sessionStorage.setItem(key, String(n));
+    sessionStorage.setItem(key + '-t', String(now));
+    return n <= 3;
+  })();
+
+  /* Dead-end fallback: rendered when Round 1 data cannot be loaded at all.
+   * Always surfaces a path back to the round (never a bare page with no
+   * answer UI, never an endless reload). */
+  function renderMissedRound(d) {
+    var wrap = $('mt-hand');
+    var panel = $('mt-panel');
+    var bar = $('mt-answerbar');
+    if (panel) panel.style.display = 'none';
+    if (bar) bar.style.display = 'none';
+    var detail = (d && d.error)
+      ? '<br><span class="font-mono" style="color:var(--hud-red);">' +
+        esc(d.error) + '</span>' : '';
+    if (wrap) {
+      wrap.innerHTML =
+        '<div class="hud-panel" style="padding:24px;max-width:560px;margin:40px auto;">' +
+          '<div class="font-overline text-warning">ROUND 1 UNAVAILABLE</div>' +
+          '<p style="margin:10px 0 18px;color:var(--text-secondary);font-size:0.9rem;line-height:1.7;">' +
+            'Your game session data is missing or the round could not be loaded.' +
+            detail + '</p>' +
+          '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+            '<button type="button" class="hud-btn hud-btn-green btn-sm" ' +
+            'onclick="location.href=\'/participant/round/1\'">RETRY ROUND 1</button>' +
+            '<a class="hud-btn hud-btn-ghost btn-sm" href="/start">LOG IN AGAIN</a>' +
+          '</div></div>';
+    }
+    if (window.RoundGuard) window.RoundGuard.setActive(false);
+  }
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -53,19 +102,31 @@
     if (!wrap) return;
     if (!state || !state.assignments) { wrap.innerHTML = ''; return; }
     var unlockedId = (state.unlocked || {}).id;
+    var shadow = isShadow();
     wrap.innerHTML = state.assignments.map(function (a) {
       var cls = 'mt-tile';
       if (a.solved) cls += ' mt-tile-solved';
       else if (a.failed) cls += ' mt-tile-failed';
       if (a.id === unlockedId) cls += ' mt-tile-active';
+      if (shadow) cls += ' mt-tile-clickable';
+      // Shadow Hunt: every challenge is open (click to open any of them).
       var icon = a.solved ? '&#10003;'
                : a.failed ? '&#10007;'
-               : (a.id === unlockedId ? '&#9654;' : '&#128274;');
+               : (shadow ? '&#9654;'
+                         : (a.id === unlockedId ? '&#9654;' : '&#128274;'));
       var footer;
       if (a.solved) {
-        footer = '<div class="hud-badge hud-badge-green mt-tile-pts">+' + (a.points_awarded || 25) + ' pts</div>';
+        footer = '<div class="hud-badge hud-badge-green mt-tile-pts">+' + (a.points_awarded || a.points || 25) + ' pts</div>';
       } else if (a.failed) {
         footer = '<div class="hud-badge hud-badge-red mt-tile-pts">CLOSED</div>';
+      } else if (shadow) {
+        footer = '<div class="hud-badge hud-badge-green mt-tile-pts font-mono" title="Points for this challenge">' +
+          esc(a.points || 25) + ' pts</div>' +
+          (a.id === unlockedId
+            ? '<div class="hud-badge hud-badge-amber mt-tile-pts font-mono">' +
+              esc(a.attempts_used || 0) + ' att</div>'
+            : '<div class="hud-stat-label mt-tile-lock" style="color:var(--hud-green, #4ade80);">OPEN' +
+              (a.attempts_used ? ' &middot; ' + (a.attempts_used || 0) + ' att' : '') + '</div>');
       } else if (a.id === unlockedId) {
         footer = '<div class="hud-badge hud-badge-amber mt-tile-pts font-mono">' +
           esc((a.attempts_used || 0) + '/' + (a.attempts_limit || 3)) + ' tries</div>' +
@@ -75,7 +136,8 @@
           esc(a.points || 25) + ' pts</div>' +
           '<div class="hud-stat-label mt-tile-lock">LOCKED</div>';
       }
-      return '<div class="' + cls + '" data-id="' + a.id + '">' +
+      return '<div class="' + cls + '" data-id="' + a.id + '"' +
+        (shadow ? ' tabindex="0" role="button" aria-label="Open ' + esc(a.title) + '"' : '') + '>' +
         '<div class="mt-tile-top font-mono">' +
           '<span class="mt-tile-num">' + a.sequence_number + '</span>' +
           '<span class="mt-tile-icon">' + icon + '</span>' +
@@ -100,6 +162,11 @@
         complete.style.display = 'block';
         $('mt-complete-count').textContent = state.session.solved;
         $('mt-complete-score').textContent = state.session.score;
+      } else {
+        // Round is live and unsolved but the open challenge payload is
+        // missing — surface a recovery card instead of a dead page with no
+        // answer bar.
+        renderMissedRound();
       }
       return;
     }
@@ -108,6 +175,11 @@
     if (bar) bar.style.display = 'block';
 
     var q2 = u.phase === 'q2';
+    var shadow = isShadow();
+    // Solved Shadow Hunt cards are view-only: evidence + recorded flag.
+    // Exhausted (3 wrong flags) cards are view-only too: the challenge is
+    // CLOSED, the team moves on to the next open card.
+    var closedView = shadow && (u.solved || u.failed);
 
     // One question at a time: Q1 first, Q2 only after Q1 is solved.
     var q1Block = $('mt-q1-block');
@@ -116,8 +188,23 @@
     if (q2Block) q2Block.style.display = q2 ? '' : 'none';
     var row1 = $('mt-answer-row-1');
     var row2 = $('mt-answer-row-2');
-    if (row1) row1.style.display = q2 ? 'none' : '';
-    if (row2) row2.style.display = q2 ? '' : 'none';
+    var hintBtn = $('mt-hint-btn');
+    var submitBtn = $('mt-submit');
+    if (closedView) {
+      if (row1) row1.style.display = 'none';
+      if (row2) row2.style.display = 'none';
+      if (hintBtn) hintBtn.style.display = 'none';
+      if (submitBtn) submitBtn.style.display = 'none';
+      $('mt-answer').disabled = true;
+      $('mt-answer-2').disabled = true;
+    } else {
+      if (row1) row1.style.display = q2 ? 'none' : '';
+      if (row2) row2.style.display = q2 ? '' : 'none';
+      if (hintBtn) hintBtn.style.display = '';
+      if (submitBtn) submitBtn.style.display = '';
+      $('mt-answer').disabled = false;
+      $('mt-answer-2').disabled = false;
+    }
 
     $('mt-code').textContent = u.code;
     $('mt-domain').textContent = u.domain;
@@ -151,15 +238,32 @@
 
     var ab = $('mt-attempts');
     if (ab) {
-      ab.style.display = 'inline';
-      ab.textContent = 'TRIES ' + (u.attempts_used || 0) + '/' + (u.attempts_limit || 3);
-      ab.className = 'hud-badge hud-badge-amber font-mono';
-      ab.setAttribute('style', 'margin-left:10px;display:inline;');
-      if (u.failed) {
-        ab.className = 'hud-badge hud-badge-red font-mono';
-        ab.setAttribute('style', 'margin-left:10px;display:inline;');
+      if (shadow) {
+        if (u.solved) {
+          ab.textContent = 'SOLVED';
+          ab.className = 'hud-badge hud-badge-green font-mono';
+        } else if (u.failed) {
+          ab.textContent = 'OUT OF TRIES (' + (u.attempts_used || 0) + '/' +
+            (u.attempts_limit || 3) + ')';
+          ab.className = 'hud-badge hud-badge-red font-mono';
+        } else {
+          ab.textContent = 'TRIES ' + (u.attempts_used || 0) + '/' +
+            (u.attempts_limit || 3);
+          ab.className = 'hud-badge hud-badge-amber font-mono';
+        }
+      } else {
+        ab.textContent = 'TRIES ' + (u.attempts_used || 0) + '/' + (u.attempts_limit || 3);
+        ab.className = 'hud-badge hud-badge-amber font-mono';
+        if (u.failed) {
+          ab.className = 'hud-badge hud-badge-red font-mono';
+        }
       }
+      ab.setAttribute('style', 'margin-left:10px;display:inline;');
     }
+
+    // Shadow Hunt has no time strike: hide the bonus chip.
+    var strikeChip = $('mt-strike');
+    if (strikeChip) strikeChip.style.display = shadow ? 'none' : 'inline';
 
     // After a Q1 solve, hand focus straight to the Q2 input.
     if (q2 && _focusQ2) {
@@ -245,8 +349,9 @@
     if (strikeTimer) { clearInterval(strikeTimer); strikeTimer = null; }
     var chip = $('mt-strike');
     var badge = $('mt-active-strike');
-    if (!state || !state.unlocked) {
+    if (!state || !state.unlocked || isShadow()) {
       if (chip) chip.style.display = 'none';
+      if (badge) badge.style.display = 'none';
       return;
     }
     chip.style.display = 'inline';
@@ -319,6 +424,23 @@
     input.classList.add('mt-shake');
   }
 
+  /* Shadow Hunt: click an open tile to open that challenge (any order). The
+   * server still guards the session/timer; this only drives client view. */
+  function openChallenge(id) {
+    if (!isShadow()) return;
+    if (state && state.unlocked && state.unlocked.id === id) return;
+    api('/api/participant/challenges/' + id, {})
+      .then(function (res) {
+        var d = res.d;
+        if (!d || d.ok === false) { load(); return; }
+        state.unlocked = d;
+        _focusQ2 = false;
+        renderHand();
+        renderUnlocked();
+        startStrike();
+      });
+  }
+
   function load() {
     api('/api/participant/round/1', {})
       .then(function (res) {
@@ -326,12 +448,25 @@
         if (res.status === 503 || (d && d.retry === true)) {
           // Transient (SQLite busy under multi-user load) — retried once by
           // api(); if still busy, wait a beat and load again rather than dead.
-          setTimeout(function () { load(); }, 1200);
+          // Bounded: after a few tries a readable fallback (leading back to
+          // Round 1) replaces the retry loop so it can never spin forever.
+          _transientTries += 1;
+          if (_reloadBudget && _transientTries <= 3) {
+            setTimeout(function () { load(); }, 1200);
+          } else { renderMissedRound(d); }
           return;
         }
-        if (!d || !d.ok) { window.location.reload(); return; }
+        if (!d || !d.ok) {
+          // Missing/erroring session data: never loop forever on a page with
+          // no answer bar — bounded reloads first, then a fallback that
+          // routes back to Round 1 / re-login.
+          if (_reloadBudget) { window.location.reload(); }
+          else { renderMissedRound(d); }
+          return;
+        }
         state = d;
         _sessionRetried = false;
+        _transientTries = 0;
         try {
           renderHand();
           renderUnlocked();
@@ -345,8 +480,10 @@
         }
       })
       .catch(function (e) {
-        if (window.MT_RELOAD_GUARD) { console.error('[MT] reload guard: not reloading after', e); return; }
-        window.location.reload();
+        // Network/render failure: surface the Round 1 fallback instead of an
+        // unbounded reload that leaves the participant without an answer bar.
+        console.error('[MT] load failed:', e);
+        renderMissedRound();
       });
   }
 
@@ -421,6 +558,13 @@
         }
         if (d.accepted && d.flag) {
           closePop();
+          var winLine = isShadow()
+            ? '+' + d.points + ' marks = <strong style="color:var(--success);">' +
+              d.points_total + ' pts</strong>. Flag recorded — pick any challenge to continue.'
+            : '+' + d.points +
+              ' marks +<span style="color:var(--accent-signal);font-weight:700;">' + d.strike +
+              ' time bonus</span> = <strong style="color:var(--success);">' + d.points_total +
+              ' pts</strong>. Advances to the next challenge.';
           result.innerHTML =
             '<div class="card" style="background:var(--success-bg);border-color:var(--success);padding:18px 20px;">' +
               '<div class="font-overline text-success">CORRECT — FLAG CAPTURED</div>' +
@@ -429,10 +573,7 @@
                   esc(d.flag) + '</span>' +
                 '<button type="button" class="btn btn-success btn-sm" onclick="MT.copyFlag()">COPY FLAG</button>' +
               '</div>' +
-              '<p style="margin:10px 0 0;font-size:0.85rem;color:var(--text-secondary);">+' + d.points +
-              ' marks +<span style="color:var(--accent-signal);font-weight:700;">' + d.strike +
-              ' time bonus</span> = <strong style="color:var(--success);">' + d.points_total +
-              ' pts</strong>. Advances to the next challenge.</p></div>';
+              '<p style="margin:10px 0 0;font-size:0.85rem;color:var(--text-secondary);">' + winLine + '</p></div>';
           setTimeout(function () { load(); }, 900);
         } else if (d.accepted && d.q1_done && !d.flag) {
           // Question 1 correct -> reveal Question 2.
@@ -463,15 +604,22 @@
         } else {
           // Wrong answer -> pop a TRY AGAIN dialog (answers are compared
           // case-insensitively server-side).
-          pop('INCORRECT',
-              'Your answer did not unlock this case. ' +
-              d.attempts_used + ' of ' + d.attempts_limit + ' attempts used — ' +
-              're-verify the evidence and try again.',
-              '');
+          var wrongNote = isShadow()
+            ? 'Wrong flag — ' + d.attempts_used + ' of ' +
+              (d.attempts_limit || 3) + ' tries used, no points lost. '
+            : 'Your answer did not unlock this case. ' +
+              d.attempts_used + ' of ' + d.attempts_limit + ' attempts used — ';
+          pop('INCORRECT', wrongNote + 're-verify the evidence and try again.', '');
           btn.disabled = false;
           var ab = $('mt-attempts');
           if (ab && typeof d.attempts_used === 'number') {
-            ab.textContent = 'TRIES ' + d.attempts_used + '/' + d.attempts_limit;
+            ab.textContent = 'TRIES ' + d.attempts_used + '/' +
+              (d.attempts_limit || 3);
+            if (isShadow() && d.attempts_used >= (d.attempts_limit || 3)) {
+              ab.className = 'hud-badge hud-badge-red font-mono';
+            } else {
+              ab.className = 'hud-badge hud-badge-amber font-mono';
+            }
           }
         }
       })
@@ -530,6 +678,26 @@
     }
     var hintBtn = $('mt-hint-btn');
     if (hintBtn) hintBtn.addEventListener('click', function () { kick(hintBtn); hint(); });
+
+    // Shadow Hunt: click / keyboard-open any open tile.
+    var hand = $('mt-hand');
+    if (hand) {
+      hand.addEventListener('click', function (e) {
+        var t = e.target && e.target.closest ? e.target.closest('.mt-tile') : null;
+        if (!t) return;
+        var id = parseInt(t.getAttribute('data-id'), 10);
+        if (id > 0) openChallenge(id);
+      });
+      hand.addEventListener('keydown', function (e) {
+        var t = e.target && e.target.closest ? e.target.closest('.mt-tile') : null;
+        if (!t) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          var id = parseInt(t.getAttribute('data-id'), 10);
+          if (id > 0) openChallenge(id);
+        }
+      });
+    }
 
     var popTry = $('mt-pop-try');
     if (popTry) {

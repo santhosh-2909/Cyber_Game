@@ -1,10 +1,10 @@
 {% extends "r1_admin_base_v2.html" %}
-{% block title %}MYSTERY TRACE — Monitor{% endblock %}
+{% block title %}SHADOW HUNT — Monitor{% endblock %}
 {% block content %}
 
 <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:12px;margin-bottom:18px;">
   <div>
-    <div class="font-overline text-muted" style="color:var(--hud-purple-lt, #c4b5fd);">MYSTERY TRACE // ROUND 1</div>
+    <div class="font-overline text-muted" style="color:var(--hud-purple-lt, #c4b5fd);">SHADOW HUNT // ROUND 1</div>
     <h1 class="h2" style="margin:2px 0 0;">Live Monitor</h1>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -27,7 +27,7 @@
   <div class="card" style="padding:16px;">
     <div class="font-overline text-muted">CONFIG</div>
     <div class="h2 font-mono" style="margin:4px 0 0;">{{ data.settings.timer_minutes }}<span style="font-size:0.7em;color:var(--text-tertiary);"> min</span></div>
-    <div class="font-mono text-secondary">{{ data.settings.challenges_per_team }} hand · {{ data.settings.points_per_challenge }} pts</div>
+    <div class="font-mono text-secondary">{{ data.settings.challenges_per_team }} hand · up to {{ data.settings.points_per_challenge }} pts/challenge</div>
   </div>
 </div>
 
@@ -48,8 +48,8 @@
 <div class="card" style="padding:18px;margin-bottom:22px;border-color:rgba(239,68,68,0.35);">
     <div class="font-overline text-danger">DANGER ZONE — RESET ROUND 1</div>
     <p class="text-secondary" style="margin:6px 0 12px;font-size:0.85rem;">
-      Wipes every Round 1 session, attempt, and login, then re-seeds the 48-challenge
-      catalogue. <strong>Teams are kept</strong> — the same users can log in fresh on the
+      Wipes every Round 1 session, attempt, and login, then re-seeds the 18-challenge
+      A/B/C catalogue. <strong>Teams are kept</strong> — the same users can log in fresh on the
       login page. Round 2 data is not touched.
     </p>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -64,6 +64,7 @@
     <thead>
       <tr>
         <th>Team</th>
+        <th>Var</th>
         <th>ID</th>
         <th>Status</th>
         <th>Remaining</th>
@@ -80,6 +81,13 @@
         <td>
           <span style="font-weight:600;">{{ t.team_name }}</span>
           {% if t.is_dev_seed %}<span class="badge badge-neutral">DEV</span>{% endif %}
+        </td>
+        <td>
+          {% if t.variant_letter %}
+            <span class="hud-badge hud-badge-amber font-mono" style="min-width:26px;text-align:center;">{{ t.variant_letter }}</span>
+          {% else %}
+            <span class="font-mono text-muted">-</span>
+          {% endif %}
         </td>
         <td class="font-mono">{{ t.team_id }}</td>
         <td>

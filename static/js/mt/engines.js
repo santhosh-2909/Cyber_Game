@@ -429,6 +429,36 @@
     };
   }
 
+  /* Shadow Hunt: preformatted evidence block. Every challenge ships its
+   * evidence as text (a cipher, headers, logs, a sentence...). Optionally the
+   * C04 challenge config carries the staff-portal link, and a solved
+   * challenge carries the team's OWN flag for revisit display. */
+  function shadowEngine(label) {
+    return {
+      label: label,
+      render: function (ev, cfg) {
+        var out = terminal(typeof ev === 'string' ? ev : JSON.stringify(ev, null, 2), 'evidence');
+        if (cfg && cfg.artifact_url) {
+          out += '<div style="margin-top:16px;">' +
+            '<a class="hud-btn hud-btn-green btn-sm" style="text-decoration:none;" href="' +
+            esc(cfg.artifact_url) + '" target="_blank" rel="noopener noreferrer">' +
+            'OPEN STAFF PORTAL &#8599;</a></div>';
+        }
+        if (cfg && cfg.solved_flag) {
+          out += '<div class="card" style="background:var(--success-bg);border-color:var(--success);' +
+            'padding:16px 18px;margin-top:16px;">' +
+            '<div class="font-overline text-success">FLAG RECORDED — SOLVED</div>' +
+            '<div style="margin-top:8px;font-size:.95rem;color:var(--success);' +
+            'word-break:break-all;" class="font-mono">' + esc(cfg.solved_flag) + '</div>' +
+            '<div style="margin-top:6px;font-size:.78rem;color:var(--text-secondary);">' +
+            'This challenge is complete. The flag above is your team\'s own ' +
+            'variant — it is recorded on the server.</div></div>';
+        }
+        return out;
+      }
+    };
+  }
+
   // ----------------------------------------------------------------- registry
 
   // Full 48-entry registry (12 domains x 4 variants).
@@ -436,6 +466,8 @@
   // engine's evidence + config is captured when rendered.
 
   var ENGINES = {
+    // ---- Shadow Hunt (Round 1 rework): one flag question per challenge
+    shadow_text: shadowEngine('Shadow Hunt'),
     // ---- binary, base-N decoding
     digital_lock: binEngine('Digital Lock', 'binary'),
     combination_safe: binEngine('Combination Safe', 'octal'),

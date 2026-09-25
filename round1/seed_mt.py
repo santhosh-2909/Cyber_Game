@@ -1,15 +1,16 @@
-"""MYSTERY TRACE Round 1 — content seeder (MYSTERY TRACE lab catalogue).
+"""SHADOW HUNT Round 1 — content seeder (Shadow Hunt challenge catalogue).
 
-Re-runnable (idempotent) upsert that loads the full 48-variant catalogue
-(12 domains x 4) from ``round1.mt_catalog`` into ``challenge_categories`` /
-``challenge_variants`` plus optional DEV test teams.
+Re-runnable (idempotent) upsert that loads the full 18-challenge catalogue
+(6 challenges x variants A/B/C) from ``round1.mt_catalog`` into
+``challenge_categories`` / ``challenge_variants`` plus optional DEV test
+teams.
 
 Usage:
     python -m round1.seed_mt                      # upsert catalogue only
     python -m round1.seed_mt --with-test-teams    # + 20 DEV-TEAM-xx teams
     python -m round1.seed_mt --reset-catalog      # PERMANENTLY purge old
                                                   # Round 1 content + progress,
-                                                  # then reseed the 48
+                                                  # then reseed the 18
     python -m round1.seed_mt --remove-test-teams  # delete DEV-teams + their data
 
 Answers / flags / accept forms live ONLY server-side (DB). The frontend is
@@ -34,11 +35,11 @@ def _json(obj):
 
 
 # ---------------------------------------------------------------------------
-# Categories (the 12 MT domains). Removes legacy catalog content on reset.
+# Categories (the 6 Shadow Hunt challenges). Removes legacy content on reset.
 # ---------------------------------------------------------------------------
 
 def seed_categories(conn, reset=False, verbose=True):
-    """Ensure the 12 MT challenge_categories exist (upsert by challenge_code).
+    """Ensure the 6 Shadow Hunt challenge_categories exist (upsert by code).
 
     With reset=True the ENTIRE old Round 1 catalogue and all Round 1 progress
     (legacy categories, variants, sessions, assignments, submissions, hint
@@ -49,26 +50,27 @@ def seed_categories(conn, reset=False, verbose=True):
     cats = {r["challenge_code"].upper() for r in conn.execute(
         "SELECT challenge_code FROM challenge_categories").fetchall()}
     added = 0
-    for idx, (domain, (cat_code, title)) in enumerate(
+    for idx, (domain, (cat_code, title, difficulty, points)) in enumerate(
             DOMAIN_META.items(), start=1):
         if cat_code in cats:
             conn.execute(
                 "UPDATE challenge_categories SET title=?, domain=?, "
-                "difficulty='Medium', points=25, active=1, display_order=? "
+                "difficulty=?, points=?, active=1, display_order=? "
                 "WHERE challenge_code=?",
-                (title, title, idx, cat_code))
+                (title, title, difficulty, points, idx, cat_code))
         else:
             conn.execute(
                 "INSERT INTO challenge_categories (challenge_code, title, "
                 "domain, description, difficulty, points, active, display_order) "
                 "VALUES (?,?,?,?,?,?,?,?)",
                 (cat_code, title, title,
-                 "MYSTERY TRACE Round 1 domain: %s" % domain,
-                 "Medium", 25, 1, idx))
+                 "SHADOW HUNT Round 1 challenge: %s" % title,
+                 difficulty, points, 1, idx))
             added += 1
         cats.add(cat_code)
     if verbose:
-        sys.stdout.write("seed_categories: %d created, 12 ensured\n" % added)
+        sys.stdout.write("seed_categories: %d created, %d ensured\n"
+                         % (added, len(DOMAIN_META)))
     return added
 
 
@@ -95,7 +97,7 @@ def _purge_round1_data(conn):
 
 def reset_round(conn=None, clear_participant_sessions=True):
     """Admin "reset round": wipe Round 1 play data + logins, then reseed the
-    48-variant catalogue. Teams are KEPT so the same users can log in again.
+    Shadow Hunt catalogue. Teams are KEPT so the same users can log in again.
 
     Clears only round_name='round1' participant sessions so Round 2 logins
     are untouched. Returns a counts dict for the admin banner.
@@ -123,7 +125,7 @@ def reset_round(conn=None, clear_participant_sessions=True):
 
 
 # ---------------------------------------------------------------------------
-# Variants (the 48-catalogue upsert)
+# Variants (the 18-challenge upsert)
 # ---------------------------------------------------------------------------
 
 def seed_variants(conn, verbose=True):
@@ -168,10 +170,10 @@ def seed_variants(conn, verbose=True):
                                     "game_type": ch["game_type"]}),
             "expected_answer": ch["answer"],
             "flag": ch["flag"],
-            "difficulty": "Medium",
+            "difficulty": ch.get("difficulty", "Medium"),
             "hint": ch["hint"],
             "explanation": ch["hint"],
-            "estimated_solve_time": "15s",
+            "estimated_solve_time": ch.get("solve_time", "15s"),
             "game_type": ch["game_type"],
             "evidence_config": evidence_payload,
             "game_config": _json(public_cfg),
@@ -239,8 +241,10 @@ def _evidence_for(ch):
 # ---------------------------------------------------------------------------
 
 def seed_test_teams(conn, count=20, verbose=True):
-    """Create DEV-TEAM-01..N test teams (is_dev_seed=1)."""
+    """Create DEV-TEAM-01..N test teams (is_dev_seed=1) with round-robin
+    A/B/C shadow variant letters so every test team plays SHADOW HUNT."""
     now = db.now_ms()
+    letters = ("A", "B", "C")
     n = 0
     for i in range(1, count + 1):
         tid = "DEV-TEAM-%02d" % i
@@ -248,18 +252,23 @@ def seed_test_teams(conn, count=20, verbose=True):
             "SELECT id FROM teams WHERE team_id=? COLLATE NOCASE",
             (tid,)).fetchone()
         if row:
+            rid = row["id"]
             conn.execute(
                 "UPDATE teams SET team_name=?, is_active=1, updated_at=?, "
-                "round1_enabled=1, round2_enabled=1, is_dev_seed=1 WHERE id=?",
-                ("DEV TEAM %02d" % i, now, row["id"]))
+                "round1_enabled=1, round2_enabled=1, is_dev_seed=1 "
+                "WHERE id=?",
+                ("DEV TEAM %02d" % i, now, rid))
         else:
-            conn.execute(
+            cur = conn.execute(
                 "INSERT INTO teams (team_id, team_name, participant_names, "
                 "created_at, is_active, updated_at, round1_access_id, "
                 "round2_access_id, round1_enabled, round2_enabled, is_dev_seed) "
                 "VALUES (?,?,?,?,1,?,?,?,1,1,1)",
                 (tid, "DEV TEAM %02d" % i, "", now, now, tid, tid))
+            rid = cur.lastrowid
             n += 1
+        conn.execute("UPDATE teams SET variant_letter=? WHERE id=?",
+                     (letters[(rid - 1) % len(letters)], rid))
     if verbose:
         sys.stdout.write("seed_test_teams: %d new, %d ensured\n" % (n, count))
     return n
@@ -301,10 +310,10 @@ def remove_test_teams(conn, verbose=True):
 # ---------------------------------------------------------------------------
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="MYSTERY TRACE R1 seeder")
+    ap = argparse.ArgumentParser(description="SHADOW HUNT R1 seeder")
     ap.add_argument("--reset-catalog", action="store_true",
                     help="Permanently purge old Round 1 content + progress, "
-                         "then seed the 48-variant catalogue")
+                         "then seed the Shadow Hunt catalogue")
     ap.add_argument("--with-test-teams", action="store_true",
                     help="create/ensure 20 DEV-TEAM-xx teams")
     ap.add_argument("--remove-test-teams", action="store_true",
@@ -328,7 +337,7 @@ def main(argv=None):
                 remove_test_teams(conn)
     finally:
         conn.close()
-    sys.stdout.write("MT seed OK — %s\n" % _ts())
+    sys.stdout.write("Shadow Hunt seed OK — %s\n" % _ts())
 
 
 if __name__ == "__main__":

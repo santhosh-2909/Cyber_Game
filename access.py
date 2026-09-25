@@ -641,11 +641,17 @@ def add_team(team_name, team_id, round1_access_id=None, round2_access_id=None):
             if existing:
                 return False, "%s access ID already exists." % label
         now = db.now_ms()
-        conn.execute(
+        cur = conn.execute(
             "INSERT INTO teams (team_id, team_name, participant_names, "
             "created_at, updated_at, round1_access_id, round2_access_id, "
             "round1_enabled, round2_enabled) VALUES (?,?,?,?,?,?,?,?,?)",
             (team_id, team_name, "", now, now, round1_access_id, round2_access_id, 1, 1))
+        # Shadow Hunt variant letter: round-robin by creation order
+        # (team 1,4,7,10 -> A; 2,5,8 -> B; 3,6,9 -> C).
+        SHADOW_VARIANTS = ("A", "B", "C")
+        letter = SHADOW_VARIANTS[(cur.lastrowid - 1) % len(SHADOW_VARIANTS)]
+        conn.execute("UPDATE teams SET variant_letter=? WHERE id=?",
+                     (letter, cur.lastrowid))
         conn.commit()
         return True, "Team created successfully."
     finally:

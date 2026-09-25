@@ -110,7 +110,7 @@
       <div style="padding:16px 20px;border-bottom:1px solid var(--border-subtle);background-color:rgba(191,165,255,0.03);display:flex;align-items:center;justify-content:space-between;">
         <div style="display:flex;align-items:center;gap:8px;">
           <span class="badge badge-outline font-mono" style="color:var(--accent-purple);">ROUND 02</span>
-          <span style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--text-secondary);">DIGITAL FORENSICS</span>
+          <span style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--text-secondary);">MYSTERY TRACE</span>
         </div>
         <span class="badge badge-outline font-mono" style="font-size:11px;{% if disqualification and disqualification.round2 %}color:var(--state-danger);border-color:rgba(239,68,68,0.45);{% else %}color:var(--state-success);{% endif %}">
           {% if disqualification and disqualification.round2 %}RESTRICTED{% else %}STATION READY{% endif %}
@@ -136,7 +136,7 @@
         </div>
 
         <a href="{{ url_for('dashboard') }}" class="btn {% if disqualification and disqualification.round2 %}btn-danger{% else %}btn-primary{% endif %} font-mono" style="width:100%;padding:12px;font-size:14px;text-align:center;">
-          {% if disqualification and disqualification.round2 %}ROUND 2 RESTRICTED &rarr;{% else %}ENTER FORENSICS WORKSTATION &rarr;{% endif %}
+          {% if disqualification and disqualification.round2 %}ROUND 2 RESTRICTED &rarr;{% else %}ENTER MYSTERY TRACE WORKSTATION &rarr;{% endif %}
         </a>
       </div>
     </div>
@@ -164,7 +164,7 @@
           <span class="font-mono" style="color:{% if disqualification and disqualification.round1 %}var(--state-danger){% else %}var(--text-primary){% endif %};">{% if disqualification and disqualification.round1 %}DISQUALIFIED{% else %}{{ r1_stage|upper|replace('_',' ') }}{% endif %}</span>
         </div>
         <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border-subtle);">
-          <span style="color:var(--text-tertiary);">Forensic Locker</span>
+          <span style="color:var(--text-tertiary);">Mystery Trace Locker</span>
           <span class="font-mono" style="color:{% if disqualification and disqualification.round2 %}var(--state-danger){% else %}var(--accent-signal){% endif %};">{% if disqualification and disqualification.round2 %}REVOKED{% else %}PROVISIONED{% endif %}</span>
         </div>
       </div>
@@ -184,7 +184,7 @@
 
       <div style="padding:12px;background-color:var(--bg-surface-2);border-radius:var(--radius-sm);border-left:3px solid var(--accent-purple);">
         <div class="font-mono font-bold" style="font-size:11px;color:var(--accent-purple);">STAGE 02</div>
-        <div style="font-weight:600;font-size:14px;color:var(--text-primary);margin-top:2px;">Round 2: Forensics</div>
+        <div style="font-weight:600;font-size:14px;color:var(--text-primary);margin-top:2px;">Round 2: Mystery Trace</div>
       </div>
 
       <div style="padding:12px;background-color:var(--bg-surface-2);border-radius:var(--radius-sm);border-left:3px solid var(--border-default);">

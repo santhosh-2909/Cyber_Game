@@ -329,6 +329,23 @@
     qOptions.querySelectorAll('.mcq-opt').forEach(b => b.disabled = locked);
   }
 
+  /* Full-screen success popup shown when the FINAL answer of the case is
+   * submitted — "Submitted successfully" before the score card opens. */
+  function showSubmitSuccess() {
+    const wrap = document.createElement('div');
+    wrap.id = 'submit-success-popup';
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(8,12,24,0.72);backdrop-filter:blur(4px);';
+    wrap.innerHTML =
+      '<div style="background:var(--bg-surface, #0F1424);border:1px solid rgba(16,185,129,0.55);border-radius:16px;padding:40px 48px;text-align:center;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,0.55);animation:pop-in .25s ease-out;">' +
+        '<div style="width:68px;height:68px;border-radius:50%;margin:0 auto 18px;background:rgba(16,185,129,0.15);border:2px solid var(--success, #10B981);display:flex;align-items:center;justify-content:center;color:var(--success, #10B981);">' +
+          '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' +
+        '</div>' +
+        '<div style="font-size:1.3rem;font-weight:800;letter-spacing:0.02em;color:var(--text-primary, #E6EAF5);">SUBMITTED SUCCESSFULLY</div>' +
+        '<div style="margin-top:10px;font-size:0.85rem;color:var(--text-secondary, #93A0C0);font-family:var(--font-mono, monospace);">ALL QUESTIONS GRADED · OPENING SCORE CARD</div>' +
+      '</div>';
+    document.body.appendChild(wrap);
+  }
+
   function renderOptionState(chosen, correctIdx) {
     qOptions.querySelectorAll('.mcq-opt').forEach(b => {
       const i = parseInt(b.dataset.opt, 10);
@@ -507,7 +524,8 @@
       answering = false;
       paintNav();
       if (data.case_done) {
-        setTimeout(() => { window.location.href = '{{ url_for('score') }}'; }, 1400);
+        showSubmitSuccess();
+        setTimeout(() => { window.location.href = '{{ url_for('score') }}'; }, 2200);
       } else {
         // Stay on the result; the participant drives the NEXT QUESTION button.
         qNext.focus();

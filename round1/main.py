@@ -229,6 +229,11 @@ def r1_logout():
 @r1.route("/r1/start", methods=["POST"])
 @login_required_team
 def r1_start(team):
+    # Shadow Hunt teams skip the legacy Cyber-Puzzle deal entirely: their
+    # six-variant hand is dealt by the MT flow (all same-letter, all open).
+    if assign.team_variant_letter(team["id"]):
+        assign.assign_mt(team["id"])
+        return redirect(url_for("mt.mt_page"))
     # Resume the live session (DB-first, cookie fallback so the timer keeps
     # counting down across serverless instances instead of restarting the
     # 30-minute clock on every login).
@@ -265,6 +270,10 @@ def r1_start(team):
 @r1.route("/r1/dashboard")
 @login_required_team
 def r1_dashboard(team):
+    # Shadow Hunt teams always play on the challenge-hand terminal; the
+    # legacy mission-log dashboard is not used for the reworked round.
+    if assign.team_variant_letter(team["id"]):
+        return redirect(url_for("mt.mt_page"))
     session_row = _get_session_row_from_team(team)
     if session_row is None:
         # No active session: if the team already finished (COMPLETED/EXPIRED),

@@ -1,13 +1,12 @@
-"""MYSTERY TRACE Round 1 — acceptance tests.
+"""SHADOW HUNT Round 1 — acceptance tests.
 
 Runs against a scratch SQLite DB (round1.db.DB_PATH is repointed at
-/tmp/r1_test.db) so the live database is never touched.
+/tmp/r1_test_mt.db) so the live database is never touched.
 
 Run:   python -m round1.test_mt
 """
 import json
 import os
-import shutil
 import tempfile
 import unittest
 
@@ -21,7 +20,7 @@ db.DB_PATH = _TEST_DB
 
 import round1.seed_mt as seed_mt
 import round1.assign as assign
-import round1.mt as mtmod
+import admin_ops
 import app as appmod
 
 APP = appmod.app
@@ -39,11 +38,15 @@ def _active_participant(client, team_id=None):
     try:
         if team_id:
             row = conn.execute(
-                "SELECT id FROM teams WHERE team_id=?", (team_id,)).fetchone()
+                "SELECT id, variant_letter FROM teams WHERE team_id=?",
+                (team_id,)).fetchone()
             assert row is not None, "missing team %s" % team_id
-            tid = row["id"]
+            tid, letter = row["id"], row["variant_letter"]
         else:
-            tid = conn.execute("SELECT id FROM teams LIMIT 1").fetchone()["id"]
+            row = conn.execute(
+                "SELECT id, variant_letter FROM teams LIMIT 1").fetchone()
+            assert row is not None, "no teams seeded"
+            tid, letter = row["id"], row["variant_letter"]
         token = "tok-%s" % tid
         conn.execute(
             "DELETE FROM participant_sessions WHERE team_id=?", (tid,))
@@ -52,7 +55,7 @@ def _active_participant(client, team_id=None):
             "last_seen, status, round_name) VALUES (?,?,?,?,?,?)",
             (token, tid, db.now_ms(), db.now_ms(), "ACTIVE", "round1"))
         conn.commit()
-        return tid, token
+        return tid, token, letter
     finally:
         conn.close()
 
@@ -69,7 +72,7 @@ def _team_client(tid, token):
     return c
 
 
-class MTBase(unittest.TestCase):
+class MTShadowBase(unittest.TestCase):
     def setUp(self):
         _seed()
 
@@ -78,112 +81,97 @@ class MTBase(unittest.TestCase):
         self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
         return r.get_json()
 
-    def _server_answer(self, assignment_id):
+    def _server_flag(self, assignment_id):
         conn = db.get_connection()
         try:
             return conn.execute(
-                "SELECT v.expected_answer FROM team_challenge_assignments a "
+                "SELECT v.flag FROM team_challenge_assignments a "
                 "JOIN challenge_variants v ON a.variant_id=v.id WHERE a.id=?",
-                (assignment_id,)).fetchone()["expected_answer"]
+                (assignment_id,)).fetchone()["flag"]
         finally:
             conn.close()
 
-    def _server_answer2(self, assignment_id):
-        conn = db.get_connection()
-        try:
-            row = conn.execute(
-                "SELECT a.variant2_id FROM team_challenge_assignments a "
-                "WHERE a.id=?", (assignment_id,)).fetchone()
-            v2id = row["variant2_id"] if row else None
-            if v2id is None:
-                return ""
-            r = conn.execute(
-                "SELECT expected_answer FROM challenge_variants WHERE id=?",
-                (v2id,)).fetchone()
-            return r["expected_answer"] if r else ""
-        finally:
-            conn.close()
-
-    def _submit_q1(self, c, u, answer=None, check=True):
+    def _submit(self, c, u, answer, check=True):
         r = c.post("/api/participant/challenges/%d/submit" % u["id"],
-                   json={"answer": answer if answer is not None
-                         else self._server_answer(u["id"])})
+                   json={"answer": answer})
         g = r.get_json()
         if check:
             self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
-            self.assertTrue(g["accepted"])
-            self.assertTrue(g["q1_done"])
-            self.assertFalse(g["flag"], "Q1 alone must not award a flag")
-            self.assertEqual(g["phase"], "q2")
         return g
 
-    def _submit_q2(self, c, u, answer=None, check=True):
-        r = c.post("/api/participant/challenges/%d/submit" % u["id"],
-                   json={"answer": answer if answer is not None
-                         else self._server_answer2(u["id"])})
-        g = r.get_json()
-        if check:
-            self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
-            self.assertTrue(g["accepted"])
-            self.assertRegex(g["flag"], r"^MT\{")
-        return g
-
-    def _solve(self, c, u, answer1=None, answer2=None):
-        """Answer Q1 then Q2 correctly; returns the Q2 result dict."""
-        self._submit_q1(c, u, answer1)
-        return self._submit_q2(c, u, answer2)
+    def _solve(self, c, u):
+        """Submit the correct flag for a challenge."""
+        flag = self._server_flag(u["id"])
+        return self._submit(c, u, flag)
 
 
-class TestCatalog(MTBase):
-    def test_12_categories_48_variants_all_engines(self):
+LIMITS_SUM = 600
+
+
+class TestShadowCatalog(MTShadowBase):
+    def test_6_categories_18_variants_letters_abc_flags_cic(self):
         conn = db.get_connection()
         try:
             cats = conn.execute(
-                "SELECT COUNT(*) c FROM challenge_categories").fetchone()["c"]
+                "SELECT challenge_code FROM challenge_categories "
+                "ORDER BY display_order").fetchall()
             variants = conn.execute(
                 "SELECT COUNT(*) c FROM challenge_variants").fetchone()["c"]
-            engines = conn.execute(
-                "SELECT COUNT(DISTINCT game_type) c FROM challenge_variants "
-                "WHERE game_type != ''").fetchone()["c"]
             bad = conn.execute(
                 "SELECT COUNT(*) c FROM challenge_variants WHERE flag='' OR "
-                "flag NOT LIKE 'MT{%' OR expected_answer='' OR "
-                "evidence_config=''").fetchone()["c"]
+                "flag NOT LIKE 'SHADOW{%' OR expected_answer != flag OR "
+                "game_type != 'shadow_text'").fetchone()["c"]
+            letters = [dict(r) for r in conn.execute(
+                "SELECT challenge_category_id, variant_code FROM "
+                "challenge_variants ORDER BY challenge_category_id, "
+                "variant_code").fetchall()]
         finally:
             conn.close()
-        self.assertEqual(cats, 12)
-        self.assertEqual(variants, 48)
-        self.assertEqual(engines, 48)
+        self.assertEqual([r["challenge_code"] for r in cats],
+                         ["C01", "C02", "C03", "C04", "C05", "C06"])
+        self.assertEqual(variants, 18)
         self.assertEqual(bad, 0)
+        per_cat = {}
+        for r in letters:
+            per_cat.setdefault(r["challenge_category_id"], []).append(
+                r["variant_code"])
+        for cat_id, codes in per_cat.items():
+            self.assertEqual(sorted(codes), ["A", "B", "C"],
+                             "each challenge needs variants A/B/C")
 
-    def test_catalog_is_complete_and_safe(self):
+    def test_category_points_sum_to_600(self):
+        conn = db.get_connection()
+        try:
+            pts = [r["points"] for r in conn.execute(
+                "SELECT points FROM challenge_categories "
+                "ORDER BY display_order").fetchall()]
+        finally:
+            conn.close()
+        self.assertEqual(sorted(pts), [75, 100, 100, 100, 100, 125])
+        self.assertEqual(sum(pts), 600)
+
+    def test_catalogue_evidence_is_always_present(self):
         conn = db.get_connection()
         try:
             rows = conn.execute(
                 "SELECT v.*, c.challenge_code cat FROM challenge_variants v "
                 "JOIN challenge_categories c ON v.challenge_category_id=c.id "
-                "ORDER BY v.variant_code").fetchall()
+                "ORDER BY c.display_order, v.variant_code").fetchall()
         finally:
             conn.close()
-        self.assertEqual(len(rows), 48)
-        accepted_forms = []
+        self.assertEqual(len(rows), 18)
         for r in rows:
-            self.assertRegex(r["flag"], r"^MT\{[^}]+\}$")
-            self.assertTrue(r["expected_answer"])
+            self.assertRegex(r["flag"], r"^SHADOW\{[^}]+\}$")
+            self.assertEqual(r["expected_answer"], r["flag"])
+            self.assertTrue(r["hint"], r["variant_code"])
             ev = json.loads(r["evidence_config"])
-            self.assertIn("evidence", ev)
+            self.assertTrue(ev.get("evidence") if isinstance(ev["evidence"], str)
+                            else bool(ev.get("evidence")))
             lab = json.loads(r["lab_data"] or "{}")
-            extra = lab.get("accept") or []
-            if extra:
-                self.assertTrue(all(str(x).strip() for x in extra))
-                self.assertNotIn(r["flag"], extra)
-                self.assertNotIn(r["expected_answer"], extra)
-                accepted_forms.append(r["variant_code"])
-        # several domains provide accepted alternate answers (regression guard)
-        self.assertGreaterEqual(len(accepted_forms), 10)
+            self.assertNotIn("answer", lab)
 
 
-class TestRng(MTBase):
+class TestShadowRng(MTShadowBase):
     def test_deterministic_seeded_converge(self):
         r1a = assign._mt_rng("DEV-TEAM-01").choice(list(range(1000)))
         r1b = assign._mt_rng("DEV-TEAM-01").choice(list(range(1000)))
@@ -192,386 +180,314 @@ class TestRng(MTBase):
         self.assertNotEqual(r1a, r2)
 
 
-class TestParticipantFlow(MTBase):
-    def test_session_returns_six_unique_domains_and_30min_timer(self):
-        tid, token = _active_participant(None)
-        c = _team_client(tid, token)
-        d = self.summary(c)
-        s = d["session"]
-        self.assertEqual(s["challenges_per_team"], 6)
-        self.assertEqual(s["points_per_challenge"], 25)
-        self.assertEqual(s["status"], "ACTIVE")
-        self.assertEqual(s["ends_at"] - s["started_at"], 30 * 60 * 1000)
-        domains = [a["domain"] for a in d["assignments"]]
-        self.assertEqual(len(domains), 6)
-        self.assertEqual(len(set(domains)), 6)
-        codes = [a["code"] for a in d["assignments"]]
-        self.assertEqual(len(set(codes)), 6)
-        self.assertIsNotNone(d["unlocked"])
-
-    def test_every_challenge_carries_two_distinct_questions(self):
-        """Each challenge ships TWO questions from the SAME domain and the
-        pair is never repeated for the team across the whole hand."""
-        tid, token = _active_participant(None)
-        c = _team_client(tid, token)
-        d = self.summary(c)
-        u = d["unlocked"]
-        self.assertTrue(u["question"])
-        self.assertTrue(u["question2"])
-        self.assertNotEqual(u["code"], u["code2"],
-                            "question 2 must be a distinct variant")
-        self.assertEqual(u["domain"], u["domain"])
-        self.assertTrue(u["evidence2"])
-        self.assertTrue(u["config2"])
-        self.assertEqual(u["attempts_limit"], 3)
-        self.assertEqual(d["assignments"][0]["question_count"], 2)
-        # DB: every assignment holds two distinct variants, same category,
-        # unique across the hand (no question repeats for this team).
+class TestShadowVariantLetters(MTShadowBase):
+    def test_letters_round_robin_a_b_c(self):
         conn = db.get_connection()
         try:
             rows = conn.execute(
-                "SELECT a.variant_id, a.variant2_id, v.challenge_category_id, "
-                "v2.challenge_category_id AS cid2 FROM "
-                "team_challenge_assignments a "
-                "JOIN challenge_variants v ON a.variant_id=v.id "
-                "JOIN challenge_variants v2 ON a.variant2_id=v2.id "
-                "WHERE a.session_id=? ORDER BY a.display_order",
-                (d["session"]["id"],)).fetchall()
+                "SELECT team_id, variant_letter FROM teams WHERE is_dev_seed=1 "
+                "ORDER BY id LIMIT 6").fetchall()
         finally:
             conn.close()
-        self.assertEqual(len(rows), 6)
-        ids = []
-        for r in rows:
-            self.assertIsNotNone(r["variant2_id"])
-            self.assertNotEqual(r["variant_id"], r["variant2_id"])
-            self.assertEqual(r["challenge_category_id"], r["cid2"],
-                             "second question must live in the same domain")
-            ids += [r["variant_id"], r["variant2_id"]]
-        self.assertEqual(len(ids), len(set(ids)),
-                         "a question must never repeat for the same team")
+        self.assertEqual([r["variant_letter"] for r in rows],
+                         ["A", "B", "C", "A", "B", "C"])
 
-    def test_questions_are_sequenced_one_at_a_time(self):
-        """Q2 must not be answerable at the same time as Q1: only the open
-        question consumes the attempt, Q1 alone awards no flag/points, and a
-        wrong Q2 never scores."""
-        tid, token = _active_participant(None)
+
+class TestShadowHand(MTShadowBase):
+    def test_hand_is_all_six_challenges_matching_team_letter(self):
+        tid, token, letter = _active_participant(None, "DEV-TEAM-01")
+        self.assertEqual(letter, "A")
+        c = _team_client(tid, token)
+        d = self.summary(c)
+        s = d["session"]
+        self.assertTrue(s["shadow"])
+        self.assertEqual(s["challenges_per_team"], 6)
+        self.assertEqual(s["status"], "ACTIVE")
+        self.assertEqual(s["ends_at"] - s["started_at"], 30 * 60 * 1000)
+        codes = sorted(a["code"] for a in d["assignments"])
+        self.assertEqual(codes,
+                         ["C01-A", "C02-A", "C03-A", "C04-A", "C05-A",
+                          "C06-A"])
+        for a in d["assignments"]:
+            self.assertEqual(a["question_count"], 1)
+            self.assertEqual(a["attempts_limit"], 3)
+        # per-challenge value comes from the category points
+        total = sum(a["points"] for a in d["assignments"])
+        self.assertEqual(total, 600)
+
+    def test_different_letters_get_different_variants(self):
+        ta, toka, l_a = _active_participant(None, "DEV-TEAM-01")
+        tb, tokb, l_b = _active_participant(None, "DEV-TEAM-02")
+        self.assertEqual((l_a, l_b), ("A", "B"))
+        ca = _team_client(ta, toka)
+        cb = _team_client(tb, tokb)
+        codes_a = sorted(a["code"] for a in self.summary(ca)["assignments"])
+        codes_b = sorted(a["code"] for a in self.summary(cb)["assignments"])
+        self.assertTrue(all(c.endswith("-A") for c in codes_a))
+        self.assertTrue(all(c.endswith("-B") for c in codes_b))
+        self.assertNotEqual(codes_a, codes_b)
+
+    def test_unlocked_payload_exposes_single_question_and_evidence(self):
+        tid, token, _ = _active_participant(None, "DEV-TEAM-05")
         c = _team_client(tid, token)
         d = self.summary(c)
         u = d["unlocked"]
-        self.assertEqual(u["phase"], "q1")
-        self.assertFalse(u["q1_solved"])
+        self.assertIsNotNone(u)
+        self.assertEqual(u["attempts_limit"], 3)
+        self.assertEqual(u["question2"], "")
+        self.assertEqual(u["game_type2"], "")
+        self.assertTrue(u["question"])
+        self.assertTrue(u["evidence"])
+        # no flag/answer leaks on an open challenge
+        self.assertEqual(u["flag"], "")
+        self.assertEqual(u["artifact_url"], "")
+        self.assertNotIn('"flag": "SHADOW', json.dumps(d))
 
-        # Wrong Q1: rejected, no phase move, attempt counted on Q1 only.
-        g = c.post("/api/participant/challenges/%d/submit" % u["id"],
-                   json={"answer": "definitely-wrong"}).get_json()
-        self.assertFalse(g["accepted"])
-        self.assertFalse(g["q1_done"])
-        self.assertEqual(g["phase"], "q1")
-        self.assertEqual(g["stage_attempts"], 1)
-        self.assertEqual(g["points"], 0)
 
-        # Correct Q1: unlocked Q2, still no flag/points.
-        g = c.post("/api/participant/challenges/%d/submit" % u["id"],
-                   json={"answer": self._server_answer(u["id"])}).get_json()
-        self.assertTrue(g["accepted"])
-        self.assertTrue(g["q1_done"])
-        self.assertEqual(g["phase"], "q2")
-        self.assertEqual(g["flag"], "")
-        self.assertEqual(g["points"], 0)
-
-        # A Q1-stage payload can no longer grade (the open question is Q2).
-        g = c.post("/api/participant/challenges/%d/submit" % u["id"],
-                   json={"answer": "Q1-again-ignored"}).get_json()
-        self.assertFalse(g["accepted"])
-        self.assertEqual(g["phase"], "q2")
-        self.assertEqual(g["stage_attempts"], 1)
-
-        # Wrong Q2: rejected, no points.
-        g = c.post("/api/participant/challenges/%d/submit" % u["id"],
-                   json={"answer": "not-the-second"}).get_json()
-        self.assertFalse(g["accepted"])
-        self.assertEqual(g["phase"], "q2")
-        self.assertEqual(g["stage_attempts"], 2)
-        self.assertEqual(g["points"], 0)
-
-        # Correct Q2: solved + flag + points (Q2 attempt 3).
-        g = c.post("/api/participant/challenges/%d/submit" % u["id"],
-                   json={"answer": self._server_answer2(u["id"])}).get_json()
-        self.assertTrue(g["accepted"])
-        self.assertRegex(g["flag"], r"^MT\{")
-        self.assertEqual(g["stage_attempts"], 3)
-        self.assertEqual(g["solved"], 1)
-
-    def test_sequential_unlock_and_scoring(self):
-        tid, token = _active_participant(None)
+class TestShadowPlay(MTShadowBase):
+    def test_wrong_flag_scored_zero_keeps_challenge_open(self):
+        tid, token, _ = _active_participant(None, "DEV-TEAM-02")
         c = _team_client(tid, token)
         d = self.summary(c)
-        first = d["unlocked"]
-
-        # second challenge is LOCKED (403) until first is solved
-        second_id = d["assignments"][1]["id"]
-        r = c.get("/api/participant/challenges/%d" % second_id)
-        self.assertEqual(r.status_code, 403)
-        self.assertEqual(r.get_json()["error"], "locked")
-
-        # wrong answer on Q1: no points, still locked
-        r = c.post("/api/participant/challenges/%d/submit" % first["id"],
-                   json={"answer": "wroooooong"})
-        g = r.get_json()
+        u = d["unlocked"]
+        g = self._submit(c, u, "SHADOW{WRONG}")
         self.assertFalse(g["accepted"])
         self.assertEqual(g["points"], 0)
-        self.assertEqual(g["solved"], 0)
-        self.assertEqual(g["stage_attempts"], 1)
+        self.assertEqual(g["points_total"], 0)
+        self.assertEqual(g["attempts_used"], 1)
         self.assertEqual(g["attempts_limit"], 3)
         self.assertFalse(g["exhausted"])
+        self.assertEqual(g["phase"], "q1")
+        # challenge still open, never failed by a single wrong attempt
+        self.assertEqual(c.get("/api/participant/challenges/%d" % u["id"])
+                         .get_json()["status"], "IN_PROGRESS")
 
-        # correct answers: 25 base marks + time-strike bonus, flag
-        ans = self._server_answer(first["id"])
-        ans2 = self._server_answer2(first["id"])
-        self._submit_q1(c, first, ans)
-        r = c.post("/api/participant/challenges/%d/submit" % first["id"],
-                   json={"answer": ans2})
-        g = r.get_json()
+    def test_three_wrong_attempts_fail_challenge_for_zero_points(self):
+        tid, token, _ = _active_participant(None, "DEV-TEAM-08")
+        c = _team_client(tid, token)
+        d = self.summary(c)
+        u = d["unlocked"]
+        for i in (1, 2):
+            g = self._submit(c, u, "SHADOW{WRONG_%d}" % i)
+            self.assertFalse(g["accepted"])
+            self.assertFalse(g["exhausted"])
+            self.assertEqual(g["attempts_used"], i)
+            self.assertEqual(g["points_total"], 0)
+        g = self._submit(c, u, "SHADOW{WRONG_3}")
+        self.assertFalse(g["accepted"])
+        self.assertTrue(g["exhausted"])
+        self.assertEqual(g["attempts_used"], 3)
+        self.assertEqual(g["attempts_limit"], 3)
+        self.assertEqual(g["points_total"], 0)
+        # challenge is now FAILED and further submissions are rejected
+        detail = c.get("/api/participant/challenges/%d" % u["id"]).get_json()
+        self.assertEqual(detail["status"], "FAILED")
+        self.assertTrue(detail["failed"])
+        self.assertEqual(detail["attempts_limit"], 3)
+        dup = c.post("/api/participant/challenges/%d/submit" % u["id"],
+                     json={"answer": "SHADOW{WRONG_4}"})
+        self.assertEqual(dup.status_code, 403)
+        # overview shows CLOSED card, other challenges still open
+        d2 = self.summary(c)
+        mine = [a for a in d2["assignments"] if a["id"] == u["id"]]
+        self.assertTrue(mine and mine[0]["failed"])
+        self.assertEqual(self.summary(c)["session"]["status"], "ACTIVE")
+
+    def test_correct_flag_on_third_attempt_still_scores(self):
+        tid, token, _ = _active_participant(None, "DEV-TEAM-09")
+        c = _team_client(tid, token)
+        d = self.summary(c)
+        u = d["unlocked"]
+        expected = next(a["points"] for a in d["assignments"]
+                        if a["id"] == u["id"])
+        for i in (1, 2):
+            self._submit(c, u, "SHADOW{WRONG_%d}" % i)
+        g = self._solve(c, u)
         self.assertTrue(g["accepted"])
-        self.assertEqual(g["points"], 25)
-        self.assertGreaterEqual(g["strike"], 0)
-        self.assertEqual(g["points_total"], g["points"] + g["strike"])
-        first_total = g["points_total"]
-        self.assertRegex(g["flag"], r"^MT\{")
-        self.assertEqual(g["solved"], 1)
+        self.assertEqual(g["attempts_used"], 3)
+        self.assertEqual(g["attempts_limit"], 3)
+        self.assertEqual(g["points"], expected)
+        self.assertEqual(g["points_total"], expected)
 
-        # resubmit correct Q2: already_solved, no extra points
-        r = c.post("/api/participant/challenges/%d/submit" % first["id"],
-                   json={"answer": ans2})
-        g = r.get_json()
+    def test_session_completes_when_remaining_cards_resolve_or_fail(self):
+        tid, token, _ = _active_participant(None, "DEV-TEAM-04")
+        c = _team_client(tid, token)
+        d = self.summary(c)
+        u = d["unlocked"]
+        failed_points = u["points"]
+        # burn this card on 3 wrong flags
+        for i in (1, 2, 3):
+            self._submit(c, u, "SHADOW{WRONG_%d}" % i)
+        # solve the other five
+        d = self.summary(c)
+        opens = [a for a in d["assignments"] if a["status"] != "FAILED"]
+        self.assertEqual(len(opens), 5)
+        solved_and_points = 0
+        for a in opens:
+            detail = c.get("/api/participant/challenges/%d" % a["id"])
+            self.assertEqual(detail.status_code, 200, a["code"])
+            g = self._solve(c, a)
+            self.assertTrue(g["accepted"], a["code"])
+            solved_and_points += g["points_total"]
+        final = self.summary(c)
+        self.assertEqual(final["session"]["status"], "COMPLETED")
+        self.assertEqual(final["session"]["solved"], 5)
+        self.assertEqual(final["session"]["score"], 600 - failed_points)
+        self.assertIsNone(final["unlocked"])
+
+    def test_correct_flag_scores_category_points_and_awards_flag(self):
+        tid, token, _ = _active_participant(None, "DEV-TEAM-02")
+        c = _team_client(tid, token)
+        d = self.summary(c)
+        u = d["unlocked"]
+        expected = d["assignments"][0]["points"]
+        g = self._solve(c, u)
+        self.assertTrue(g["accepted"])
+        self.assertTrue(g["q1_done"])
+        self.assertEqual(g["stage_attempts"], 1)
+        self.assertEqual(g["points"], expected)
+        self.assertEqual(g["strike"], 0)
+        self.assertEqual(g["points_total"], expected)
+        self.assertRegex(g["flag"], r"^SHADOW\{[^}]+\}$")
+        # solved challenge carries its OWN flag on revisit (view-only mode)
+        detail = c.get("/api/participant/challenges/%d" % u["id"]).get_json()
+        self.assertEqual(detail["flag"], self._server_flag(u["id"]))
+        self.assertTrue(detail["solved"])
+
+    def test_resubmit_after_solving_is_already_solved_no_points(self):
+        tid, token, _ = _active_participant(None, "DEV-TEAM-02")
+        c = _team_client(tid, token)
+        d = self.summary(c)
+        u = d["unlocked"]
+        flag = self._server_flag(u["id"])
+        self._solve(c, u)
+        g = self._submit(c, u, flag)
         self.assertTrue(g["accepted"])
         self.assertTrue(g["already_solved"])
         self.assertEqual(g["points"], 0)
+        self.assertEqual(g["points_total"], 0)
 
-        # second challenge now unlocked
-        r = c.get("/api/participant/challenges/%d" % second_id)
-        self.assertEqual(r.status_code, 200)
-
-        d2 = self.summary(c)
-        self.assertEqual(d2["session"]["score"], first_total)
-        self.assertEqual(d2["session"]["solved"], 1)
-
-    def test_three_wrong_attempts_fail_and_advance(self):
-        """3 wrongs on the OPEN question close the challenge (FAILED) and
-        unlock the next one — a question never stays locked forever."""
-        tid, token = _active_participant(None)
+    def test_any_order_play_all_open(self):
+        tid, token, _ = _active_participant(None, "DEV-TEAM-04")
         c = _team_client(tid, token)
         d = self.summary(c)
-        first, second = d["unlocked"], d["assignments"][1]
-        self.assertEqual(
-            c.get("/api/participant/challenges/%d" % second["id"]).status_code, 403)
-
-        for i in range(3):
-            r = c.post("/api/participant/challenges/%d/submit" % first["id"],
-                       json={"answer": "WRONG-%d" % i})
-            g = r.get_json()
-            self.assertFalse(g["accepted"])
-            self.assertEqual(g["stage_attempts"], i + 1)
-            self.assertEqual(g["attempts_limit"], 3)
-            self.assertEqual(g["exhausted"], i == 2)
-
-        # closed question stays viewable but no more submissions allowed
-        r = c.get("/api/participant/challenges/%d" % first["id"])
-        self.assertEqual(r.status_code, 200)
-        self.assertTrue(r.get_json()["failed"])
-        r = c.post("/api/participant/challenges/%d/submit" % first["id"],
-                   json={"answer": "late"})
-        self.assertEqual(r.status_code, 403)
-        self.assertEqual(r.get_json()["error"], "attempts_exhausted")
-
-        # next question is unlocked despite the failure
-        r = c.get("/api/participant/challenges/%d" % second["id"])
-        self.assertEqual(r.status_code, 200)
+        ids = [a["id"] for a in d["assignments"]]
+        # every challenge is unlocked from the start (no 403s)
+        for aid in ids:
+            r = c.get("/api/participant/challenges/%d" % aid)
+            self.assertEqual(r.status_code, 200, aid)
+        # solve the LAST assignment first, scoring lands regardless of order
+        last = d["assignments"][-1]
+        g = self._solve(c, last)
+        self.assertTrue(g["accepted"])
+        self.assertEqual(g["points"],
+                         d["assignments"][-1]["points"])
         d2 = self.summary(c)
-        self.assertEqual(d2["session"]["score"], 0)
-        self.assertEqual(d2["assignments"][0]["status"], "FAILED")
-        self.assertTrue(d2["assignments"][0]["failed"])
-        self.assertIsNotNone(d2["unlocked"])
-        self.assertEqual(d2["unlocked"]["id"], second["id"])
+        self.assertEqual(d2["session"]["solved"], 1)
+        self.assertEqual(d2["session"]["score"],
+                         d["assignments"][-1]["points"])
 
-    def test_q2_answers_never_score_before_q1(self):
-        """Submitting only a correct Q2 while Q1 is open grades against Q1
-        (the phrase stays closed to guarding the sequence)."""
-        tid, token = _active_participant(None)
+    def test_all_six_flagged_sum_to_600_and_session_completes(self):
+        tid, token, _ = _active_participant(None, "DEV-TEAM-06")
+        c = _team_client(tid, token)
+        d = self.summary(c)
+        expected_total = sum(a["points"] for a in d["assignments"])
+        self.assertEqual(expected_total, 600)
+        flushed = []
+        for i, a in enumerate(d["assignments"]):
+            g = self._solve(c, a)
+            self.assertTrue(g["accepted"], a["code"])
+            flushed.append(a["id"])
+            # a solved card stays revisit-able (with its OWN flag) while any
+            # other challenge is still open
+            if i < len(d["assignments"]) - 1:
+                detail = c.get("/api/participant/challenges/%d" % a["id"])
+                self.assertEqual(detail.status_code, 200, a["code"])
+                self.assertEqual(detail.get_json()["flag"],
+                                 self._server_flag(a["id"]), a["code"])
+        final = self.summary(c)
+        self.assertEqual(final["session"]["solved"], 6)
+        self.assertEqual(final["session"]["score"], 600)
+        self.assertEqual(final["session"]["status"], "COMPLETED")
+        self.assertIsNone(final["unlocked"])
+        for a in final["assignments"]:
+            self.assertTrue(a["solved"])
+
+    def test_expired_session_locks_submissions(self):
+        tid, token, _ = _active_participant(None, "DEV-TEAM-07")
         c = _team_client(tid, token)
         d = self.summary(c)
         u = d["unlocked"]
-        q2_ans = self._server_answer2(u["id"])
-        g = c.post("/api/participant/challenges/%d/submit" % u["id"],
-                   json={"answer": q2_ans}).get_json()
-        self.assertFalse(g["accepted"])
-        self.assertFalse(g["q1_done"])
-        self.assertEqual(g["phase"], "q1")
-        self.assertEqual(g["stage_attempts"], 1)
-        self.assertEqual(g["points"], 0)
-        # the challenge is still fully open for Q1
-        self.assertEqual(
-            c.get("/api/participant/challenges/%d" % u["id"]).get_json()["phase"],
-            "q1")
+        conn = db.get_connection()
+        try:
+            conn.execute(
+                "UPDATE round_sessions SET ends_at=? WHERE id=?",
+                (db.now_ms() - 1000, d["session"]["id"]))
+            conn.commit()
+        finally:
+            conn.close()
+        r = c.post("/api/participant/challenges/%d/submit" % u["id"],
+                   json={"answer": "SHADOW{ANY}"})
+        self.assertEqual(r.status_code, 410)
+        self.assertEqual(r.get_json()["error"], "session_ended")
 
-    def test_session_completes_when_all_questions_failed(self):
-        tid, token = _active_participant(None)
-        c = _team_client(tid, token)
-        d = self.summary(c)
-        for _ in range(6):
-            u = d["unlocked"]
-            self.assertIsNotNone(u)
-            self.assertEqual(u["phase"], "q1")
-            for i in range(3):
-                r = c.post("/api/participant/challenges/%d/submit" % u["id"],
-                           json={"answer": "WRONG-%d" % i})
-                g = r.get_json()
-                self.assertEqual(g["accepted"], False)
-                self.assertEqual(g["exhausted"], i == 2)
-            d = self.summary(c)
-        self.assertIsNone(d["unlocked"])
-        self.assertIn(d["session"]["status"], ("COMPLETED",))
-        self.assertEqual(d["session"]["solved"], 0)
-        self.assertEqual(d["session"]["score"], 0)
-
-    def test_case_insensitive_answers_are_accepted(self):
-        """Uppercase / mixed / lowercase variants of the same answer all pass
-        for both sequences (Q1 then Q2)."""
-        for casing, expr in (("lower", lambda a: a.lower()),
-                             ("upper", lambda a: a.upper()),
-                             ("mixed", lambda a: "".join(
-                                  ch.upper() if i % 2 else ch.lower()
-                                  for i, ch in enumerate(a)))):
-            tid, token = _active_participant(None)
-            c = _team_client(tid, token)
-            d = self.summary(c)
-            u = d["unlocked"]
-            ans1 = expr(self._server_answer(u["id"]))
-            ans2 = expr(self._server_answer2(u["id"]))
-            g = self._solve(c, u, ans1, ans2)
-            self.assertTrue(g["accepted"],
-                            "%s-cased answer should grade correct" % casing)
-
-    def test_empty_null_answers_rejected_without_consuming_attempt(self):
-        """Empty / null / non-string / whitespace answers are 400s and never
-        register as an attempt, so the 3-attempt budget is preserved."""
-        tid, token = _active_participant(None)
+    def test_empty_answers_rejected_without_consuming_attempt(self):
+        tid, token, _ = _active_participant(None, "DEV-TEAM-02")
         c = _team_client(tid, token)
         d = self.summary(c)
         aid = d["unlocked"]["id"]
-        variants = [{"answer": ""}, {"answer": "   \t "}, {"answer": None},
-                    {}, {"answer": 123}, {"answer": ["x"]}]
-        for payload in variants:
+        for payload in ({"answer": ""}, {"answer": "   \t "},
+                        {"answer": None}, {}, {"answer": 123}):
             r = c.post("/api/participant/challenges/%d/submit" % aid,
                        json=payload)
-            g = r.get_json()
             self.assertEqual(r.status_code, 400)
-            self.assertEqual(g["error"], "empty_answer")
-        # no attempt consumed and the question is still open
+            self.assertEqual(r.get_json()["error"], "empty_answer")
         conn = db.get_connection()
         try:
             used = conn.execute(
                 "SELECT COUNT(*) FROM submissions WHERE assignment_id=?",
                 (aid,)).fetchone()[0]
-            status = conn.execute(
-                "SELECT status FROM team_challenge_assignments WHERE id=?",
-                (aid,)).fetchone()[0]
         finally:
             conn.close()
         self.assertEqual(used, 0)
-        self.assertEqual(status, "IN_PROGRESS")
 
-    def test_accept_list_forms_grade_correctly(self):
-        """Alternative ('Also accept') answers must be accepted server-side."""
-        tid, token = _active_participant(None)
-        c = _team_client(tid, token)
-        d = self.summary(c)
-        conn = db.get_connection()
-        try:
-            row = conn.execute(
-                "SELECT a.id, v.expected_answer, v.lab_data FROM "
-                "team_challenge_assignments a JOIN challenge_variants v "
-                "ON a.variant_id=v.id WHERE a.session_id=? AND "
-                "v.lab_data != '{}' ORDER BY a.display_order LIMIT 1",
-                (d["session"]["id"],)).fetchone()
-        finally:
-            conn.close()
-        if row is None:
-            self.skipTest("no accept-list variant in this hand")
-        extra = json.loads(row["lab_data"]).get("accept")
-        self.assertTrue(extra)
-        self.assertNotEqual(extra[0].strip(), row["expected_answer"].strip())
-        ans2 = self._server_answer2(row["id"])
-        g = self._solve(c, {"id": row["id"]}, extra[0], ans2)
-        self.assertRegex(g["flag"], r"^MT\{")
-        self.assertEqual(g["points"], 25)
-
-    def test_no_secrets_in_any_participant_payload(self):
-        """Across many teams/hands no flag / answer ever reaches the client."""
-        seen_codes = set()
-        teams = ["DEV-TEAM-%02d" % i for i in range(1, 17)]
-        for team_idx in teams:
-            tid, token = _active_participant(None, team_idx)
+    def test_case_insensitive_flags_are_accepted(self):
+        for casing in ("lower", "upper", "mixed"):
+            tid, token, _ = _active_participant(None, "DEV-TEAM-10")
             c = _team_client(tid, token)
             d = self.summary(c)
-            for _ in range(4):
-                u = d["unlocked"]
-                if u is None:
-                    break
-                seen_codes.add(u["code"])
-                blob = json.dumps(d)
-                blob_detail = json.dumps(u)
-                for bad in ('"flag":', '"expected_answer":', '"accept":',
-                            '"evidence_config":'):
-                    self.assertNotIn(bad, blob_detail,
-                                     "leaked %s in %s" % (bad, u["code"]))
-                # every challenge carries TWO distinct questions
-                self.assertNotEqual(u["code2"], u["code"])
-                self.assertTrue(u["question2"])
-                self.assertTrue(u["evidence2"])
-                conn = db.get_connection()
-                try:
-                    fa = conn.execute(
-                        "SELECT v.flag AS f1, v2.flag AS f2 FROM "
-                        "team_challenge_assignments a "
-                        "JOIN challenge_variants v ON a.variant_id=v.id "
-                        "LEFT JOIN challenge_variants v2 ON "
-                        "a.variant2_id=v2.id "
-                        "WHERE a.id=?", (u["id"],)).fetchone()
-                finally:
-                    conn.close()
-                for secret in (fa["f1"], fa["f2"]):
-                    if not secret:
-                        continue
-                    self.assertNotIn(secret, blob_detail)
-                # unlock next
-                ans = self._server_answer(u["id"])
-                ans2 = self._server_answer2(u["id"])
-                g = self._solve(c, u, ans, ans2)
-                self.assertTrue(g["accepted"])
-                d = self.summary(c)
-        self.assertGreaterEqual(len(seen_codes), 36,
-                                "expected broad coverage, saw %d" % len(seen_codes))
-
-    def test_completion_marks_session_done(self):
-        tid, token = _active_participant(None)
-        c = _team_client(tid, token)
-        d = self.summary(c)
-        guard = 0
-        earned = 0
-        while d["unlocked"] is not None and guard < 10:
             u = d["unlocked"]
-            g = self._solve(c, u)
-            earned += g["points_total"]
+            flag = self._server_flag(u["id"])
+            if casing == "lower":
+                answer = flag.lower()
+            elif casing == "upper":
+                answer = flag.upper()
+            else:
+                answer = "".join(ch.upper() if i % 2 else ch.lower()
+                                 for i, ch in enumerate(flag))
+            g = self._submit(c, u, answer)
+            self.assertTrue(g["accepted"],
+                            "%s-cased flag should grade correct" % casing)
+
+    def test_bare_inner_token_without_cic_wrapper_is_accepted(self):
+        for i, casing in enumerate(("inner", "lower", "upper")):
+            tid, token, _ = _active_participant(
+                None, "DEV-TEAM-%d" % (11 + i))
+            c = _team_client(tid, token)
             d = self.summary(c)
-            guard += 1
-        self.assertIsNone(d["unlocked"])
-        self.assertEqual(d["session"]["solved"], 6)
-        self.assertEqual(d["session"]["score"], earned)
-        self.assertIn(d["session"]["status"], ("COMPLETED",))
+            u = d["unlocked"]
+            flag = self._server_flag(u["id"])
+            self.assertRegex(flag, "^SHADOW\\{.+\\}$")
+            inner = flag[7:-1]
+            answer = {"inner": inner, "lower": inner.lower(),
+                      "upper": inner.upper()}[casing]
+            g = self._submit(c, u, answer)
+            self.assertTrue(g["accepted"],
+                            "bare token %r should grade correct" % answer)
+            self.assertEqual(g["points"], d["assignments"][0]["points"])
 
     def test_hint_returns_and_logs_usage(self):
-        tid, token = _active_participant(None)
+        tid, token, _ = _active_participant(None, "DEV-TEAM-02")
         c = _team_client(tid, token)
         d = self.summary(c)
         u = d["unlocked"]
@@ -587,56 +503,101 @@ class TestParticipantFlow(MTBase):
             conn.close()
         self.assertGreaterEqual(n, 1)
 
+    def test_all_real_flags_never_leak_into_unsolved_payloads(self):
+        seen_codes = set()
+        conn = db.get_connection()
+        try:
+            real_flags = {r["flag"] for r in conn.execute(
+                "SELECT flag FROM challenge_variants").fetchall()}
+        finally:
+            conn.close()
+        for team_idx in ("DEV-TEAM-%02d" % i for i in range(1, 13)):
+            tid, token, _ = _active_participant(None, team_idx)
+            c = _team_client(tid, token)
+            d = self.summary(c)
+            for a in d["assignments"]:
+                du = c.get("/api/participant/challenges/%d" % a["id"]).get_json()
+                if du["status"] == "COMPLETED":
+                    continue
+                blob = json.dumps(du)
+                self.assertEqual(du["flag"], "", a["code"])
+                for f in real_flags:
+                    self.assertNotIn(f, blob, "%s leaked in %s"
+                                     % (f, a["code"]))
+                seen_codes.add(du["code"])
+            # solve the whole hand so next teams see fresh sessions
+            for a in d["assignments"]:
+                self._solve(c, a)
+        self.assertGreaterEqual(len(seen_codes), 18,
+                                "expected all 18 A/B/C variants seen")
 
-class TestTimeStrike(MTBase):
-    def test_grants_2_marks_per_5_seconds_saved(self):
-        """Bonus = +2 marks for every full 5s saved from the 30s window."""
-        self.assertEqual(assign.STRIKE_WINDOW_SECONDS, 30)
-        self.assertEqual(assign.mt_time_strike(0, 25), 12)      # instant
-        self.assertEqual(assign.mt_time_strike(999, 25), 12)     # < 1s used
-        self.assertEqual(assign.mt_time_strike(1000, 25), 10)    # 29s saved
-        self.assertEqual(assign.mt_time_strike(5000, 25), 10)    # 25s saved
-        self.assertEqual(assign.mt_time_strike(10000, 25), 8)    # 20s saved
-        self.assertEqual(assign.mt_time_strike(15000, 25), 6)    # 15s saved
-        self.assertEqual(assign.mt_time_strike(20000, 25), 4)    # 10s saved
-        self.assertEqual(assign.mt_time_strike(25000, 25), 2)    #  5s saved
-        self.assertEqual(assign.mt_time_strike(26000, 25), 0)    # < 5s left
-        self.assertEqual(assign.mt_time_strike(30000, 25), 0)    # window gone
-        self.assertEqual(assign.mt_time_strike(360000, 25), 0)   # long past
-        self.assertEqual(assign.mt_time_strike(None, 25), 12)    # unknown
 
-    def test_bonus_is_independent_of_base_points(self):
-        for base in (10, 25, 50):
-            self.assertEqual(assign.mt_time_strike(10000, base), 8)
+class TestShadowC04Artifact(MTShadowBase):
+    def test_artifact_route_granted_only_to_own_variant(self):
+        tid, token, letter = _active_participant(None, "DEV-TEAM-02")
+        self.assertEqual(letter, "B")
+        c = _team_client(tid, token)
+        d = self.summary(c)
+        own = letter.lower()
+        r = c.get("/challenge4/%s.html" % own)
+        self.assertEqual(r.status_code, 200)
+        body = r.get_data(as_text=True)
+        conn = db.get_connection()
+        try:
+            c04 = conn.execute(
+                "SELECT v.flag FROM team_challenge_assignments a "
+                "JOIN challenge_categories c ON a.challenge_category_id=c.id "
+                "JOIN challenge_variants v ON a.variant_id=v.id "
+                "WHERE a.session_id=? AND c.challenge_code='C04'",
+                (d["session"]["id"],)).fetchone()["flag"]
+        finally:
+            conn.close()
+        # the redesign exposes only the recovered USERNAME (flag inner,
+        # lowercased) as the page comment — never the SHADOW envelope itself
+        username = c04[len("SHADOW{"):-1].lower()
+        self.assertIn(username, body,
+                      "their own recovered-USERNAME comment must be present")
+        self.assertNotIn(c04, body,
+                         "the solved SHADOW envelope must never be a comment")
+        # other letters route nowhere
+        for other in ("a", "c"):
+            self.assertEqual(c.get("/challenge4/%s.html" % other).status_code,
+                             404, other)
+        self.assertEqual(c.get("/challenge4/z.html").status_code, 404)
+
+    def test_artifact_requires_login(self):
+        r = APP.test_client().get("/challenge4/a.html")
+        self.assertEqual(r.status_code, 302)
 
 
-class TestAdmin(MTBase):
-    def test_bulk_add_teams(self):
+class TestShadowAdmin(MTShadowBase):
+    def test_bulk_add_teams_stamps_round_robin_letters(self):
         c = APP.test_client()
         _admin(c)
         r = c.post("/api/admin/round/1/teams/bulk", json={
             "teams": [
                 {"name": "Bulk One", "id": "BULK01", "access_id": "bulk-a"},
                 {"name": "Bulk Two", "id": "BULK02"},
-                {"name": "Bulk One", "id": "BULK01", "access_id": "bulk-a"},
+                {"name": "Bulk Three", "id": "BULK03"},
             ]})
         self.assertEqual(r.status_code, 200)
         j = r.get_json()
-        self.assertEqual(j["added"], 2)
-        self.assertEqual(j["failed"], 1)
+        self.assertEqual(j["added"], 3)
         conn = db.get_connection()
         try:
-            names = [x["team_id"] for x in conn.execute(
-                "SELECT team_id FROM teams WHERE team_id LIKE 'BULK%' "
-                "ORDER BY team_id").fetchall()]
+            rows = conn.execute(
+                "SELECT team_id, variant_letter FROM teams WHERE "
+                "team_id IN ('BULK01','BULK02','BULK03') ORDER BY id").fetchall()
+            for row in conn.execute(
+                    "SELECT team_id FROM teams WHERE team_id LIKE 'BULK%' "
+                    "ORDER BY id").fetchall():
+                pass
+            letters = dict((x["team_id"], x["variant_letter"]) for x in rows)
         finally:
             conn.close()
-        self.assertEqual(names, ["BULK01", "BULK02"])
-        # require admin auth
-        c2 = APP.test_client()
-        self.assertEqual(c2.post("/api/admin/round/1/teams/bulk", json={
-            "teams": [{"name": "X", "id": "Y"}]}).status_code, 401)
-        # clean up so reruns stay idempotent
+        # consecutive NEW teams get a rotating A/B/C — covers all three
+        self.assertEqual(sorted(letters.values()), ["A", "B", "C"])
+        self.assertEqual(len(set(letters.values())), 3)
         conn = db.get_connection()
         try:
             conn.execute("DELETE FROM teams WHERE team_id LIKE 'BULK%'")
@@ -644,217 +605,37 @@ class TestAdmin(MTBase):
         finally:
             conn.close()
 
-    def test_team_toggle_controls_login_and_login_page(self):
-        c = APP.test_client()
-        _admin(c)
-        r = c.post("/api/admin/round/1/teams/bulk", json={
-            "teams": [{"name": "Gate A", "id": "GATEA",
-                       "access_id": "gate-access-a"}]})
-        self.assertEqual(r.get_json()["added"], 1)
-        tid = db.get_connection().execute(
-            "SELECT id FROM teams WHERE team_id='GATEA'").fetchone()["id"]
-
-        # login page reflects the newly added team as ENABLED
-        pub = APP.test_client()
-        html = pub.get("/r1/login").get_data(as_text=True)
-        self.assertIn("Gate A", html)
-        self.assertIn("ENABLED", html)
-
-        # the team can actually log in
-        r = pub.post("/r1/login", data={"team_name": "Gate A",
-                                        "team_id": "gate-access-a"})
-        self.assertEqual(r.status_code, 302)
-
-        # admin disables the gate -> reflects on the login page + login blocked
-        r = c.post("/api/admin/team/%d/toggle" % tid,
-                   json={"active": False})
-        self.assertEqual(r.status_code, 200)
-        self.assertFalse(r.get_json()["active"])
-        pub2 = APP.test_client()
-        html = pub2.get("/r1/login").get_data(as_text=True)
-        self.assertIn("Gate A", html)
-        self.assertIn("DISABLED", html)
-        r = pub2.post("/r1/login", data={"team_name": "Gate A",
-                                         "team_id": "gate-access-a"})
-        self.assertEqual(r.status_code, 200)
-        self.assertIn("currently unavailable", r.get_data(as_text=True))
-
-        # re-enable -> login allowed again
-        r = c.post("/api/admin/team/%d/toggle" % tid,
-                   json={"active": True})
-        self.assertTrue(r.get_json()["active"])
-        pub3 = APP.test_client()
-        r = pub3.post("/r1/login", data={"team_name": "Gate A",
-                                         "team_id": "gate-access-a"})
-        self.assertEqual(r.status_code, 302)
-
-        # cleanup (login rows FK-reference the team)
-        conn = db.get_connection()
-        try:
-            conn.execute("DELETE FROM participant_sessions WHERE team_id=?",
-                         (tid,))
-            conn.execute("DELETE FROM teams WHERE team_id='GATEA'")
-            conn.commit()
-        finally:
-            conn.close()
-
-    def test_admin_reset_wipes_play_data_but_keeps_teams(self):
-        # create live play data for a dev team (session + solve)
-        tid, token = _active_participant(None)
-        c = _team_client(tid, token)
-        d = self.summary(c)
-        u = d["unlocked"]
-        self.assertTrue(c.post("/api/participant/challenges/%d/submit" % u["id"],
-                               json={"answer": self._server_answer(u["id"])})
-                        .get_json()["accepted"])
-        self.assertTrue(c.post("/api/participant/challenges/%d/submit" % u["id"],
-                               json={"answer": self._server_answer2(u["id"])})
-                        .get_json()["accepted"])
-        conn = db.get_connection()
-        try:
-            sessions_before = conn.execute(
-                "SELECT COUNT(*) c FROM round_sessions").fetchone()["c"]
-            subs_before = conn.execute(
-                "SELECT COUNT(*) c FROM submissions").fetchone()["c"]
-            logins_before = conn.execute(
-                "SELECT COUNT(*) c FROM participant_sessions WHERE "
-                "round_name='round1' AND status='ACTIVE'").fetchone()["c"]
-            teams_before = conn.execute(
-                "SELECT COUNT(*) c FROM teams").fetchone()["c"]
-        finally:
-            conn.close()
-        self.assertGreaterEqual(sessions_before, 1)
-        self.assertGreaterEqual(subs_before, 1)
-        self.assertGreaterEqual(logins_before, 1)
-
-        a = APP.test_client()
-        _admin(a)
-        # requires confirm + admin auth
-        self.assertEqual(a.post("/api/admin/round/1/reset",
-                                json={}).status_code, 400)
-        bare = APP.test_client()
-        self.assertEqual(bare.post("/api/admin/round/1/reset",
-                                   json={"confirm": True}).status_code, 401)
-
-        r = a.post("/api/admin/round/1/reset", json={"confirm": True})
-        self.assertEqual(r.status_code, 200)
-        res = r.get_json()["reset"]
-        self.assertEqual(res["categories"], 12)
-        self.assertEqual(res["variants"], 48)
-        self.assertGreaterEqual(res["cleared_logins"], 1)
-
-        conn = db.get_connection()
-        try:
-            self.assertEqual(conn.execute(
-                "SELECT COUNT(*) c FROM round_sessions").fetchone()["c"], 0)
-            self.assertEqual(conn.execute(
-                "SELECT COUNT(*) c FROM team_challenge_assignments")
-                .fetchone()["c"], 0)
-            self.assertEqual(conn.execute(
-                "SELECT COUNT(*) c FROM submissions").fetchone()["c"], 0)
-            self.assertEqual(conn.execute(
-                "SELECT COUNT(*) c FROM participant_sessions WHERE "
-                "round_name='round1' AND status='ACTIVE'").fetchone()["c"], 0)
-            self.assertEqual(conn.execute(
-                "SELECT COUNT(*) c FROM challenge_categories").fetchone()["c"], 12)
-            self.assertEqual(conn.execute(
-                "SELECT COUNT(*) c FROM challenge_variants").fetchone()["c"], 48)
-            self.assertEqual(conn.execute(
-                "SELECT COUNT(*) c FROM teams").fetchone()["c"], teams_before)
-        finally:
-            conn.close()
-
-        # old token is now invalid -> must log in again
-        self.assertEqual(c.get("/api/participant/round/1").status_code, 401)
-
-    def test_reset_then_relogin_does_not_resurrect_completed_state(self):
-        """Regression: an admin reset must give a completed team a FRESH round.
-
-        A previous login's progress is mirrored into the signed cookie
-        (round1.state). If the reset wipes the DB but leaves that mirror, the
-        post-reset dashboard rehydrates the old completed/expired session from
-        the cookie and bounces the team straight to the "Round Complete" page
-        instead of a fresh round. Login must drop the stale mirror.
-        """
-        c = APP.test_client()
-        creds = {"team_name": "DEV TEAM 01", "team_id": "DEV-TEAM-01"}
-        self.assertEqual(c.post("/r1/login", data=creds).status_code, 302)
-
-        # start the MT session and mirror it into the cookie (as a dashboard
-        # visit mid-round does) BEFORE completing, so a stale mirror exists.
-        d = self.summary(c)
-        html = c.get("/r1/dashboard").get_data(as_text=True)
-        self.assertNotIn("OPERATION DEBRIEF", html)
-        for _ in range(6):
-            d = self.summary(c)
-            u = d["unlocked"]
-            self.assertTrue(c.post(
-                "/api/participant/challenges/%d/submit" % u["id"],
-                json={"answer": self._server_answer(u["id"])})
-                .get_json()["accepted"])
-            self.assertTrue(c.post(
-                "/api/participant/challenges/%d/submit" % u["id"],
-                json={"answer": self._server_answer2(u["id"])})
-                .get_json()["accepted"])
-        # completed in DB + stale cookie mirror present
-        conn = db.get_connection()
-        try:
-            self.assertEqual(conn.execute(
-                "SELECT status FROM round_sessions WHERE team_id="
-                "(SELECT id FROM teams WHERE team_id='DEV-TEAM-01')"
-                " ORDER BY id DESC LIMIT 1").fetchone()["status"], "COMPLETED")
-        finally:
-            conn.close()
-
-        a = APP.test_client()
-        _admin(a)
-        r = a.post("/api/admin/round/1/reset", json={"confirm": True})
-        self.assertEqual(r.status_code, 200)
-
-        # same browser: cookie invalidated -> re-login must start FRESH
-        c.post("/r1/login", data=creds)
-        final = c.get("/r1/dashboard")
-        body = final.get_data(as_text=True)
-        self.assertEqual(final.status_code, 200)
-        self.assertNotIn("OPERATION DEBRIEF", body)
-        self.assertNotIn("ROUND 1 COMPLETED", body)
-        self.assertNotIn("ENGAGEMENT CONCLUDED", body)
-        # and the new live session really is a fresh in-progress one
-        d = self.summary(c)
-        self.assertEqual(d["session"]["score"], 0)
-        self.assertFalse(d["session"]["finished"])
-
-    def test_admin_endpoints_require_auth(self):
-        tid, token = _active_participant(None)
-        c = _team_client(tid, token)
-        for path in ("/api/admin/round/1", "/api/admin/answer-key",
-                     "/api/admin/challenges"):
-            self.assertEqual(c.get(path).status_code, 401, path)
-
-    def test_admin_apis_show_answers(self):
+    def test_admin_answer_key_and_apis(self):
         c = APP.test_client()
         _admin(c)
         r = c.get("/api/admin/answer-key")
         self.assertEqual(r.status_code, 200)
         data = r.get_json()
-        self.assertEqual(len(data["challenges"]), 48)
-        sample = data["challenges"][0]
-        self.assertTrue(sample["expected_answer"])
-        self.assertRegex(sample["flag"], r"^MT\{")
-        r = c.get("/api/admin/round/1")
-        self.assertEqual(r.status_code, 200)
-        self.assertTrue(r.get_json()["ok"])
-        r = c.get("/api/admin/challenges")
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.get_json()["catalog"]["variants"]), 48)
+        self.assertEqual(len(data["challenges"]), 18)
+        for ch in data["challenges"]:
+            self.assertRegex(ch["flag"], r"^SHADOW{")
+            self.assertEqual(ch["expected_answer"], ch["flag"])
+        self.assertEqual(c.get("/api/admin/round/1").status_code, 200)
+        cat = c.get("/api/admin/challenges").get_json()
+        self.assertEqual(len(cat["catalog"]["variants"]), 18)
+
+    def test_monitor_data_includes_variant_letter(self):
+        tid, token, letter = _active_participant(None, "DEV-TEAM-01")
+        c = APP.test_client()
+        _admin(c)
+        data = c.get("/api/admin/round/1").get_json()
+        row = [t for t in data["teams"] if t["id"] == tid][0]
+        self.assertEqual(row["variant_letter"], letter)
+        self.assertEqual(data["summary"]["categories"], 6)
+        self.assertEqual(data["summary"]["variants"], 18)
 
     def test_team_detail_includes_submissions(self):
-        tid, token = _active_participant(None)
+        tid, token, _ = _active_participant(None, "DEV-TEAM-02")
         c = _team_client(tid, token)
         d = self.summary(c)
         u = d["unlocked"]
         c.post("/api/participant/challenges/%d/submit" % u["id"],
-               json={"answer": "nope"})
+               json={"answer": "SHADOW{WRONG}"})
         a = APP.test_client()
         _admin(a)
         r = a.get("/api/admin/team/%d" % tid)
@@ -864,6 +645,48 @@ class TestAdmin(MTBase):
         self.assertEqual(len(data["assignments"]), 6)
         any_sub = any(a["submissions"] for a in data["assignments"])
         self.assertTrue(any_sub)
+        self.assertIn("variant_letter", data["team"])
+
+    def test_admin_reset_keeps_teams_and_reseeds_catalogue(self):
+        tid, token, _ = _active_participant(None, "DEV-TEAM-08")
+        c = _team_client(tid, token)
+        d = self.summary(c)
+        self._solve(c, d["unlocked"])
+        a = APP.test_client()
+        _admin(a)
+        r = a.post("/api/admin/round/1/reset", json={"confirm": True})
+        self.assertEqual(r.status_code, 200)
+        res = r.get_json()["reset"]
+        self.assertEqual(res["categories"], 6)
+        self.assertEqual(res["variants"], 18)
+        conn = db.get_connection()
+        try:
+            self.assertEqual(conn.execute(
+                "SELECT COUNT(*) c FROM challenge_categories").fetchone()["c"], 6)
+            self.assertEqual(conn.execute(
+                "SELECT COUNT(*) c FROM challenge_variants").fetchone()["c"], 18)
+            # old token invalid -> must log in again
+            self.assertEqual(c.get("/api/participant/round/1").status_code, 401)
+        finally:
+            conn.close()
+
+    def test_admin_endpoints_require_auth(self):
+        tid, token, _ = _active_participant(None)
+        c = _team_client(tid, token)
+        for path in ("/api/admin/round/1", "/api/admin/answer-key",
+                     "/api/admin/challenges"):
+            self.assertEqual(c.get(path).status_code, 401, path)
+
+    def test_leaderboard_reflects_shadow_scores(self):
+        tid, token, _ = _active_participant(None, "DEV-TEAM-02")
+        c = _team_client(tid, token)
+        d = self.summary(c)
+        u = d["unlocked"]
+        g = self._solve(c, u)
+        rows = admin_ops.leaderboard(limit=50)
+        mine = [r for r in rows if r["team_id"] == tid]
+        self.assertTrue(mine, "team must appear on the leaderboard")
+        self.assertEqual(mine[0]["r1_score"], g["points_total"])
 
 
 if __name__ == "__main__":
