@@ -410,3 +410,53 @@ def by_code(code):
         if ch["code"] == code:
             return ch
     return None
+
+# ---------------------------------------------------------------------------
+# Option-quiz support (server-side only; never an envelope in any payload).
+# ---------------------------------------------------------------------------
+# Every challenge is presented as a multiple-choice quiz rather than a free
+# text flag input. The participant recovers the inner token from the evidence
+# then PICKS it from `options`. Options are always BARE INNERS: the correct
+# recoverable token plus decoys drawn from a shared pool of clearly-fake
+# OPERATOR-ish words that can never be mistaken for, or equal, any real
+# recoverable inner of any variant (so a wrong pick never quietly equals a
+# real flag of another variant). The SHADOW{...} envelope is assembled only
+# server-side at grading time and never ships in an unsolved payload.
+from hashlib import sha256 as _sha256
+
+# Wordy decoy pool: every token is a plausible-looking "recovered credential"
+# but is GUARANTEED (by test) never to equal the recoverable inner of any
+# variant. Kept separate from real inners on purpose.
+DECOY_POOL = [
+    "temporary_account", "operator_console", "staging_identity",
+    "backup_operator_login", "nightly_service_runner", "portal_supervisor",
+    "staff_session_owner", "archive_sync_daemon", "vault_guest_shell",
+    "crypto_lab_test_user", "email_trail_archivist", "shadow_admin_guest",
+    "log_watcher_bot", "decoder_standby_account", "staff_backdoor_login",
+]
+
+
+def _options_for(code, recoverable_inner):
+    """Deterministic bare-inner options for a variant.
+
+    Returns [correct_inner] + 3 decoys (picked deterministically from
+    DECOY_POOL, never colliding with the correct inner). The correct answer
+    position is derived from the variant code so it is stable across renders
+    but not always first.
+    """
+    decoys = [d for d in DECOY_POOL if d != recoverable_inner]
+    h = int.from_bytes(_sha256(("options:" + code + ":"
+                                + recoverable_inner).encode()).digest(),
+                       "big")
+    picks = []
+    for i in range(3):
+        picks.append(decoys[(h >> (i * 8)) % len(decoys)])
+    opts = [recoverable_inner] + picks
+    # deterministic shuffle: correct at position derived from variant code
+    pos = h % len(opts)
+    opts[0], opts[pos] = opts[pos], opts[0]
+    return {"options": opts, "correct": recoverable_inner}
+
+
+def options_for(code, recoverable_inner):
+    return _options_for(code, recoverable_inner)

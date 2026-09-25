@@ -127,6 +127,37 @@
 #mt-root { padding-bottom: 200px; }
 .mt-answerbar .mt-answerbar-input { min-height: 44px; }
 
+/* Shadow Hunt quiz options (radio quiz) — replace the free-text flag input
+ * with a pick-one list of candidate recovery results. */
+.mt-quiz-options { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+.mt-quiz-opt {
+  flex: 1 1 46%;
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--hud-line);
+  border-radius: 10px;
+  background: rgba(20, 30, 46, 0.55);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.mt-quiz-opt:hover { border-color: var(--hud-purple); }
+.mt-quiz-opt input[type="radio"] {
+  accent-color: var(--hud-purple);
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.mt-quiz-opt.sel {
+  border-color: var(--hud-purple);
+  background: rgba(148, 109, 255, 0.12);
+  box-shadow: 0 0 0 1px var(--hud-purple), 0 0 18px var(--accent-signal-dim);
+}
+.mt-quiz-opt-inner { font-size: 0.85rem; word-break: break-all; }
+
 .mt-tile-active {
   border-color: var(--hud-purple);
   box-shadow: 0 0 0 1px var(--hud-purple), 0 0 24px var(--accent-signal-dim);
