@@ -21,6 +21,7 @@ import access
 import admin_ops
 import round1.db as db
 import round1.assign as assign
+import round1.mt_catalog as mt_catalog
 import round1.seed_mt as seed_mt
 
 MT_ADMIN_KEY = "r1_admin"
@@ -171,6 +172,16 @@ def _is_shadow_assignment(assignment_id):
         conn.close()
 
 
+def _bare_inner(flag):
+    """Recoverable inner of a SHADOW{...}/CIC{...} flag (server-side only)."""
+    f = (flag or "").strip()
+    if f.startswith("SHADOW{") and f.endswith("}"):
+        return f[len("SHADOW{"):-1]
+    if f.startswith("CIC{") and f.endswith("}"):
+        return f[len("CIC{"):-1]
+    return f
+
+
 def _challenge_payload(assignment_id, sess):
     """Public payload for one unlocked assignment (no answers/flags)."""
     d = assign.get_mt_challenge(assignment_id)
@@ -250,6 +261,17 @@ def _challenge_payload(assignment_id, sess):
             payload["artifact_url"] = "/challenge4/%s.html" % (
                 d["variant_code"]).lower()
             cfg.setdefault("artifact_url", payload["artifact_url"])
+    # Shadow Hunt cards are answered as a MULTIPLE-CHOICE QUIZ: the participant
+    # recovers the inner token from the evidence, then PICKS it from `options`
+    # (bare inners — the correct one plus deterministic decoys). The SHADOW{...}
+    # envelope and the `correct` index are NEVER shipped; grading re-checks the
+    # picked inner against the DB flag server-side so the payload stays
+    # answer-free.
+    if shadow:
+        inner = _bare_inner(assign.get_mt_flag(assignment_id))
+        payload["options"] = mt_catalog.options_for(
+            d.get("variant_code") or d.get("challenge_code") or "",
+            inner)["options"]
     return payload
 
 

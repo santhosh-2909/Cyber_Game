@@ -230,6 +230,10 @@
     $('mt-answer-2').value = '';
     $('mt-answer-2').disabled = false;
     $('mt-answer-2').classList.remove('mt-shake');
+
+    renderQuizOptions(u);
+    $('mt-answer').disabled = !shadow || (u.solved || u.failed);
+    $('mt-answer').style.display = shadow && u.options && u.options.length ? 'none' : '';
     $('mt-submit').disabled = false;
     $('mt-hint').style.display = 'none';
     $('mt-result').innerHTML = '';
@@ -292,6 +296,42 @@
         '</div>';
     }
     return wrap;
+  }
+
+  /* Shadow Hunt quiz: the challenge ships a radio list of candidate recovery
+   * results (bare inner tokens). Picking one writes the bare inner into the
+   * hidden flag input, so the existing submit()/grader path is reused as-is. */
+  function renderQuizOptions(u) {
+    var box = $('mt-options');
+    if (!box) return;
+    box.innerHTML = '';
+    var opts = (u && u.options) || [];
+    var inp = $('mt-answer');
+    if (!opts.length) {
+      box.style.display = 'none';
+      if (inp) inp.style.display = '';
+      return;
+    }
+    box.style.display = '';
+    if (inp) inp.style.display = 'none';
+    opts.forEach(function (inner, i) {
+      var label = document.createElement('label');
+      label.className = 'mt-quiz-opt';
+      var radio = document.createElement('input');
+      radio.type = 'radio';
+      radio.name = 'mt-options';
+      radio.value = inner;
+      radio.dataset.idx = i;
+      radio.addEventListener('change', function () {
+        if (inp) inp.value = inner哪有;
+      });
+      var span = document.createElement('span');
+      span.className = 'mt-quiz-opt-inner font-mono';
+      span.textContent = inner;
+      label.appendChild(radio);
+      label.appendChild(span);
+      box.appendChild(label);
+    });
   }
 
   function renderHud() {
