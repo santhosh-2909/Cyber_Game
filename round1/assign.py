@@ -1092,7 +1092,11 @@ def grade_shadow_flag(conn, session_id, assignment_id, team_id, submitted):
     Returns the same dict shape as ``grade_and_award`` so the web layer
     treats both graders identically.
     """
-    limit = MT_MAX_ATTEMPTS
+    # Shadow Hunt is SINGLE-SHOT per card (confirmed spec: "1 pick per card,
+    # 3 challenges total"): a wrong pick FAILs this card at 0 pts immediately
+    # and the session skips to the next open card. No retry on the same card.
+    # grade_and_award (legacy CIC/debug flag flow) keeps MT_MAX_ATTEMPTS.
+    limit = 1
     row = conn.execute(
         "SELECT status FROM team_challenge_assignments WHERE id=?",
         (assignment_id,)).fetchone()
