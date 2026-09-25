@@ -210,10 +210,10 @@ class TestShadowHand(MTShadowBase):
                           "C06-A"])
         for a in d["assignments"]:
             self.assertEqual(a["question_count"], 1)
-            self.assertEqual(a["attempts_limit"], 3)
-        # per-challenge value comes from the category points
+            self.assertEqual(a["attempts_limit"], 2)
+        # Every correctly answered Shadow Hunt question awards 25 points.
         total = sum(a["points"] for a in d["assignments"])
-        self.assertEqual(total, 600)
+        self.assertEqual(total, 150)
 
     def test_different_letters_get_different_variants(self):
         ta, toka, l_a = _active_participant(None, "DEV-TEAM-01")
@@ -233,7 +233,7 @@ class TestShadowHand(MTShadowBase):
         d = self.summary(c)
         u = d["unlocked"]
         self.assertIsNotNone(u)
-        self.assertEqual(u["attempts_limit"], 3)
+        self.assertEqual(u["attempts_limit"], 2)
         self.assertEqual(u["question2"], "")
         self.assertEqual(u["game_type2"], "")
         self.assertTrue(u["question"])
@@ -245,7 +245,7 @@ class TestShadowHand(MTShadowBase):
 
 
 class TestShadowPlay(MTShadowBase):
-    def test_wrong_flag_scored_zero_keeps_challenge_open(self):
+    def test_wrong_flag_allows_two_attempts_then_unlocks_next_question(self):
         tid, token, _ = _active_participant(None, "DEV-TEAM-02")
         c = _team_client(tid, token)
         d = self.summary(c)
@@ -255,35 +255,36 @@ class TestShadowPlay(MTShadowBase):
         self.assertEqual(g["points"], 0)
         self.assertEqual(g["points_total"], 0)
         self.assertEqual(g["attempts_used"], 1)
-        self.assertEqual(g["attempts_limit"], 3)
+        self.assertEqual(g["attempts_limit"], 2)
         self.assertFalse(g["exhausted"])
         self.assertEqual(g["phase"], "q1")
-        # challenge still open, never failed by a single wrong attempt
+        # A card stays open until its second wrong selection.
         self.assertEqual(c.get("/api/participant/challenges/%d" % u["id"])
                          .get_json()["status"], "IN_PROGRESS")
+        g = self._submit(c, u, "SHADOW{WRONG_2}")
+        self.assertTrue(g["exhausted"])
+        next_u = self.summary(c)["unlocked"]
+        self.assertIsNotNone(next_u)
+        self.assertNotEqual(next_u["id"], u["id"])
 
-    def test_three_wrong_attempts_fail_challenge_for_zero_points(self):
+    def test_two_wrong_attempts_fail_challenge_for_zero_points(self):
         tid, token, _ = _active_participant(None, "DEV-TEAM-08")
         c = _team_client(tid, token)
         d = self.summary(c)
         u = d["unlocked"]
-        for i in (1, 2):
-            g = self._submit(c, u, "SHADOW{WRONG_%d}" % i)
-            self.assertFalse(g["accepted"])
-            self.assertFalse(g["exhausted"])
-            self.assertEqual(g["attempts_used"], i)
-            self.assertEqual(g["points_total"], 0)
-        g = self._submit(c, u, "SHADOW{WRONG_3}")
+        g = self._submit(c, u, "SHADOW{WRONG_1}")
+        self.assertFalse(g["exhausted"])
+        g = self._submit(c, u, "SHADOW{WRONG_2}")
         self.assertFalse(g["accepted"])
         self.assertTrue(g["exhausted"])
-        self.assertEqual(g["attempts_used"], 3)
-        self.assertEqual(g["attempts_limit"], 3)
+        self.assertEqual(g["attempts_used"], 2)
+        self.assertEqual(g["attempts_limit"], 2)
         self.assertEqual(g["points_total"], 0)
         # challenge is now FAILED and further submissions are rejected
         detail = c.get("/api/participant/challenges/%d" % u["id"]).get_json()
         self.assertEqual(detail["status"], "FAILED")
         self.assertTrue(detail["failed"])
-        self.assertEqual(detail["attempts_limit"], 3)
+        self.assertEqual(detail["attempts_limit"], 2)
         dup = c.post("/api/participant/challenges/%d/submit" % u["id"],
                      json={"answer": "SHADOW{WRONG_4}"})
         self.assertEqual(dup.status_code, 403)
@@ -293,30 +294,14 @@ class TestShadowPlay(MTShadowBase):
         self.assertTrue(mine and mine[0]["failed"])
         self.assertEqual(self.summary(c)["session"]["status"], "ACTIVE")
 
-    def test_correct_flag_on_third_attempt_still_scores(self):
-        tid, token, _ = _active_participant(None, "DEV-TEAM-09")
-        c = _team_client(tid, token)
-        d = self.summary(c)
-        u = d["unlocked"]
-        expected = next(a["points"] for a in d["assignments"]
-                        if a["id"] == u["id"])
-        for i in (1, 2):
-            self._submit(c, u, "SHADOW{WRONG_%d}" % i)
-        g = self._solve(c, u)
-        self.assertTrue(g["accepted"])
-        self.assertEqual(g["attempts_used"], 3)
-        self.assertEqual(g["attempts_limit"], 3)
-        self.assertEqual(g["points"], expected)
-        self.assertEqual(g["points_total"], expected)
-
     def test_session_completes_when_remaining_cards_resolve_or_fail(self):
         tid, token, _ = _active_participant(None, "DEV-TEAM-04")
         c = _team_client(tid, token)
         d = self.summary(c)
         u = d["unlocked"]
         failed_points = u["points"]
-        # burn this card on 3 wrong flags
-        for i in (1, 2, 3):
+        # Two wrong choices burn this card.
+        for i in (1, 2):
             self._submit(c, u, "SHADOW{WRONG_%d}" % i)
         # solve the other five
         d = self.summary(c)
@@ -324,15 +309,15 @@ class TestShadowPlay(MTShadowBase):
         self.assertEqual(len(opens), 5)
         solved_and_points = 0
         for a in opens:
-            detail = c.get("/api/participant/challenges/%d" % a["id"])
-            self.assertEqual(detail.status_code, 200, a["code"])
-            g = self._solve(c, a)
-            self.assertTrue(g["accepted"], a["code"])
+            current = self.summary(c)["unlocked"]
+            self.assertEqual(current["id"], a["id"])
+            g = self._solve(c, current)
+            self.assertTrue(g["accepted"], current["code"])
             solved_and_points += g["points_total"]
         final = self.summary(c)
         self.assertEqual(final["session"]["status"], "COMPLETED")
         self.assertEqual(final["session"]["solved"], 5)
-        self.assertEqual(final["session"]["score"], 600 - failed_points)
+        self.assertEqual(final["session"]["score"], 125)
         self.assertIsNone(final["unlocked"])
 
     def test_correct_flag_scores_category_points_and_awards_flag(self):
@@ -367,32 +352,28 @@ class TestShadowPlay(MTShadowBase):
         self.assertEqual(g["points"], 0)
         self.assertEqual(g["points_total"], 0)
 
-    def test_any_order_play_all_open(self):
+    def test_only_current_card_is_open(self):
         tid, token, _ = _active_participant(None, "DEV-TEAM-04")
         c = _team_client(tid, token)
         d = self.summary(c)
         ids = [a["id"] for a in d["assignments"]]
-        # every challenge is unlocked from the start (no 403s)
-        for aid in ids:
+        # Only the current card is available; future cards are server-locked.
+        for index, aid in enumerate(ids):
             r = c.get("/api/participant/challenges/%d" % aid)
-            self.assertEqual(r.status_code, 200, aid)
-        # solve the LAST assignment first, scoring lands regardless of order
-        last = d["assignments"][-1]
-        g = self._solve(c, last)
+            self.assertEqual(r.status_code, 200 if index == 0 else 403, aid)
+        first = d["assignments"][0]
+        g = self._solve(c, first)
         self.assertTrue(g["accepted"])
-        self.assertEqual(g["points"],
-                         d["assignments"][-1]["points"])
         d2 = self.summary(c)
         self.assertEqual(d2["session"]["solved"], 1)
-        self.assertEqual(d2["session"]["score"],
-                         d["assignments"][-1]["points"])
+        self.assertEqual(d2["session"]["score"], first["points"])
 
-    def test_all_six_flagged_sum_to_600_and_session_completes(self):
+    def test_all_six_flagged_sum_to_150_and_session_completes(self):
         tid, token, _ = _active_participant(None, "DEV-TEAM-06")
         c = _team_client(tid, token)
         d = self.summary(c)
         expected_total = sum(a["points"] for a in d["assignments"])
-        self.assertEqual(expected_total, 600)
+        self.assertEqual(expected_total, 150)
         flushed = []
         for i, a in enumerate(d["assignments"]):
             g = self._solve(c, a)
@@ -407,7 +388,7 @@ class TestShadowPlay(MTShadowBase):
                                  self._server_flag(a["id"]), a["code"])
         final = self.summary(c)
         self.assertEqual(final["session"]["solved"], 6)
-        self.assertEqual(final["session"]["score"], 600)
+        self.assertEqual(final["session"]["score"], 150)
         self.assertEqual(final["session"]["status"], "COMPLETED")
         self.assertIsNone(final["unlocked"])
         for a in final["assignments"]:
@@ -514,20 +495,16 @@ class TestShadowPlay(MTShadowBase):
         for team_idx in ("DEV-TEAM-%02d" % i for i in range(1, 13)):
             tid, token, _ = _active_participant(None, team_idx)
             c = _team_client(tid, token)
-            d = self.summary(c)
-            for a in d["assignments"]:
-                du = c.get("/api/participant/challenges/%d" % a["id"]).get_json()
-                if du["status"] == "COMPLETED":
-                    continue
+            for _ in range(6):
+                du = self.summary(c)["unlocked"]
+                self.assertIsNotNone(du)
                 blob = json.dumps(du)
-                self.assertEqual(du["flag"], "", a["code"])
+                self.assertEqual(du["flag"], "", du["code"])
                 for f in real_flags:
                     self.assertNotIn(f, blob, "%s leaked in %s"
-                                     % (f, a["code"]))
+                                     % (f, du["code"]))
                 seen_codes.add(du["code"])
-            # solve the whole hand so next teams see fresh sessions
-            for a in d["assignments"]:
-                self._solve(c, a)
+                self._solve(c, du)
         self.assertGreaterEqual(len(seen_codes), 18,
                                 "expected all 18 A/B/C variants seen")
 

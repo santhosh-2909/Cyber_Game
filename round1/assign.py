@@ -376,6 +376,10 @@ import os
 MT_DEFAULT_CHALLENGES = 6
 MT_DEFAULT_POINTS = 25
 MT_MAX_ATTEMPTS = 3        # max wrong tries per MYSTERY TRACE question
+# Shadow Hunt allows two choices. The second wrong selection closes the card
+# for zero points and the next card becomes available.
+SHADOW_MAX_ATTEMPTS = 2
+SHADOW_POINTS_PER_QUESTION = 25
 STRIKE_WINDOW_SECONDS = 30  # time-strike window: +2 marks per 5s saved
 
 # Assignment-seed secret. Real events supply MT_ASSIGNMENT_SECRET; a stable
@@ -492,8 +496,9 @@ def assign_mt(team_id, secret=None):
 
     Shadow Hunt (Round 1 rework): teams carry a round-robin variant letter
     (A/B/C). Their hand is ALL six challenges, each handed with the single
-    variant matching their letter (one flag question per challenge), all
-    unlocked together so any order is playable.
+    variant matching their letter (one multiple-choice question per card),
+    opened sequentially. A card settles on a correct choice or its second
+    wrong choice.
     """
     conn = db.get_connection()
     try:
@@ -662,7 +667,7 @@ def get_mt_unlocked_id(session_id):
     """First unresolved (IN_PROGRESS) assignment -> the open challenge.
 
     Once every challenge is settled (COMPLETED or FAILED) there is nothing
-    left to attempt and None is returned (.e. the hand is finished).
+    left to attempt and None is returned (i.e. the hand is finished).
     """
     conn = db.get_connection()
     try:
@@ -721,9 +726,8 @@ def is_mt_unlocked(session_id, assignment_id):
     (lowest-order) open challenge is attemptable; completed or failed
     challenges stay viewable/re-verifiable but never expose future ones.
 
-    Shadow Hunt: all challenges are unlocked at once (any order), so any
-    still-open assignment of a Shadow Hunt session is attemptable until
-    it is solved.
+    Shadow Hunt uses the same sequential progression: one evaluated attempt
+    settles the current card, then the next card is unlocked.
     """
     conn = db.get_connection()
     try:
@@ -734,8 +738,6 @@ def is_mt_unlocked(session_id, assignment_id):
             return False
         if row["status"] in ("COMPLETED", "FAILED"):
             return True
-        if _session_is_shadow(session_id):
-            return True  # Shadow Hunt: every open challenge is attemptable.
         unlocked = get_mt_unlocked_id(session_id)
         return unlocked is not None and unlocked == assignment_id
     finally:
@@ -1004,9 +1006,8 @@ def record_mt_submission(session_id, assignment_id, submitted, stage,
 # value is evaluated against the flag SAVED in the database
 # (challenge_variants.flag). Every wrong answer is recorded as a WRONG
 # ATTEMPT (persisted in submissions, surfaced to the UI). A challenge allows
-# MT_MAX_ATTEMPTS (3) flags: a wrong guess never costs points, but the 3rd
-# wrong answer FAILS the challenge (0 pts) and the team moves on to the next
-# open card. A correct flag completes the challenge for its category points.
+# two evaluated selections: the second wrong guess fails the card (0 pts)
+# and moves the team to the next card. A correct flag completes it for 25 pts.
 #
 # Detection is by flag prefix, so the rework is inert until the Shadow Hunt
 # catalogue (SHADOW{...} flags) is seeded; the existing MT / legacy flows are
@@ -1066,16 +1067,8 @@ def _session_is_shadow(session_id):
 
 
 def _shadow_points(assignment_id):
-    """Category points for an assignment (the Shadow Hunt per-challenge mark)."""
-    conn = db.get_connection()
-    try:
-        row = conn.execute(
-            "SELECT c.points FROM team_challenge_assignments a "
-            "JOIN challenge_categories c ON a.challenge_category_id = c.id "
-            "WHERE a.id=?", (assignment_id,)).fetchone()
-        return int(row["points"]) if row else 100
-    finally:
-        conn.close()
+    """Fixed score for a correctly answered Shadow Hunt question."""
+    return SHADOW_POINTS_PER_QUESTION
 
 
 def grade_shadow_flag(conn, session_id, assignment_id, team_id, submitted):
@@ -1092,11 +1085,9 @@ def grade_shadow_flag(conn, session_id, assignment_id, team_id, submitted):
     Returns the same dict shape as ``grade_and_award`` so the web layer
     treats both graders identically.
     """
-    # Shadow Hunt is SINGLE-SHOT per card (confirmed spec: "1 pick per card,
-    # 3 challenges total"): a wrong pick FAILs this card at 0 pts immediately
-    # and the session skips to the next open card. No retry on the same card.
-    # grade_and_award (legacy CIC/debug flag flow) keeps MT_MAX_ATTEMPTS.
-    limit = 1
+    # Shadow Hunt permits two choices per card. A wrong choice closes the
+    # card only after the second attempt; grade_and_award is unchanged.
+    limit = SHADOW_MAX_ATTEMPTS
     row = conn.execute(
         "SELECT status FROM team_challenge_assignments WHERE id=?",
         (assignment_id,)).fetchone()
@@ -1128,18 +1119,24 @@ def grade_shadow_flag(conn, session_id, assignment_id, team_id, submitted):
 
     if not correct:
         exhausted = new_attempts >= limit
+        session_done = False
         if exhausted:
             conn.execute(
                 "UPDATE team_challenge_assignments SET status='FAILED', "
                 "completed_at=? WHERE id=? AND status='IN_PROGRESS'",
                 (db.now_ms(), assignment_id))
+            session_done = _mt_hand_finished(conn, session_id)
+            if session_done:
+                conn.execute(
+                    "UPDATE round_sessions SET status='COMPLETED', completed_at=? "
+                    "WHERE id=? AND status='ACTIVE'", (db.now_ms(), session_id))
         conn.commit()
         return {"accepted": False, "q1_done": False, "phase": "q1",
                 "already_solved": False, "exhausted": exhausted,
                 "stage_attempts": new_attempts,
                 "attempts_used": new_attempts, "attempts_limit": limit,
                 "flag": "", "points": 0, "strike": 0, "points_total": 0,
-                "session_done": False}
+                "session_done": session_done}
 
     points = _shadow_points(assignment_id)
     now = db.now_ms()

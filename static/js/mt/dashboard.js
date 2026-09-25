@@ -108,25 +108,19 @@
       if (a.solved) cls += ' mt-tile-solved';
       else if (a.failed) cls += ' mt-tile-failed';
       if (a.id === unlockedId) cls += ' mt-tile-active';
-      if (shadow) cls += ' mt-tile-clickable';
-      // Shadow Hunt: every challenge is open (click to open any of them).
       var icon = a.solved ? '&#10003;'
                : a.failed ? '&#10007;'
-               : (shadow ? '&#9654;'
-                         : (a.id === unlockedId ? '&#9654;' : '&#128274;'));
+               : (a.id === unlockedId ? '&#9654;' : '&#128274;');
       var footer;
       if (a.solved) {
         footer = '<div class="hud-badge hud-badge-green mt-tile-pts">+' + (a.points_awarded || a.points || 25) + ' pts</div>';
       } else if (a.failed) {
         footer = '<div class="hud-badge hud-badge-red mt-tile-pts">CLOSED</div>';
-      } else if (shadow) {
+      } else if (a.id === unlockedId && shadow) {
         footer = '<div class="hud-badge hud-badge-green mt-tile-pts font-mono" title="Points for this challenge">' +
           esc(a.points || 25) + ' pts</div>' +
-          (a.id === unlockedId
-            ? '<div class="hud-badge hud-badge-amber mt-tile-pts font-mono">' +
-              esc(a.attempts_used || 0) + ' att</div>'
-            : '<div class="hud-stat-label mt-tile-lock" style="color:var(--hud-green, #4ade80);">OPEN' +
-              (a.attempts_used ? ' &middot; ' + (a.attempts_used || 0) + ' att' : '') + '</div>');
+          '<div class="hud-badge hud-badge-amber mt-tile-pts font-mono">' +
+          esc((a.attempts_used || 0) + '/' + (a.attempts_limit || 2)) + ' tries</div>';
       } else if (a.id === unlockedId) {
         footer = '<div class="hud-badge hud-badge-amber mt-tile-pts font-mono">' +
           esc((a.attempts_used || 0) + '/' + (a.attempts_limit || 3)) + ' tries</div>' +
@@ -137,7 +131,7 @@
           '<div class="hud-stat-label mt-tile-lock">LOCKED</div>';
       }
       return '<div class="' + cls + '" data-id="' + a.id + '"' +
-        (shadow ? ' tabindex="0" role="button" aria-label="Open ' + esc(a.title) + '"' : '') + '>' +
+        '>' +
         '<div class="mt-tile-top font-mono">' +
           '<span class="mt-tile-num">' + a.sequence_number + '</span>' +
           '<span class="mt-tile-icon">' + icon + '</span>' +
@@ -177,7 +171,7 @@
     var q2 = u.phase === 'q2';
     var shadow = isShadow();
     // Solved Shadow Hunt cards are view-only: evidence + recorded flag.
-    // Exhausted (3 wrong flags) cards are view-only too: the challenge is
+    // Exhausted cards are view-only too: the challenge is
     // CLOSED, the team moves on to the next open card.
     var closedView = shadow && (u.solved || u.failed);
 
@@ -247,12 +241,12 @@
           ab.textContent = 'SOLVED';
           ab.className = 'hud-badge hud-badge-green font-mono';
         } else if (u.failed) {
-          ab.textContent = 'OUT OF TRIES (' + (u.attempts_used || 0) + '/' +
-            (u.attempts_limit || 3) + ')';
+          ab.textContent = 'ATTEMPTS ENDED (' + (u.attempts_used || 0) + '/' +
+            (u.attempts_limit || 2) + ')';
           ab.className = 'hud-badge hud-badge-red font-mono';
         } else {
           ab.textContent = 'TRIES ' + (u.attempts_used || 0) + '/' +
-            (u.attempts_limit || 3);
+            (u.attempts_limit || 2);
           ab.className = 'hud-badge hud-badge-amber font-mono';
         }
       } else {
@@ -323,7 +317,7 @@
       radio.value = inner;
       radio.dataset.idx = i;
       radio.addEventListener('change', function () {
-        if (inp) inp.value = inner哪有;
+        if (inp) inp.value = inner;
       });
       var span = document.createElement('span');
       span.className = 'mt-quiz-opt-inner font-mono';
@@ -462,23 +456,6 @@
     input.classList.remove('mt-shake');
     void input.offsetWidth;
     input.classList.add('mt-shake');
-  }
-
-  /* Shadow Hunt: click an open tile to open that challenge (any order). The
-   * server still guards the session/timer; this only drives client view. */
-  function openChallenge(id) {
-    if (!isShadow()) return;
-    if (state && state.unlocked && state.unlocked.id === id) return;
-    api('/api/participant/challenges/' + id, {})
-      .then(function (res) {
-        var d = res.d;
-        if (!d || d.ok === false) { load(); return; }
-        state.unlocked = d;
-        _focusQ2 = false;
-        renderHand();
-        renderUnlocked();
-        startStrike();
-      });
   }
 
   function load() {
@@ -642,13 +619,9 @@
             esc(d.message) + '</p></div>';
           setTimeout(function () { load(); }, 1200);
         } else {
-          // Wrong answer -> pop a TRY AGAIN dialog (answers are compared
-          // case-insensitively server-side).
-          var wrongNote = isShadow()
-            ? 'Wrong flag — ' + d.attempts_used + ' of ' +
-              (d.attempts_limit || 3) + ' tries used, no points lost. '
-            : 'Your answer did not unlock this case. ' +
-              d.attempts_used + ' of ' + d.attempts_limit + ' attempts used — ';
+          // Legacy Mystery Trace questions retain their multi-try dialog.
+          var wrongNote = 'Your answer did not unlock this case. ' +
+            d.attempts_used + ' of ' + d.attempts_limit + ' attempts used — ';
           pop('INCORRECT', wrongNote + 're-verify the evidence and try again.', '');
           btn.disabled = false;
           var ab = $('mt-attempts');
@@ -718,26 +691,6 @@
     }
     var hintBtn = $('mt-hint-btn');
     if (hintBtn) hintBtn.addEventListener('click', function () { kick(hintBtn); hint(); });
-
-    // Shadow Hunt: click / keyboard-open any open tile.
-    var hand = $('mt-hand');
-    if (hand) {
-      hand.addEventListener('click', function (e) {
-        var t = e.target && e.target.closest ? e.target.closest('.mt-tile') : null;
-        if (!t) return;
-        var id = parseInt(t.getAttribute('data-id'), 10);
-        if (id > 0) openChallenge(id);
-      });
-      hand.addEventListener('keydown', function (e) {
-        var t = e.target && e.target.closest ? e.target.closest('.mt-tile') : null;
-        if (!t) return;
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          var id = parseInt(t.getAttribute('data-id'), 10);
-          if (id > 0) openChallenge(id);
-        }
-      });
-    }
 
     var popTry = $('mt-pop-try');
     if (popTry) {

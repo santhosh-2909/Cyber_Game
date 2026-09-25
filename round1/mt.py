@@ -123,7 +123,8 @@ def _overview_payload(sess):
                           if shadow_session else assign.get_mt_stage_attempts(
                               a["assignment_id"],
                               2 if a.get("q1_solved") else 1)),
-        "attempts_limit": assign.MT_MAX_ATTEMPTS,
+        "attempts_limit": (assign.SHADOW_MAX_ATTEMPTS if shadow_session
+                           else assign.MT_MAX_ATTEMPTS),
         "question_count": 1 if shadow_session else 2,
         "code": (a["challenge_code"] + "-" + a["variant_code"])
                 if shadow_session else a["variant_code"],
@@ -225,7 +226,8 @@ def _challenge_payload(assignment_id, sess):
                           if shadow else assign.get_mt_stage_attempts(
                               d["assignment_id"],
                               2 if d.get("q1_solved") else 1)),
-        "attempts_limit": assign.MT_MAX_ATTEMPTS,
+        "attempts_limit": (assign.SHADOW_MAX_ATTEMPTS if shadow
+                           else assign.MT_MAX_ATTEMPTS),
         "code": (d["challenge_code"] + "-" + d["variant_code"])
                 if shadow else d["variant_code"],
         "domain": d.get("domain") or "",
@@ -413,12 +415,8 @@ def api_challenge_submit(assignment_id):
             pass
 
     if result["exhausted"]:
-        if result["attempts_limit"] == 1:
-            message = ("Incorrect — that pick failed this challenge. "
-                       "Moving to the next one.")
-        else:
-            message = ("3 attempts used on this question — moving to the "
-                       "next challenge.")
+        message = ("Two attempts used on this question — no points "
+                   "awarded. Moving to the next question.")
     elif result["already_solved"]:
         message = "Already solved earlier."
     elif result["accepted"] and result["flag"]:
