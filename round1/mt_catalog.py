@@ -236,15 +236,18 @@ CHALLENGES = [
         "points": 100, "difficulty": "Easy-Medium",
         "solve_time": "4m",
         "q": "A staff-only portal is still live and someone left a hidden login "
-            "trail on it. Open the portal and inspect its RAW HTML SOURCE to "
-            "find the hidden USERNAME, then wrap it in SHADOW{...}. The flag is "
-            "the recovered USERNAME wrapped in UPPERCASE (recover a lowercase "
-            "username, submit it UPPERCASED inside SHADOW{...}).",
-        "hint": "The portal hides the USERNAME in its page metadata -- an HTML "
-                "comment or meta tag that appears only in the page source, "
-                "never in the rendered page. Read the RAW SOURCE to find it.",
-        "ev": "A staff-only login trail is still live. Open the portal and read "
-              "its SOURCE to recover the hidden USERNAME.",
+            "trail on it -- right HERE, in this very portal page. Inspect the "
+            "RAW HTML SOURCE of THIS portal to find the hidden USERNAME, then "
+            "wrap it in SHADOW{...}. The flag is the recovered USERNAME "
+            "wrapped in UPPERCASE (recover a lowercase username, submit it "
+            "UPPERCASED inside SHADOW{...}).",
+        "hint": "The portal hides the USERNAME in this page's metadata -- an "
+                "HTML comment or meta tag that appears only in the RAW SOURCE, "
+                "never in the rendered page. Read the RAW SOURCE of THIS page "
+                "to find it.",
+        "ev": "A staff-only login trail is still live, right here in this "
+              "portal page. Read THIS portal's SOURCE to recover the hidden "
+              "USERNAME.",
         "cfg": {"artifact_url": "/challenge4/A.html"},
     },
     {
